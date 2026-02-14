@@ -740,9 +740,27 @@ function ProgramsPage() {
   const { user, programs, saveProgram, deleteProgram, customExercises, addCustomExercise, editingProgram: editing, setEditingProgram: setEditing } = useForge();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerDayIdx, setPickerDayIdx] = useState(null);
+  const [collapsedDays, setCollapsedDays] = useState(new Set());
   const [newExName, setNewExName] = useState("");
   const [newExMuscle, setNewExMuscle] = useState("chest");
   const [newExEquip, setNewExEquip] = useState("barbell");
+
+  function toggleDayCollapse(dayId) {
+    setCollapsedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(dayId)) next.delete(dayId); else next.add(dayId);
+      return next;
+    });
+  }
+
+  function collapseAllDays() {
+    if (!editing) return;
+    setCollapsedDays(new Set(editing.days.map(d => d.id)));
+  }
+
+  function expandAllDays() {
+    setCollapsedDays(new Set());
+  }
 
   function startNew() {
     setEditing({ id: null, name: "", description: "", days: [], shared: false, user_id: user.id });
@@ -808,81 +826,104 @@ function ProgramsPage() {
   if (editing) {
     return (
       <div className="fade-in">
-        {showPicker && (
-          <ExercisePicker customExercises={customExercises}
-            onSelect={(ex) => { addExerciseToDay(pickerDayIdx, ex); }}
-            onClose={() => setShowPicker(false)} />
-        )}
-        <div style={S.card}>
-          <div style={S.label}>{editing.id ? "Edit Program" : "New Program"}</div>
-          <input value={editing.name} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={{ ...S.input, marginBottom: 8 }} placeholder="Program name" />
-          <input value={editing.description} onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} style={{ ...S.input, marginBottom: 8, fontSize: 12 }} placeholder="Description (optional)" />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#737373", cursor: "pointer" }}>
-            <input type="checkbox" checked={editing.shared} onChange={e => setEditing(p => ({ ...p, shared: e.target.checked }))} />
-            Share with all users
-          </label>
-        </div>
+      {showPicker && (
+        <ExercisePicker customExercises={customExercises}
+        onSelect={(ex) => { addExerciseToDay(pickerDayIdx, ex); }}
+        onClose={() => setShowPicker(false)} />
+      )}
+      <div style={S.card}>
+      <div style={S.label}>{editing.id ? "Edit Program" : "New Program"}</div>
+      <input value={editing.name} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={{ ...S.input, marginBottom: 8 }} placeholder="Program name" />
+      <input value={editing.description} onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} style={{ ...S.input, marginBottom: 8, fontSize: 12 }} placeholder="Description (optional)" />
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#737373", cursor: "pointer" }}>
+      <input type="checkbox" checked={editing.shared} onChange={e => setEditing(p => ({ ...p, shared: e.target.checked }))} />
+      Share with all users
+      </label>
+      </div>
 
-        {editing.days.map((day, di) => (
+      {editing.days.length > 1 && (
+        <div style={{ padding: "0 16px 4px", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+        <button onClick={collapseAllDays} style={S.sm()}>Collapse All</button>
+        <button onClick={expandAllDays} style={S.sm()}>Expand All</button>
+        </div>
+      )}
+
+      {editing.days.map((day, di) => {
+        const isCollapsed = collapsedDays.has(day.id);
+        return (
           <div key={day.id} style={S.card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={S.label}>Day {di + 1}</div>
-              <button onClick={() => removeDay(di)} style={S.sm("danger")}>Remove Day</button>
-            </div>
+          <div onClick={() => toggleDayCollapse(day.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", marginBottom: isCollapsed ? 0 : 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: "#525252", fontSize: 12, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>▼</span>
+          <div>
+          <div style={S.label}>Day {di + 1}{day.label ? ` — ${day.label}` : ""}</div>
+          {isCollapsed && <div style={{ fontSize: 10, color: "#525252" }}>{day.exercises?.length || 0} exercises</div>}
+          </div>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); removeDay(di); }} style={S.sm("danger")}>Remove</button>
+          </div>
+
+          {!isCollapsed && (
+            <>
             <input value={day.label} onChange={e => updateDay(di, "label", e.target.value)} style={{ ...S.input, marginBottom: 6, fontSize: 13 }} placeholder="Day label (e.g. Push 1)" />
             <input value={day.subtitle} onChange={e => updateDay(di, "subtitle", e.target.value)} style={{ ...S.input, marginBottom: 8, fontSize: 11 }} placeholder="Subtitle (e.g. Chest / Triceps)" />
 
             {day.exercises.map((ex, ei) => (
               <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #1a1a1a" }}>
-                <span style={{ fontSize: 12, color: "#d4d4d4", flex: 1 }}>{ex.name}</span>
-                <input type="number" inputMode="numeric" value={ex.defaultSets} onChange={e => {
-                  setEditing(p => {
-                    const n = { ...p, days: [...p.days] };
-                    const exs = [...n.days[di].exercises];
-                    exs[ei] = { ...exs[ei], defaultSets: Number(e.target.value) || 3 };
-                    n.days[di] = { ...n.days[di], exercises: exs };
-                    return n;
-                  });
-                }} style={{ ...S.smInput, width: 40 }} title="Sets" />
-                <span style={{ fontSize: 9, color: "#525252" }}>sets</span>
-                {ei > 0 && <button onClick={() => moveExInDay(di, ei, -1)} style={S.sm()}>↑</button>}
-                {ei < day.exercises.length - 1 && <button onClick={() => moveExInDay(di, ei, 1)} style={S.sm()}>↓</button>}
-                <button onClick={() => removeExFromDay(di, ei)} style={S.sm("danger")}>✕</button>
+              <span style={{ fontSize: 12, color: "#d4d4d4", flex: 1 }}>{ex.name}</span>
+              <input type="number" inputMode="numeric" value={ex.defaultSets} onChange={e => {
+                setEditing(p => {
+                  const n = { ...p, days: [...p.days] };
+                  const exs = [...n.days[di].exercises];
+                  exs[ei] = { ...exs[ei], defaultSets: Number(e.target.value) || 3 };
+                  n.days[di] = { ...n.days[di], exercises: exs };
+                  return n;
+                });
+              }} style={{ ...S.smInput, width: 40 }} title="Sets" />
+              <span style={{ fontSize: 9, color: "#525252" }}>sets</span>
+              {ei > 0 && <button onClick={() => moveExInDay(di, ei, -1)} style={S.sm()}>↑</button>}
+              {ei < day.exercises.length - 1 && <button onClick={() => moveExInDay(di, ei, 1)} style={S.sm()}>↓</button>}
+              <button onClick={() => removeExFromDay(di, ei)} style={S.sm("danger")}>✕</button>
               </div>
             ))}
             <button onClick={() => { setPickerDayIdx(di); setShowPicker(true); }} style={{ ...S.sm(), marginTop: 8 }}>+ Add Exercise</button>
+            </>
+          )}
           </div>
-        ))}
+        );
+      })}
 
-        <div style={{ padding: "4px 16px" }}>
-          <button onClick={addDay} style={{ ...S.btn("ghost"), width: "100%" }}>+ Add Day</button>
+      <div style={{ padding: "4px 16px" }}>
+      <button onClick={addDay} style={{ ...S.btn("ghost"), width: "100%" }}>+ Add Day</button>
+      </div>
+      <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
+      <button onClick={() => { if (confirm("Discard unsaved changes?")) setEditing(null); }} style={{ ...S.btn("ghost"), flex: 1 }}>Cancel</button>
+      <button onClick={save} style={{ ...S.btn("primary"), flex: 2 }}>Save Program</button>
+      </div>
+      {editing.id && (
+        <div style={{ padding: "0 16px 20px" }}>
+        <button onClick={() => { deleteProgram(editing.id); setEditing(null); }} style={{ ...S.btn("ghost"), width: "100%", color: "#ef4444", borderColor: "#7f1d1d" }}>Delete Program</button>
         </div>
-        <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
-          <button onClick={() => { if (confirm("Discard unsaved changes?")) setEditing(null); }} style={{ ...S.btn("ghost"), flex: 1 }}>Cancel</button>
-          <button onClick={save} style={{ ...S.btn("primary"), flex: 2 }}>Save Program</button>
-        </div>
+      )}
       </div>
     );
   }
 
   return (
     <div className="fade-in">
-      <div style={{ padding: "4px 16px 0" }}><div style={S.label}>Your Programs</div></div>
-      {programs.filter(p => p.user_id === user.id).map(p => (
-        <div key={p.id} style={S.card}>
+    <div style={{ padding: "4px 16px 0" }}><div style={S.label}>Your Programs</div></div>
+    {programs.filter(p => p.user_id === user.id).map(p => (
+        <div key={p.id} onClick={() => editProgram(p)} style={{ ...S.card, cursor: "pointer" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{p.name}</div>
               {p.description && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{p.description}</div>}
-              <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>{p.days?.length || 0} days · {p.shared ? "Shared" : "Private"}</div>
-            </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => editProgram(p)} style={S.sm()}>Edit</button>
-              <button onClick={() => deleteProgram(p.id)} style={S.sm("danger")}>Delete</button>
-            </div>
+            <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>{p.days?.length || 0} days · {p.shared ? "Shared" : "Private"}</div>
           </div>
+          <span style={{ color: "#525252", fontSize: 18 }}>→</span>
         </div>
-      ))}
+      </div>
+    ))}
       {programs.filter(p => p.user_id !== user.id && p.shared).length > 0 && (
         <>
           <div style={{ padding: "12px 16px 0" }}><div style={S.label}>Shared Programs</div></div>

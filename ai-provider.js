@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// FORGE AI Provider Abstraction
+// TALOS AI Provider Abstraction
 // Supports: Anthropic, OpenAI, Gemini, OpenAI-compatible (Ollama, LM Studio, etc.)
 // ═══════════════════════════════════════════════════════════════
 

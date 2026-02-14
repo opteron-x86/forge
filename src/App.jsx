@@ -17,7 +17,7 @@ const genId = () => Date.now().toString(36) + Math.random().toString(36).substr(
 const fmtDate = (d) => { const dt = new Date(d + "T12:00:00"); return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); };
 const est1RM = (w, r) => { if (!w || !r) return null; if (r === 1) return w; if (r > 12) return null; return Math.round(w * (1 + r / 30)); };
 
-const USER_COLORS = ["#f97316", "#3b82f6", "#8b5cf6", "#ec4899", "#10b981", "#eab308", "#ef4444", "#06b6d4"];
+const USER_COLORS = ["#c9952d", "#3b82f6", "#8b5cf6", "#ec4899", "#10b981", "#eab308", "#ef4444", "#06b6d4"];
 const FEEL = [
   { v: 1, l: "Terrible", c: "#ef4444" }, { v: 2, l: "Low", c: "#f97316" },
   { v: 3, l: "Average", c: "#eab308" }, { v: 4, l: "Good", c: "#22c55e" }, { v: 5, l: "Great", c: "#10b981" },
@@ -30,14 +30,14 @@ const S = {
   header: { padding: "16px 16px 10px", borderBottom: "1px solid #262626", background: "#0a0a0a", position: "sticky", top: 0, zIndex: 100, display: "flex", justifyContent: "space-between", alignItems: "center" },
   title: { fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", color: "#fafafa", margin: 0, display: "flex", alignItems: "center", gap: 8 },
   nav: { display: "flex", gap: 2, background: "#171717", borderRadius: 8, padding: 3, position: "fixed", bottom: "max(12px,env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", zIndex: 200, border: "1px solid #262626" },
-  navBtn: (a) => ({ padding: "8px 12px", borderRadius: 6, border: "none", background: a ? "#f97316" : "transparent", color: a ? "#000" : "#737373", fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
+  navBtn: (a) => ({ padding: "8px 12px", borderRadius: 6, border: "none", background: a ? "#c9952d" : "transparent", color: a ? "#000" : "#737373", fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
   card: { background: "#141414", border: "1px solid #262626", borderRadius: 10, padding: 16, margin: "8px 16px" },
   label: { fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: "#737373", marginBottom: 6 },
   input: { background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, padding: "8px 10px", color: "#e5e5e5", fontSize: 14, fontFamily: "inherit", width: "100%", boxSizing: "border-box", outline: "none" },
   smInput: { background: "#1a1a1a", border: "1px solid #333", borderRadius: 4, padding: "6px 4px", color: "#e5e5e5", fontSize: 13, fontFamily: "inherit", width: "100%", textAlign: "center", boxSizing: "border-box", outline: "none" },
-  btn: (v = "primary") => ({ padding: "10px 18px", borderRadius: 8, border: v === "ghost" ? "1px solid #333" : "none", background: v === "primary" ? "#f97316" : v === "danger" ? "#dc2626" : "transparent", color: v === "primary" ? "#000" : v === "danger" ? "#fff" : "#a3a3a3", fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
-  sm: (v = "ghost") => ({ padding: "4px 8px", borderRadius: 4, border: v === "ghost" ? "1px solid #333" : "none", background: v === "primary" ? "#f97316" : v === "danger" ? "#7f1d1d" : "transparent", color: v === "primary" ? "#000" : v === "danger" ? "#fca5a5" : "#737373", fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
-  tag: (c = "#f97316") => ({ display: "inline-block", padding: "3px 8px", borderRadius: 4, background: c + "20", color: c, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }),
+  btn: (v = "primary") => ({ padding: "10px 18px", borderRadius: 8, border: v === "ghost" ? "1px solid #333" : "none", background: v === "primary" ? "#c9952d" : v === "danger" ? "#dc2626" : "transparent", color: v === "primary" ? "#000" : v === "danger" ? "#fff" : "#a3a3a3", fontSize: 12, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
+  sm: (v = "ghost") => ({ padding: "4px 8px", borderRadius: 4, border: v === "ghost" ? "1px solid #333" : "none", background: v === "primary" ? "#c9952d" : v === "danger" ? "#7f1d1d" : "transparent", color: v === "primary" ? "#000" : v === "danger" ? "#fca5a5" : "#737373", fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
+  tag: (c = "#c9952d") => ({ display: "inline-block", padding: "3px 8px", borderRadius: 4, background: c + "20", color: c, fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }),
   stat: { textAlign: "center" },
   statV: { fontSize: 24, fontWeight: 800, color: "#fafafa" },
   statL: { fontSize: 10, color: "#737373", letterSpacing: "1px", textTransform: "uppercase", marginTop: 2 },
@@ -49,7 +49,7 @@ const S = {
 // ═══════════════════════ CONTEXT ═══════════════════════
 
 const Ctx = createContext();
-const useForge = () => useContext(Ctx);
+const useTalos = () => useContext(Ctx);
 
 // ═══════════════════════ LOGIN ═══════════════════════
 
@@ -90,8 +90,8 @@ function Login({ onLogin }) {
 
   return (
     <div style={{ ...S.app, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", padding: 32, paddingBottom: 32 }}>
-      <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}><span style={{ color: "#f97316" }}>◆</span> FORGE</div>
-      <div style={{ color: "#525252", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Build Yourself</div>
+      <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}><span style={{ color: "#c9952d" }}>Δ</span> TALOS</div>
+      <div style={{ color: "#525252", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Unyielding</div>
 
       {mode === "select" && (
         <div style={{ width: "100%", maxWidth: 320 }} className="fade-in">
@@ -241,7 +241,7 @@ function RestTimer({ seconds, onDone, onCancel }) {
 // ═══════════════════════ LOG PAGE ═══════════════════════
 
 function LogPage({ onStartWorkout }) {
-  const { workouts, programs, profile } = useForge();
+  const { workouts, programs, profile } = useTalos();
   const totalVol = workouts.reduce((a, w) => a + (w.exercises?.reduce((b, e) => b + (e.sets?.reduce((c, s) => c + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0), 0);
 
   // Determine next day from last workout's program
@@ -263,9 +263,9 @@ function LogPage({ onStartWorkout }) {
 
       {programs.length === 0 && (
         <div style={{ ...S.card, textAlign: "center" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>◆</div>
-          <div style={{ color: "#fafafa", fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Welcome to FORGE</div>
-          <div style={{ color: "#525252", fontSize: 12, lineHeight: 1.5 }}>Create a program in the <span style={{ color: "#f97316" }}>Prog</span> tab to get started, or hit Blank Workout below to jump right in.</div>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>Δ</div>
+          <div style={{ color: "#fafafa", fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Welcome to TALOS</div>
+          <div style={{ color: "#525252", fontSize: 12, lineHeight: 1.5 }}>Create a program in the <span style={{ color: "#c9952d" }}>Prog</span> tab to get started, or hit Blank Workout below to jump right in.</div>
         </div>
       )}
 
@@ -274,7 +274,7 @@ function LogPage({ onStartWorkout }) {
           <div style={{ padding: "12px 16px 4px" }}><div style={S.label}>{prog.name}</div></div>
           {prog.days?.map((day, i) => (
             <div key={day.id} onClick={() => onStartWorkout(prog, day)}
-              style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: (lastProgram?.id === prog.id && i === nextDayIdx) ? "#f97316" : "#262626" }}>
+              style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: (lastProgram?.id === prog.id && i === nextDayIdx) ? "#c9952d" : "#262626" }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
                 {day.subtitle && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{day.subtitle}</div>}
@@ -304,7 +304,7 @@ function LogPage({ onStartWorkout }) {
 // ═══════════════════════ ACTIVE WORKOUT ═══════════════════════
 
 function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
-  const { workouts, profile, customExercises, aiConfig } = useForge();
+  const { workouts, profile, customExercises, aiConfig } = useTalos();
   const [elapsed, setElapsed] = useState(0);
   const [restTimer, setRestTimer] = useState(null); // seconds remaining
   const [showPicker, setShowPicker] = useState(false);
@@ -472,7 +472,7 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
               <button onClick={() => setSubModal(null)} style={S.sm()}>✕</button>
             </div>
             {subModal.loading ? (
-              <div style={{ padding: 20, textAlign: "center", color: "#f97316", fontSize: 12 }}>Finding alternatives...</div>
+              <div style={{ padding: 20, textAlign: "center", color: "#c9952d", fontSize: 12 }}>Finding alternatives...</div>
             ) : subModal.error ? (
               <div style={{ padding: 12, color: "#ef4444", fontSize: 12 }}>{subModal.error}</div>
             ) : subModal.subs.length === 0 ? (
@@ -487,7 +487,7 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{sub.name}</div>
                         <div style={{ display: "flex", gap: 2 }}>
-                          {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: 8, color: n <= sub.rating ? "#f97316" : "#333" }}>●</span>)}
+                          {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: 8, color: n <= sub.rating ? "#c9952d" : "#333" }}>●</span>)}
                         </div>
                       </div>
                       <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{sub.reason}</div>
@@ -543,7 +543,7 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "#737373", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
                 {last && <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
-                {ex.notes && <div style={{ fontSize: 10, color: "#f97316", marginTop: 2 }}>{ex.notes}</div>}
+                {ex.notes && <div style={{ fontSize: 10, color: "#c9952d", marginTop: 2 }}>{ex.notes}</div>}
               </div>
               <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                 {ei > 0 && <button onClick={() => moveExercise(ei, -1)} style={S.sm()} title="Move up">↑</button>}
@@ -592,7 +592,7 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
 // ═══════════════════════ HISTORY ═══════════════════════
 
 function HistoryPage() {
-  const { workouts, programs, deleteWorkout } = useForge();
+  const { workouts, programs, deleteWorkout } = useTalos();
   const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(null);
 
@@ -634,7 +634,7 @@ function HistoryPage() {
                   <div key={i} style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#d4d4d4" }}>{ex.name}</div>
                     <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{ex.sets?.map(s => `${s.weight}×${s.reps}${s.rpe ? ` @${s.rpe}` : ""}`).join("  ·  ")}</div>
-                    {ex.notes && <div style={{ fontSize: 10, color: "#f97316", marginTop: 1 }}>{ex.notes}</div>}
+                    {ex.notes && <div style={{ fontSize: 10, color: "#c9952d", marginTop: 1 }}>{ex.notes}</div>}
                   </div>
                 ))}
                 {w.notes && <div style={{ fontSize: 11, color: "#737373", marginTop: 8, fontStyle: "italic" }}>{w.notes}</div>}
@@ -652,7 +652,7 @@ function HistoryPage() {
 // ═══════════════════════ STATS ═══════════════════════
 
 function StatsPage() {
-  const { workouts, profile, updateProfile, user } = useForge();
+  const { workouts, profile, updateProfile, user } = useTalos();
   const [editing, setEditing] = useState(false);
   const [tmp, setTmp] = useState({});
   const [chartExercise, setChartExercise] = useState("Bench Press");
@@ -879,7 +879,7 @@ function StatsPage() {
                 <XAxis dataKey="date" tick={{ fill: "#525252", fontSize: 10 }} axisLine={{ stroke: "#262626" }} tickLine={false} />
                 <YAxis tick={{ fill: "#525252", fontSize: 10 }} axisLine={{ stroke: "#262626" }} tickLine={false} width={35} />
                 <Tooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, fontSize: 12, fontFamily: "inherit" }} itemStyle={{ color: "#e5e5e5" }} />
-                <Line type="monotone" dataKey="weight" stroke="#f97316" strokeWidth={2} dot={{ fill: "#f97316", r: 3 }} name="Weight" />
+                <Line type="monotone" dataKey="weight" stroke="#c9952d" strokeWidth={2} dot={{ fill: "#c9952d", r: 3 }} name="Weight" />
                 <Line type="monotone" dataKey="e1rm" stroke="#525252" strokeWidth={1} strokeDasharray="4 4" dot={false} name="Est 1RM" />
               </LineChart>
             </ResponsiveContainer>
@@ -938,7 +938,7 @@ function StatsPage() {
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
-            a.href = url; a.download = `forge-export.csv`; a.click();
+            a.href = url; a.download = `talos-export.csv`; a.click();
             URL.revokeObjectURL(url);
           } catch(e) { alert("Export failed: " + e.message); }
         }} style={{ ...S.btn("ghost"), display: "block", width: "100%", textAlign: "center" }}>
@@ -952,7 +952,7 @@ function StatsPage() {
 // ═══════════════════════ PROGRAMS ═══════════════════════
 
 function ProgramsPage() {
-  const { user, programs, saveProgram, deleteProgram, customExercises, addCustomExercise, editingProgram: editing, setEditingProgram: setEditing } = useForge();
+  const { user, programs, saveProgram, deleteProgram, customExercises, addCustomExercise, editingProgram: editing, setEditingProgram: setEditing } = useTalos();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerDayIdx, setPickerDayIdx] = useState(null);
   const [replacingExIdx, setReplacingExIdx] = useState(null);
@@ -1295,7 +1295,7 @@ function SessionRecap({ summary, onDone }) {
             <div style={S.label}>AI Analysis</div>
           </div>
           {loading ? (
-            <div style={{ padding: 8, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing session...</div>
+            <div style={{ padding: 8, textAlign: "center", color: "#c9952d", fontSize: 12 }}>Analyzing session...</div>
           ) : (
             <MarkdownText text={analysis} />
           )}
@@ -1312,7 +1312,7 @@ function SessionRecap({ summary, onDone }) {
 // ═══════════════════════ COACH ═══════════════════════
 
 function CoachPage() {
-  const { workouts, profile, programs, user, saveProgram } = useForge();
+  const { workouts, profile, programs, user, saveProgram } = useTalos();
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1549,7 +1549,7 @@ ${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`
             <div style={S.label}>Weekly Training Report</div>
           </div>
           {loading && mode === "weekly" ? (
-            <div style={{ padding: 16, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing 7-day training data...</div>
+            <div style={{ padding: 16, textAlign: "center", color: "#c9952d", fontSize: 12 }}>Analyzing 7-day training data...</div>
           ) : (
             <MarkdownText text={weeklyReport} />
           )}
@@ -1560,7 +1560,7 @@ ${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`
       {(response || (loading && !programPreview)) && (
         <div style={S.card}>
           <div style={S.label}>Response</div>
-          {loading ? <div style={{ padding: 16, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing training data...</div>
+          {loading ? <div style={{ padding: 16, textAlign: "center", color: "#c9952d", fontSize: 12 }}>Analyzing training data...</div>
             : <MarkdownText text={response} />}
         </div>
       )}
@@ -1571,7 +1571,7 @@ ${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`
 // ═══════════════════════ SETTINGS MODAL ═══════════════════════
 
 function SettingsModal({ onClose, onLogout }) {
-  const { user } = useForge();
+  const { user } = useTalos();
   const [name, setName] = useState(user.name);
   const [newPin, setNewPin] = useState("");
   const [color, setColor] = useState(user.color);
@@ -1853,8 +1853,8 @@ export default function App() {
     <Ctx.Provider value={ctx}>
       <div style={S.app}>
         <div style={S.header}>
-          <h1 style={S.title}><span style={{ color: user.color || "#f97316" }}>◆</span> FORGE {currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
-          <div onClick={() => setShowSettings(true)} style={S.avatar(user.color || "#f97316", 32)}>{user.name?.[0]?.toUpperCase()}</div>
+          <h1 style={S.title}><span style={{ color: user.color || "#c9952d" }}>Δ</span> TALOS {currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
+          <div onClick={() => setShowSettings(true)} style={S.avatar(user.color || "#c9952d", 32)}>{user.name?.[0]?.toUpperCase()}</div>
         </div>
 
         {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLogout={() => { setUser(null); setShowSettings(false); setTab("log"); setCurrent(null); }} />}

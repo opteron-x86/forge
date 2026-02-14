@@ -2,18 +2,18 @@
 set -e
 
 # ─────────────────────────────────────────────
-# FORGE Deploy Script
+# TALOS Deploy Script
 # Run on a fresh Ubuntu instance (t3.micro etc)
 # Usage: chmod +x deploy.sh && ./deploy.sh
 # ─────────────────────────────────────────────
 
-APP_DIR="/opt/forge"
-SERVICE_NAME="forge"
+APP_DIR="/opt/talos"
+SERVICE_NAME="talos"
 PORT=3000
 NODE_VERSION="20"
 
 echo ""
-echo "  ◆ FORGE Deploy"
+echo "  Δ TALOS Deploy"
 echo "  ─────────────────"
 echo ""
 
@@ -93,7 +93,7 @@ sudo -u "$REAL_USER" npm run build
 echo "→ Setting up systemd service..."
 cat > /etc/systemd/system/${SERVICE_NAME}.service << SERVICEEOF
 [Unit]
-Description=FORGE Gym Tracker
+Description=TALOS Gym Tracker
 After=network.target
 
 [Service]
@@ -127,7 +127,7 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
   echo ""
   echo "  ┌──────────────────────────────────────────┐"
   echo "  │                                          │"
-  echo "  │   ◆ FORGE deployed successfully          │"
+  echo "  │   Δ TALOS deployed successfully          │"
   echo "  │                                          │"
   echo "  │   http://localhost:${PORT}                  │"
   echo "  │                                          │"
@@ -135,16 +135,16 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
   HOSTNAME=$(hostname)
   echo "  │   http://${HOSTNAME}:${PORT}"
   echo "  │                                          │"
-  echo "  │   Logs: journalctl -u forge -f           │"
-  echo "  │   Restart: sudo systemctl restart forge  │"
-  echo "  │   DB: ${APP_DIR}/forge.db                │"
+  echo "  │   Logs: journalctl -u talos -f           │"
+  echo "  │   Restart: sudo systemctl restart talos  │"
+  echo "  │   DB: ${APP_DIR}/talos.db                │"
   echo "  │                                          │"
   echo "  └──────────────────────────────────────────┘"
   echo ""
 else
   echo ""
   echo "  ✗ Service failed to start. Check logs:"
-  echo "    journalctl -u forge -n 50"
+  echo "    journalctl -u talos -n 50"
   echo ""
   exit 1
 fi

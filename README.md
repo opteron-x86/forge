@@ -1,4 +1,6 @@
-# ◆ FORGE
+# Δ TALOS
+
+*The Bronze Guardian of Your Gains*
 
 Multi-user gym tracking app with AI coaching, built for self-hosting over Tailscale.
 
@@ -19,7 +21,7 @@ Multi-user gym tracking app with AI coaching, built for self-hosting over Tailsc
 ## Quick Start
 
 ```bash
-cd forge
+cd talos
 cp .env.example .env        # Edit and add your Anthropic API key
 npm install
 npm run build
@@ -27,6 +29,14 @@ npm start
 ```
 
 App runs at `http://localhost:3000`.
+
+## Migrating from FORGE
+
+If upgrading from FORGE, rename your database to preserve all data:
+
+```bash
+mv forge.db talos.db
+```
 
 ## Access Over Tailscale
 
@@ -56,18 +66,18 @@ npm run dev    # Runs Vite (5173) + Express (3000) concurrently
 ## Run on Startup (systemd)
 
 ```bash
-sudo nano /etc/systemd/system/forge.service
+sudo nano /etc/systemd/system/talos.service
 ```
 
 ```ini
 [Unit]
-Description=FORGE Gym Tracker
+Description=TALOS Gym Tracker
 After=network.target
 
 [Service]
 Type=simple
 User=YOUR_USERNAME
-WorkingDirectory=/path/to/forge
+WorkingDirectory=/path/to/talos
 ExecStart=/usr/bin/node server.js
 Environment=NODE_ENV=production
 Restart=always
@@ -77,14 +87,15 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable forge && sudo systemctl start forge
+sudo systemctl enable talos && sudo systemctl start talos
 ```
 
 ## Project Structure
 
 ```
-forge/
-├── server.js          # Express API + SQLite + Claude proxy
+talos/
+├── server.js          # Express API + SQLite + AI proxy
+├── ai-provider.js     # Multi-provider AI abstraction
 ├── src/
 │   ├── main.jsx       # React entry
 │   ├── App.jsx        # Full UI (auth, pages, charts, timer)
@@ -94,12 +105,12 @@ forge/
 ├── vite.config.js
 ├── package.json
 ├── .env               # API key (not committed)
-└── forge.db           # SQLite (created on first run)
+└── talos.db           # SQLite (created on first run)
 ```
 
 ## Data
 
-Everything lives in `forge.db`. Back up by copying this file. Delete to reset.
+Everything lives in `talos.db`. Back up by copying this file. Delete to reset.
 
 ## AI Coach Setup
 

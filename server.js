@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- Database ---
-const db = new Database(join(__dirname, "forge.db"));
+const db = new Database(join(__dirname, "talos.db"));
 db.pragma("journal_mode = WAL");
 
 db.exec(`
@@ -649,7 +649,7 @@ app.get("/api/export", (req, res) => {
     });
   });
   res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", `attachment; filename=forge-export-${user_id}.csv`);
+  res.setHeader("Content-Disposition", `attachment; filename=talos-export-${user_id}.csv`);
   res.send(lines.join("\n"));
 });
 
@@ -674,7 +674,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`
 ┌────────────────────────────────────────┐
 │                                        │
-│   ◆ FORGE                              │
+│   Δ TALOS                             │
 │   Gym Tracker v2.2                     │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│

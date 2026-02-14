@@ -1,7 +1,7 @@
 {
-  "name": "forge",
-  "version": "2.2.0",
-  "description": "Multi-user gym tracking app with AI coaching and multi-provider support",
+  "name": "talos",
+  "version": "3.0.0",
+  "description": "Multi-user gym tracking app with AI coaching — the bronze guardian of your gains",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",

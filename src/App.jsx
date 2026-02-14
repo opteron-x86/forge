@@ -1012,7 +1012,7 @@ function MarkdownText({ text }) {
 // ═══════════════════════ COACH ═══════════════════════
 
 function CoachPage() {
-  const { workouts, profile, program, user } = useForge();
+  const { workouts, profile, programs, user } = useForge();
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);

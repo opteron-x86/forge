@@ -1012,7 +1012,7 @@ function MarkdownText({ text }) {
 // ═══════════════════════ COACH ═══════════════════════
 
 function CoachPage() {
-  const { workouts, profile, user } = useForge();
+  const { workouts, profile, program, user } = useForge();
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1027,9 +1027,15 @@ function CoachPage() {
   async function ask(q) {
     setLoading(true); setResponse("");
     const recent = workouts.slice(-10);
+    const programCtx = programs.filter(p => p.user_id === user.id).map(p =>
+    `${p.name}${p.description ? ` (${p.description})` : ""}:\n${p.days?.map((d, i) =>
+      `  Day ${i + 1} — ${d.label || "Untitled"}${d.subtitle ? ` (${d.subtitle})` : ""}: ${d.exercises?.map(e => `${e.name} ${e.defaultSets}x${e.targetReps || "?"}`).join(", ") || "no exercises"}`
+    ).join("\n") || "no days"}`
+    ).join("\n\n");
     const context = `USER: ${user.name}, Height: ${profile.height}, Weight: ${profile.weight} lbs${profile.bodyFat ? `, BF: ${profile.bodyFat}%` : ""}
-PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
-RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+    PROGRAMS:\n${programCtx || "None"}
+    PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
+    RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
     try {
       const data = await api.post("/coach", { prompt: q, context });
       setResponse(data.response || data.error || "No response.");

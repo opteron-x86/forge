@@ -1,7 +1,7 @@
 {
   "name": "forge",
-  "version": "2.0.0",
-  "description": "Multi-user gym tracking app with AI coaching",
+  "version": "2.1.0",
+  "description": "Multi-user gym tracking app with AI coaching and multi-provider support",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",

@@ -4,8 +4,9 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import Database from "better-sqlite3";
-import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
+import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "./ai-provider.js";
+import { EXERCISES } from "./src/exercises.js";
 
 dotenv.config();
 
@@ -83,6 +84,11 @@ db.exec(`
     created_by TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS ai_config (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
 `);
 
 // --- Migrate profiles table (safe — ignores if columns already exist) ---
@@ -110,14 +116,40 @@ function genId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
 }
 
-// --- Anthropic ---
-let anthropic = null;
-if (process.env.ANTHROPIC_API_KEY) {
-  anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  console.log("✅ Anthropic API key loaded");
-} else {
-  console.warn("⚠️  No ANTHROPIC_API_KEY — AI coach unavailable");
+// --- AI Provider ---
+function loadAIConfig() {
+  const rows = db.prepare("SELECT key, value FROM ai_config").all();
+  const dbSettings = {};
+  rows.forEach(r => { dbSettings[r.key] = r.value; });
+  return dbSettings;
 }
+
+function initProvider() {
+  const dbSettings = loadAIConfig();
+  const config = resolveConfig(dbSettings, process.env);
+  if (!config) {
+    console.warn("⚠️  No AI provider configured — AI coach unavailable");
+    return null;
+  }
+  try {
+    const p = createProvider(config);
+    console.log(`✅ AI: ${config.provider} (${config.model})`);
+    return p;
+  } catch (e) {
+    console.error("❌ AI provider init failed:", e.message);
+    return null;
+  }
+}
+
+let aiProvider = initProvider();
+
+// Exercise list for AI context
+const exerciseNames = EXERCISES.map(e => e.name).sort();
+const exercisesByMuscle = {};
+EXERCISES.forEach(e => {
+  if (!exercisesByMuscle[e.muscle]) exercisesByMuscle[e.muscle] = [];
+  exercisesByMuscle[e.muscle].push(`${e.name} (${e.equipment}, ${e.type})`);
+});
 
 // --- Middleware ---
 app.use(cors());
@@ -311,21 +343,183 @@ app.delete("/api/exercises/:id", (req, res) => {
   res.json({ ok: true });
 });
 
+// ===================== AI CONFIG =====================
+
+app.get("/api/ai/config", (req, res) => {
+  const dbSettings = loadAIConfig();
+  const config = resolveConfig(dbSettings, process.env);
+  res.json({
+    provider: config?.provider || "",
+    model: config?.model || "",
+    baseUrl: dbSettings.baseUrl || process.env.AI_BASE_URL || "",
+    hasKey: !!(config?.apiKey),
+    supportsTools: dbSettings.supportsTools !== "false",
+    enabled: !!aiProvider,
+    providerName: aiProvider?.providerName || "",
+    providers: PROVIDERS,
+  });
+});
+
+app.put("/api/ai/config", (req, res) => {
+  const { provider, model, apiKey, baseUrl, supportsTools } = req.body;
+  const upsert = db.prepare("INSERT INTO ai_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+  if (provider !== undefined) upsert.run("provider", provider);
+  if (model !== undefined) upsert.run("model", model);
+  if (apiKey !== undefined) upsert.run("apiKey", apiKey);
+  if (baseUrl !== undefined) upsert.run("baseUrl", baseUrl);
+  if (supportsTools !== undefined) upsert.run("supportsTools", String(supportsTools));
+
+  // Reinitialize provider
+  aiProvider = initProvider();
+  res.json({ ok: true, enabled: !!aiProvider, providerName: aiProvider?.providerName || "" });
+});
+
 // ===================== AI COACH =====================
 
+const COACH_SYSTEM = `You are a knowledgeable strength training coach analyzing real workout data. The user's profile includes biometric data, training goals, experience level, injury notes, and nutrition targets — use all available context to personalize your advice. Give specific, evidence-based advice with exact numbers (weights, reps, sets). Be concise and actionable. Consider any injuries mentioned. Format with clear sections but keep it tight. No fluff.`;
+
 app.post("/api/coach", async (req, res) => {
-  if (!anthropic) return res.status(503).json({ error: "AI coach unavailable — no API key configured" });
+  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context } = req.body;
   try {
-    const msg = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1500,
-      system: `You are a knowledgeable strength training coach analyzing real workout data. The user's profile includes biometric data, training goals, experience level, injury notes, and nutrition targets — use all available context to personalize your advice. Give specific, evidence-based advice with exact numbers (weights, reps, sets). Be concise and actionable. Consider any injuries mentioned. Format with clear sections but keep it tight. No fluff.`,
-      messages: [{ role: "user", content: `${context}\n\nQUESTION: ${prompt}` }],
-    });
-    res.json({ response: msg.content.map(b => b.type === "text" ? b.text : "").join("\n") });
+    const result = await aiProvider.chat(COACH_SYSTEM, [
+      { role: "user", content: `${context}\n\nQUESTION: ${prompt}` },
+    ], { maxTokens: 1500 });
+    res.json({ response: result.text });
   } catch (e) {
     console.error("Coach error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===================== AI PROGRAM BUILDER =====================
+
+const PROGRAM_TOOL = {
+  name: "create_program",
+  description: "Create a structured workout program with named days and exercises. Use ONLY exercises from the provided library. Each exercise needs sets and rep targets.",
+  input_schema: {
+    type: "object",
+    properties: {
+      name: { type: "string", description: "Program name (e.g. 'Push/Pull/Legs', '4-Day Upper/Lower')" },
+      description: { type: "string", description: "Brief program description" },
+      days: {
+        type: "array",
+        description: "The training days in the program",
+        items: {
+          type: "object",
+          properties: {
+            label: { type: "string", description: "Day name (e.g. 'Push 1', 'Upper A', 'Leg Day')" },
+            subtitle: { type: "string", description: "Optional focus note (e.g. 'Chest/Triceps Focus', 'Heavy Compounds')" },
+            exercises: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string", description: "Exercise name — MUST match an exercise from the provided library exactly" },
+                  defaultSets: { type: "integer", description: "Number of working sets (typically 3-5)" },
+                  targetReps: { type: "string", description: "Rep target or range (e.g. '5', '8-12', '12-15')" },
+                  notes: { type: "string", description: "Optional coaching notes for this exercise" },
+                },
+                required: ["name", "defaultSets", "targetReps"],
+              },
+            },
+          },
+          required: ["label", "exercises"],
+        },
+      },
+    },
+    required: ["name", "days"],
+  },
+};
+
+app.post("/api/coach/program", async (req, res) => {
+  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const { prompt, context } = req.body;
+
+  // Build exercise library context
+  const exerciseLib = Object.entries(exercisesByMuscle).map(([muscle, exs]) =>
+    `${muscle.toUpperCase()}: ${exs.join(", ")}`
+  ).join("\n");
+
+  // Add custom exercises
+  const customExs = db.prepare("SELECT name, muscle, equipment, type FROM custom_exercises").all();
+  const customLib = customExs.length > 0
+    ? `\nCUSTOM EXERCISES: ${customExs.map(e => `${e.name} (${e.muscle}, ${e.equipment}, ${e.type})`).join(", ")}`
+    : "";
+
+  const system = `You are an expert strength training coach creating a workout program. You MUST use the create_program tool to build the program.
+
+CRITICAL: Only use exercise names that EXACTLY match the provided library. Do not invent exercises or modify names.
+
+EXERCISE LIBRARY:
+${exerciseLib}${customLib}
+
+PROGRAM DESIGN PRINCIPLES:
+- Consider the user's experience level, goals, injuries, and available equipment
+- Place compound lifts first in each day
+- Balance push/pull volume
+- Include appropriate warm-up progression in set counts
+- Use appropriate rep ranges for the exercise type (compounds: 3-8, accessories: 8-15)
+- Add helpful notes for exercises that need form cues or injury modifications
+- Respect any injuries or limitations mentioned`;
+
+  try {
+    const result = await aiProvider.chatWithTools(system, [
+      { role: "user", content: `${context}\n\nPROGRAM REQUEST: ${prompt}` },
+    ], [PROGRAM_TOOL], { maxTokens: 4000 });
+
+    const programCall = result.toolCalls?.find(tc => tc.name === "create_program");
+    if (programCall) {
+      // Validate exercise names against library
+      const allNames = new Set([...exerciseNames, ...customExs.map(e => e.name)]);
+      const program = programCall.input;
+      const unknowns = [];
+      program.days?.forEach(day => {
+        day.exercises?.forEach(ex => {
+          if (!allNames.has(ex.name)) unknowns.push(ex.name);
+        });
+        // Add IDs for frontend compatibility
+        day.id = genId();
+      });
+
+      res.json({
+        program,
+        unknownExercises: unknowns,
+        commentary: result.text || null,
+      });
+    } else {
+      // No tool call — return text response
+      res.json({ program: null, commentary: result.text || "Could not generate program. Try being more specific." });
+    }
+  } catch (e) {
+    console.error("Program builder error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===================== AI SESSION ANALYSIS =====================
+
+app.post("/api/coach/analyze", async (req, res) => {
+  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const { workout, context } = req.body;
+
+  const system = `You are a concise strength training coach providing a post-workout session analysis. Analyze the just-completed workout and give brief, specific feedback.
+
+FORMAT YOUR RESPONSE IN THESE SECTIONS (skip any that aren't relevant):
+**Session Summary** — One line overview (duration, volume, energy)
+**PRs & Wins** — Any personal records or notable improvements
+**Flags** — Any regressions, concerning patterns, or things to watch
+**Next Session** — One specific, actionable recommendation for next time
+
+Keep it tight — max 150 words total. Be encouraging but honest. Use the user's actual numbers.`;
+
+  try {
+    const result = await aiProvider.chat(system, [
+      { role: "user", content: `${context}\n\nJUST COMPLETED:\n${JSON.stringify(workout, null, 2)}` },
+    ], { maxTokens: 800 });
+    res.json({ analysis: result.text });
+  } catch (e) {
+    console.error("Analysis error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -352,7 +546,13 @@ app.get("/api/export", (req, res) => {
 
 // Health
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", users: db.prepare("SELECT COUNT(*) as c FROM users").get().c, ai: !!anthropic });
+  res.json({
+    status: "ok",
+    users: db.prepare("SELECT COUNT(*) as c FROM users").get().c,
+    ai: !!aiProvider,
+    aiProvider: aiProvider?.providerName || null,
+    aiModel: aiProvider?.modelName || null,
+  });
 });
 
 // SPA fallback
@@ -361,14 +561,15 @@ if (process.env.NODE_ENV === "production") {
 }
 
 app.listen(PORT, "0.0.0.0", () => {
+  const aiStatus = aiProvider ? `✅ ${aiProvider.providerName} (${aiProvider.modelName})` : "❌ Not configured";
   console.log(`
 ┌────────────────────────────────────────┐
 │                                        │
 │   ◆ FORGE                              │
-│   Gym Tracker v2.0                     │
+│   Gym Tracker v2.1                     │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│
-│   AI Coach: ${(anthropic ? "✅ Enabled" : "❌ No API key").padEnd(26)}│
+│   AI: ${aiStatus.padEnd(33)}│
 │   Users: ${String(db.prepare("SELECT COUNT(*) as c FROM users").get().c).padEnd(29)}│
 │                                        │
 └────────────────────────────────────────┘`);

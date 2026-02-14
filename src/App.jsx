@@ -1151,13 +1151,78 @@ function MarkdownText({ text }) {
   return <div className="md-response" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+// ═══════════════════════ SESSION RECAP ═══════════════════════
+
+function SessionRecap({ summary, onDone }) {
+  if (!summary) return null;
+  const { workout, analysis, loading } = summary;
+  const totalSets = workout.exercises?.reduce((t, e) => t + (e.sets?.length || 0), 0) || 0;
+  const totalVolume = workout.exercises?.reduce((t, e) => t + (e.sets?.reduce((st, s) => st + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0;
+  const feelInfo = FEEL.find(f => f.v === workout.feel) || FEEL[2];
+
+  return (
+    <div className="fade-in">
+      <div style={S.card}>
+        <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 28, marginBottom: 4 }}>✓</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#22c55e" }}>Session Complete</div>
+          <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{workout.day_label || "Workout"} · {fmtDate(workout.date)}</div>
+        </div>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 12 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{workout.duration || "?"}</div>
+            <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>min</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{workout.exercises?.length || 0}</div>
+            <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>exercises</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{totalSets}</div>
+            <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>sets</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{totalVolume > 0 ? `${(totalVolume / 1000).toFixed(1)}k` : "—"}</div>
+            <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>lbs vol</div>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: feelInfo.c }}>{feelInfo.l}</div>
+            <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>feel</div>
+          </div>
+        </div>
+      </div>
+
+      {(loading || analysis) && (
+        <div style={S.card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 14 }}>⚡</span>
+            <div style={S.label}>AI Analysis</div>
+          </div>
+          {loading ? (
+            <div style={{ padding: 8, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing session...</div>
+          ) : (
+            <MarkdownText text={analysis} />
+          )}
+        </div>
+      )}
+
+      <div style={{ padding: "0 16px" }}>
+        <button onClick={onDone} style={{ ...S.btn("primary"), width: "100%" }}>Done</button>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════ COACH ═══════════════════════
 
 function CoachPage() {
-  const { workouts, profile, programs, user } = useForge();
+  const { workouts, profile, programs, user, saveProgram } = useForge();
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("chat"); // "chat" | "program"
+  const [programPreview, setProgramPreview] = useState(null); // { program, commentary, unknownExercises }
+  const [programSaving, setProgramSaving] = useState(false);
 
   const prs = {};
   workouts.forEach(w => w.exercises?.forEach(ex => ex.sets?.forEach(s => {
@@ -1166,8 +1231,7 @@ function CoachPage() {
     if (!prs[ex.name] || (e && e > (prs[ex.name].e1rm || 0))) prs[ex.name] = { weight: s.weight, reps: s.reps, e1rm: e, date: w.date };
   })));
 
-  async function ask(q) {
-    setLoading(true); setResponse("");
+  function buildContext() {
     const recent = workouts.slice(-10);
     const programCtx = programs.filter(p => p.user_id === user.id).map(p =>
     `${p.name}${p.description ? ` (${p.description})` : ""}:\n${p.days?.map((d, i) =>
@@ -1192,17 +1256,52 @@ function CoachPage() {
     const targetPrLines = profile.targetPrs && Object.keys(profile.targetPrs).length > 0
       ? `TARGET PRs:\n${Object.entries(profile.targetPrs).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lbs`).join("\n")}` : "";
     const injuryLines = profile.injuriesNotes ? `INJURIES/LIMITATIONS: ${profile.injuriesNotes}` : "";
-    const context = `USER: ${profileLines}
+    return `USER: ${profileLines}
     ${injuryLines}
     ${targetPrLines}
     PROGRAMS:\n${programCtx || "None"}
     PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
     RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+  }
+
+  async function ask(q) {
+    setLoading(true); setResponse("");
     try {
-      const data = await api.post("/coach", { prompt: q, context });
+      const data = await api.post("/coach", { prompt: q, context: buildContext() });
       setResponse(data.response || data.error || "No response.");
     } catch (e) { setResponse("Error: " + e.message); }
     setLoading(false);
+  }
+
+  async function buildProgram(q) {
+    setLoading(true); setProgramPreview(null); setResponse("");
+    try {
+      const data = await api.post("/coach/program", { prompt: q, context: buildContext() });
+      if (data.program) {
+        setProgramPreview(data);
+      } else {
+        setResponse(data.commentary || "Could not generate program. Try being more specific about what you want.");
+      }
+    } catch (e) { setResponse("Error: " + e.message); }
+    setLoading(false);
+  }
+
+  async function saveProgramFromPreview() {
+    if (!programPreview?.program) return;
+    setProgramSaving(true);
+    try {
+      await saveProgram({
+        id: null,
+        name: programPreview.program.name,
+        description: programPreview.program.description || "",
+        days: programPreview.program.days,
+        shared: false,
+        user_id: user.id,
+      });
+      setProgramPreview(null);
+      setResponse("✅ Program saved! Check the Programs tab.");
+    } catch (e) { setResponse("Error saving: " + e.message); }
+    setProgramSaving(false);
   }
 
   const quick = [
@@ -1222,17 +1321,87 @@ function CoachPage() {
             <div style={{ fontSize: 10, color: "#525252" }}>Analyzes your last {Math.min(workouts.length, 10)} workouts</div>
           </div>
         </div>
-        <div style={S.label}>Quick Actions</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
-          {quick.map((q, i) => <button key={i} onClick={() => { setPrompt(q.p); ask(q.p); }} style={S.sm()}>{q.l}</button>)}
+
+        {/* Mode toggle */}
+        <div style={{ display: "flex", gap: 4, marginBottom: 12, background: "#171717", borderRadius: 6, padding: 3 }}>
+          <button onClick={() => { setMode("chat"); setProgramPreview(null); }} style={{ ...S.sm(mode === "chat" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>💬 Chat</button>
+          <button onClick={() => { setMode("program"); setResponse(""); }} style={{ ...S.sm(mode === "program" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>📋 Build Program</button>
         </div>
-        <div style={S.label}>Ask Anything</div>
-        <textarea value={prompt} onChange={e => setPrompt(e.target.value)} style={{ ...S.input, minHeight: 50, resize: "vertical", marginBottom: 8 }} placeholder="Programming, nutrition, substitutions..." />
-        <button onClick={() => ask(prompt)} disabled={loading || !prompt.trim()} style={{ ...S.btn("primary"), width: "100%", opacity: (loading || !prompt.trim()) ? 0.5 : 1 }}>
-          {loading ? "Analyzing..." : "Ask Coach"}
-        </button>
+
+        {mode === "chat" && (
+          <>
+            <div style={S.label}>Quick Actions</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12 }}>
+              {quick.map((q, i) => <button key={i} onClick={() => { setPrompt(q.p); ask(q.p); }} style={S.sm()}>{q.l}</button>)}
+            </div>
+            <div style={S.label}>Ask Anything</div>
+            <textarea value={prompt} onChange={e => setPrompt(e.target.value)} style={{ ...S.input, minHeight: 50, resize: "vertical", marginBottom: 8 }} placeholder="Programming, nutrition, substitutions..." />
+            <button onClick={() => ask(prompt)} disabled={loading || !prompt.trim()} style={{ ...S.btn("primary"), width: "100%", opacity: (loading || !prompt.trim()) ? 0.5 : 1 }}>
+              {loading ? "Analyzing..." : "Ask Coach"}
+            </button>
+          </>
+        )}
+
+        {mode === "program" && (
+          <>
+            <div style={S.label}>Describe Your Program</div>
+            <textarea value={prompt} onChange={e => setPrompt(e.target.value)} style={{ ...S.input, minHeight: 70, resize: "vertical", marginBottom: 8 }}
+              placeholder="e.g. Build me a 4-day upper/lower split focused on hypertrophy. I train Mon/Tue/Thu/Fri. Avoid deep squats due to hip bursitis." />
+            <button onClick={() => buildProgram(prompt)} disabled={loading || !prompt.trim()} style={{ ...S.btn("primary"), width: "100%", opacity: (loading || !prompt.trim()) ? 0.5 : 1 }}>
+              {loading ? "Building program..." : "Generate Program"}
+            </button>
+          </>
+        )}
       </div>
-      {(response || loading) && (
+
+      {/* Program Preview */}
+      {programPreview?.program && (
+        <div style={S.card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 14 }}>📋</span>
+            <div style={S.label}>Generated Program</div>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#fafafa", marginBottom: 2 }}>{programPreview.program.name}</div>
+          {programPreview.program.description && <div style={{ fontSize: 11, color: "#737373", marginBottom: 8 }}>{programPreview.program.description}</div>}
+
+          {programPreview.unknownExercises?.length > 0 && (
+            <div style={{ background: "#451a03", border: "1px solid #92400e", borderRadius: 6, padding: 8, marginBottom: 8, fontSize: 11, color: "#fbbf24" }}>
+              ⚠ Unknown exercises (not in library): {programPreview.unknownExercises.join(", ")}
+            </div>
+          )}
+
+          {programPreview.program.days?.map((day, di) => (
+            <div key={di} style={{ background: "#171717", borderRadius: 6, padding: 10, marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#fafafa", marginBottom: 2 }}>
+                Day {di + 1} — {day.label}
+                {day.subtitle && <span style={{ fontWeight: 400, color: "#737373" }}> ({day.subtitle})</span>}
+              </div>
+              {day.exercises?.map((ex, ei) => (
+                <div key={ei} style={{ fontSize: 11, color: "#a3a3a3", paddingLeft: 8, marginTop: 3, display: "flex", justifyContent: "space-between" }}>
+                  <span>{ex.name}</span>
+                  <span style={{ color: "#525252" }}>{ex.defaultSets}×{ex.targetReps}{ex.notes ? ` · ${ex.notes}` : ""}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          {programPreview.commentary && (
+            <div style={{ marginTop: 8, marginBottom: 8 }}>
+              <MarkdownText text={programPreview.commentary} />
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button onClick={() => setProgramPreview(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Dismiss</button>
+            <button onClick={saveProgramFromPreview} disabled={programSaving} style={{ ...S.btn("primary"), flex: 2, opacity: programSaving ? 0.5 : 1 }}>
+              {programSaving ? "Saving..." : "Save to Programs"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Text Response */}
+      {(response || (loading && !programPreview)) && (
         <div style={S.card}>
           <div style={S.label}>Response</div>
           {loading ? <div style={{ padding: 16, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing training data...</div>
@@ -1250,18 +1419,55 @@ function SettingsModal({ onClose, onLogout }) {
   const [name, setName] = useState(user.name);
   const [newPin, setNewPin] = useState("");
   const [color, setColor] = useState(user.color);
+  const [showAI, setShowAI] = useState(false);
+  const [aiForm, setAiForm] = useState({ provider: "", model: "", apiKey: "", baseUrl: "", supportsTools: true });
+  const [aiStatus, setAiStatus] = useState("");
+  const [aiLoaded, setAiLoaded] = useState(false);
+
+  useEffect(() => {
+    if (showAI && !aiLoaded) {
+      api.get("/ai/config").then(cfg => {
+        setAiForm({
+          provider: cfg.provider || "anthropic",
+          model: cfg.model || "",
+          apiKey: "", // Don't prefill key
+          baseUrl: cfg.baseUrl || "",
+          supportsTools: cfg.supportsTools !== false,
+        });
+        setAiStatus(cfg.enabled ? `Active: ${cfg.providerName}` : "Not configured");
+        setAiLoaded(true);
+      }).catch(() => setAiLoaded(true));
+    }
+  }, [showAI]);
 
   async function save() {
     const payload = { name, color };
     if (newPin) payload.pin = newPin;
     await api.put(`/users/${user.id}`, payload);
     onClose();
-    window.location.reload(); // Simplest way to refresh user data
+    window.location.reload();
   }
+
+  async function saveAI() {
+    setAiStatus("Saving...");
+    try {
+      const body = { provider: aiForm.provider, model: aiForm.model, baseUrl: aiForm.baseUrl, supportsTools: aiForm.supportsTools };
+      if (aiForm.apiKey) body.apiKey = aiForm.apiKey;
+      const res = await api.put("/ai/config", body);
+      setAiStatus(res.enabled ? `Active: ${res.providerName}` : "Configuration saved (no API key)");
+    } catch (e) { setAiStatus("Error: " + e.message); }
+  }
+
+  const PROVIDERS = [
+    { id: "anthropic", label: "Anthropic (Claude)" },
+    { id: "openai", label: "OpenAI" },
+    { id: "gemini", label: "Google Gemini" },
+    { id: "openai-compatible", label: "Custom (Ollama, LM Studio, etc.)" },
+  ];
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ ...S.card, margin: 0, maxWidth: 340, width: "100%" }}>
+      <div style={{ ...S.card, margin: 0, maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={S.label}>Settings</div>
           <button onClick={onClose} style={S.sm()}>✕</button>
@@ -1280,6 +1486,55 @@ function SettingsModal({ onClose, onLogout }) {
             {USER_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 24, height: 24, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid #fff" : "3px solid transparent" }} />)}
           </div>
         </div>
+
+        {/* AI Provider Config */}
+        <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
+          <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+            <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>AI Coach Provider</div>
+            <span style={{ color: "#525252", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+          </div>
+          {aiStatus && <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{aiStatus}</div>}
+        </div>
+
+        {showAI && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
+              <select value={aiForm.provider} onChange={e => setAiForm(f => ({ ...f, provider: e.target.value, model: "" }))} style={{ ...S.input, fontSize: 12 }}>
+                {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
+              <input value={aiForm.model} onChange={e => setAiForm(f => ({ ...f, model: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="e.g. claude-sonnet-4-20250514, gpt-4o, gemini-2.0-flash" />
+            </div>
+            {aiForm.provider !== "openai-compatible" && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (leave blank to keep current)</div>
+                <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="sk-..." />
+              </div>
+            )}
+            {aiForm.provider === "openai-compatible" && (
+              <>
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Base URL</div>
+                  <input value={aiForm.baseUrl} onChange={e => setAiForm(f => ({ ...f, baseUrl: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="http://localhost:11434/v1" />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (optional for local)</div>
+                  <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="Leave blank for Ollama" />
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#737373", cursor: "pointer", marginBottom: 8 }}>
+                  <input type="checkbox" checked={aiForm.supportsTools} onChange={e => setAiForm(f => ({ ...f, supportsTools: e.target.checked }))} />
+                  Supports tool/function calling
+                </label>
+              </>
+            )}
+            <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save AI Config</button>
+            <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "center" }}>Key stored in local database. Server-level .env takes priority if set.</div>
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={onLogout} style={{ ...S.btn("ghost"), flex: 1 }}>Log Out</button>
           <button onClick={save} style={{ ...S.btn("primary"), flex: 1 }}>Save</button>
@@ -1302,6 +1557,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [aiConfig, setAiConfig] = useState({ enabled: false, provider: "", model: "" });
+  const [sessionSummary, setSessionSummary] = useState(null); // { workout, analysis, loading }
 
   // Load user data
   useEffect(() => {
@@ -1312,11 +1569,13 @@ export default function App() {
       api.get(`/profile?user_id=${user.id}`),
       api.get(`/programs?user_id=${user.id}`),
       api.get("/exercises"),
-    ]).then(([w, p, pr, ex]) => {
+      api.get("/ai/config"),
+    ]).then(([w, p, pr, ex, ai]) => {
       setWorkouts(w);
       setProfile(p);
       setPrograms(pr);
       setCustomExercises(ex);
+      setAiConfig(ai);
       setLoaded(true);
     }).catch(e => { console.error(e); setLoaded(true); });
   }, [user]);
@@ -1386,8 +1645,40 @@ export default function App() {
       exercises: currentWorkout.exercises,
     };
     await saveWorkout(payload);
+
+    // Show session recap and trigger AI analysis
+    const summaryData = { workout: payload, analysis: null, loading: aiConfig.enabled };
+    setSessionSummary(summaryData);
     setCurrent(null);
-    setTab("history");
+    setTab("summary");
+
+    // Fire AI analysis in background
+    if (aiConfig.enabled) {
+      try {
+        const recent = workouts.slice(-5);
+        const age = profile.dateOfBirth ? Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000) : null;
+        const profileLines = [
+          profile.sex ? `Sex: ${profile.sex}` : null,
+          age ? `Age: ${age}` : null,
+          profile.weight ? `Weight: ${profile.weight} lbs` : null,
+          profile.goal ? `Goal: ${profile.goal}` : null,
+          profile.experienceLevel ? `Experience: ${profile.experienceLevel}` : null,
+          profile.injuriesNotes ? `Injuries: ${profile.injuriesNotes}` : null,
+        ].filter(Boolean).join(", ");
+
+        // Find previous sessions for same day label
+        const sameDaySessions = workouts.filter(w => w.day_label === payload.day_label).slice(-3);
+        const prevCtx = sameDaySessions.length > 0
+          ? `PREVIOUS ${payload.day_label || "SESSION"} HISTORY:\n${sameDaySessions.map(w => `${w.date} (Feel:${w.feel}/5, ${w.duration}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`
+          : "";
+
+        const context = `USER: ${profileLines}\n${prevCtx}`;
+        const data = await api.post("/coach/analyze", { workout: payload, context });
+        setSessionSummary(prev => prev ? { ...prev, analysis: data.analysis, loading: false } : null);
+      } catch (e) {
+        setSessionSummary(prev => prev ? { ...prev, analysis: "Analysis unavailable.", loading: false } : null);
+      }
+    }
   }
 
   // Auth gate
@@ -1400,7 +1691,7 @@ export default function App() {
 
   const activeTab = currentWorkout && tab === "log" ? "active" : tab;
 
-  const ctx = { user, workouts, profile, programs, customExercises, saveWorkout, deleteWorkout, updateProfile, saveProgram, deleteProgram, addCustomExercise, editingProgram, setEditingProgram };
+  const ctx = { user, workouts, profile, programs, customExercises, saveWorkout, deleteWorkout, updateProfile, saveProgram, deleteProgram, addCustomExercise, editingProgram, setEditingProgram, aiConfig };
 
   return (
     <Ctx.Provider value={ctx}>
@@ -1418,6 +1709,7 @@ export default function App() {
             onFinish={finishWorkout} onDiscard={() => { if (confirm("Discard this workout? All logged sets will be lost.")) { setCurrent(null); setTab("log"); } }} />
         )}
         {activeTab === "active" && !currentWorkout && <LogPage onStartWorkout={startWorkout} />}
+        {activeTab === "summary" && <SessionRecap summary={sessionSummary} onDone={() => { setSessionSummary(null); setTab("history"); }} />}
         {activeTab === "history" && <HistoryPage />}
         {activeTab === "stats" && <StatsPage />}
         {activeTab === "programs" && <ProgramsPage />}

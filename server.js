@@ -524,6 +524,115 @@ Keep it tight — max 150 words total. Be encouraging but honest. Use the user's
   }
 });
 
+// ===================== AI SMART SUBSTITUTION =====================
+
+const SUBSTITUTE_TOOL = {
+  name: "suggest_substitutions",
+  description: "Suggest 3-5 exercise substitutions ranked by suitability. Only use exercises from the provided library.",
+  input_schema: {
+    type: "object",
+    properties: {
+      substitutions: {
+        type: "array",
+        description: "Ranked list of substitute exercises, best first",
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Exercise name — MUST exactly match the exercise library" },
+            reason: { type: "string", description: "One-line reason this is a good substitute (e.g. 'Same movement pattern, uses cables instead')" },
+            rating: { type: "integer", description: "Suitability rating 1-5 (5 = near-identical stimulus)" },
+          },
+          required: ["name", "reason", "rating"],
+        },
+      },
+    },
+    required: ["substitutions"],
+  },
+};
+
+app.post("/api/coach/substitute", async (req, res) => {
+  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const { exercise, reason, context } = req.body;
+
+  // Build exercise library grouped by muscle
+  const exerciseLib = Object.entries(exercisesByMuscle).map(([muscle, exs]) =>
+    `${muscle.toUpperCase()}: ${exs.join(", ")}`
+  ).join("\n");
+  const customExs = db.prepare("SELECT name, muscle, equipment, type FROM custom_exercises").all();
+  const customLib = customExs.length > 0
+    ? `\nCUSTOM EXERCISES: ${customExs.map(e => `${e.name} (${e.muscle}, ${e.equipment}, ${e.type})`).join(", ")}`
+    : "";
+
+  // Find the exercise's metadata
+  const exMeta = EXERCISES.find(e => e.name === exercise) || customExs.find(e => e.name === exercise);
+  const exInfo = exMeta
+    ? `${exercise} — muscle: ${exMeta.muscle}, equipment: ${exMeta.equipment}, type: ${exMeta.type}`
+    : exercise;
+
+  const system = `You are a strength training coach suggesting exercise substitutions during a live workout. Use the suggest_substitutions tool.
+
+EXERCISE TO REPLACE: ${exInfo}
+REASON FOR SWAP: ${reason || "Equipment unavailable or preference"}
+
+CRITICAL: Only suggest exercises that EXACTLY match names in the library below. Prioritize:
+1. Same primary muscle group and movement pattern
+2. Similar stimulus and loading potential
+3. Equipment the user has used before (check their history)
+4. Respect any injuries or limitations
+5. Prefer compound over isolation if replacing a compound, and vice versa
+
+EXERCISE LIBRARY:
+${exerciseLib}${customLib}`;
+
+  try {
+    const result = await aiProvider.chatWithTools(system, [
+      { role: "user", content: `${context}\n\nFind substitutes for: ${exercise}` },
+    ], [SUBSTITUTE_TOOL], { maxTokens: 1500 });
+
+    const toolCall = result.toolCalls?.find(tc => tc.name === "suggest_substitutions");
+    if (toolCall) {
+      // Validate exercise names
+      const allNames = new Set([...exerciseNames, ...customExs.map(e => e.name)]);
+      const subs = toolCall.input.substitutions?.filter(s => allNames.has(s.name)) || [];
+      res.json({ substitutions: subs, commentary: result.text || null });
+    } else {
+      res.json({ substitutions: [], commentary: result.text || "Could not generate substitutions." });
+    }
+  } catch (e) {
+    console.error("Substitute error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ===================== AI WEEKLY REPORT =====================
+
+app.post("/api/coach/weekly", async (req, res) => {
+  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const { context } = req.body;
+
+  const system = `You are a strength training coach providing a concise weekly training report. Analyze the past 7 days of training data.
+
+FORMAT YOUR RESPONSE IN THESE SECTIONS (skip any that aren't relevant):
+**Week Overview** — Sessions count, total volume, average feel, consistency vs target frequency
+**Volume by Muscle** — Quick breakdown of sets per muscle group this week (estimate from exercises). Flag any imbalances.
+**Progression Watch** — Lifts that went up, stayed flat, or regressed vs previous weeks
+**Recovery Signal** — Interpret feel ratings, sleep hours, session duration trends
+**Body Composition** — Comment on weight trend if data available, relate to stated goal
+**Action Items** — 2-3 specific, numbered recommendations for next week
+
+Be data-driven. Reference actual numbers from the workout logs. Keep the whole report under 300 words. No generic advice — everything should be specific to THIS user's data.`;
+
+  try {
+    const result = await aiProvider.chat(system, [
+      { role: "user", content: context },
+    ], { maxTokens: 1500 });
+    res.json({ report: result.text });
+  } catch (e) {
+    console.error("Weekly report error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ===================== EXPORT =====================
 
 app.get("/api/export", (req, res) => {
@@ -566,7 +675,7 @@ app.listen(PORT, "0.0.0.0", () => {
 ┌────────────────────────────────────────┐
 │                                        │
 │   ◆ FORGE                              │
-│   Gym Tracker v2.1                     │
+│   Gym Tracker v2.2                     │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│
 │   AI: ${aiStatus.padEnd(33)}│

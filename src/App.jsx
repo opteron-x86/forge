@@ -304,11 +304,12 @@ function LogPage({ onStartWorkout }) {
 // ═══════════════════════ ACTIVE WORKOUT ═══════════════════════
 
 function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
-  const { workouts, profile, customExercises } = useForge();
+  const { workouts, profile, customExercises, aiConfig } = useForge();
   const [elapsed, setElapsed] = useState(0);
   const [restTimer, setRestTimer] = useState(null); // seconds remaining
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState(null); // null = add, index = substitute
+  const [subModal, setSubModal] = useState(null); // { exerciseIndex, exercise, loading, subs, error }
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.round((Date.now() - workout.startTime) / 60000)), 10000);
@@ -390,6 +391,34 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
 
   function quickSub(ei) {
     const name = workout.exercises[ei].name;
+
+    // If AI is available, use smart substitutions
+    if (aiConfig.enabled) {
+      setSubModal({ exerciseIndex: ei, exercise: name, loading: true, subs: [], error: null });
+
+      // Build minimal context
+      const age = profile.dateOfBirth ? Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000) : null;
+      const profileLines = [
+        profile.weight ? `Weight: ${profile.weight} lbs` : null,
+        profile.experienceLevel ? `Experience: ${profile.experienceLevel}` : null,
+        profile.injuriesNotes ? `Injuries: ${profile.injuriesNotes}` : null,
+      ].filter(Boolean).join(", ");
+
+      // Exercises user has actually performed
+      const usedExercises = [...new Set(workouts.flatMap(w => w.exercises?.map(e => e.name) || []))];
+      const context = `USER: ${profileLines}\nEXERCISES USED BEFORE: ${usedExercises.slice(-30).join(", ")}\nCURRENT WORKOUT: ${workout.exercises.map(e => e.name).join(", ")}`;
+
+      api.post("/coach/substitute", { exercise: name, reason: "Equipment unavailable or variety", context })
+        .then(data => {
+          setSubModal(prev => prev ? { ...prev, loading: false, subs: data.substitutions || [] } : null);
+        })
+        .catch(e => {
+          setSubModal(prev => prev ? { ...prev, loading: false, error: e.message } : null);
+        });
+      return;
+    }
+
+    // Fallback: static substitutions
     const subs = SUBSTITUTIONS[name];
     if (subs?.length === 1) {
       const last = getLastPerformance(subs[0]);
@@ -400,6 +429,28 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
     }
   }
 
+  function applySub(newName) {
+    if (!subModal) return;
+    const ei = subModal.exerciseIndex;
+    const oldName = subModal.exercise;
+    const last = getLastPerformance(newName);
+    setWorkout(p => {
+      const n = JSON.parse(JSON.stringify(p));
+      n.exercises[ei].name = newName;
+      n.exercises[ei].notes = `(subbed for ${oldName})`;
+      // Pre-fill with last performance if available
+      if (last?.sets) {
+        n.exercises[ei].sets = n.exercises[ei].sets.map((s, i) => ({
+          ...s,
+          weight: last.sets[i]?.weight || s.weight,
+          reps: last.sets[i]?.reps || s.reps,
+        }));
+      }
+      return n;
+    });
+    setSubModal(null);
+  }
+
   // Session stats
   const completedSets = workout.exercises.reduce((a, e) => a + e.sets.filter(s => s.completed).length, 0);
   const totalSets = workout.exercises.reduce((a, e) => a + e.sets.length, 0);
@@ -408,6 +459,51 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
   return (
     <div className="fade-in">
       {showPicker && <ExercisePicker customExercises={customExercises} onSelect={addExerciseFromPicker} onClose={() => { setShowPicker(false); setPickerTarget(null); }} />}
+
+      {/* AI Substitution Modal */}
+      {subModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ ...S.card, margin: 0, maxWidth: 340, width: "100%" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#fafafa" }}>Swap: {subModal.exercise}</div>
+                <div style={{ fontSize: 10, color: "#525252" }}>AI-powered substitutions</div>
+              </div>
+              <button onClick={() => setSubModal(null)} style={S.sm()}>✕</button>
+            </div>
+            {subModal.loading ? (
+              <div style={{ padding: 20, textAlign: "center", color: "#f97316", fontSize: 12 }}>Finding alternatives...</div>
+            ) : subModal.error ? (
+              <div style={{ padding: 12, color: "#ef4444", fontSize: 12 }}>{subModal.error}</div>
+            ) : subModal.subs.length === 0 ? (
+              <div style={{ padding: 12, color: "#737373", fontSize: 12 }}>No substitutions found. Try the exercise picker instead.</div>
+            ) : (
+              <div>
+                {subModal.subs.map((sub, i) => {
+                  const last = getLastPerformance(sub.name);
+                  return (
+                    <div key={i} onClick={() => applySub(sub.name)} style={{ padding: "10px 8px", borderBottom: "1px solid #262626", cursor: "pointer", borderRadius: 6, transition: "background 0.15s" }}
+                      onMouseOver={e => e.currentTarget.style.background = "#1a1a1a"} onMouseOut={e => e.currentTarget.style.background = "transparent"}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{sub.name}</div>
+                        <div style={{ display: "flex", gap: 2 }}>
+                          {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: 8, color: n <= sub.rating ? "#f97316" : "#333" }}>●</span>)}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{sub.reason}</div>
+                      {last && <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+              <button onClick={() => { setSubModal(null); setPickerTarget(subModal.exerciseIndex); setShowPicker(true); }} style={{ ...S.btn("ghost"), flex: 1, fontSize: 11 }}>Browse All</button>
+              <button onClick={() => setSubModal(null)} style={{ ...S.btn("ghost"), flex: 1, fontSize: 11 }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header card */}
       <div style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -440,7 +536,7 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
       {/* Exercises */}
       {workout.exercises.map((ex, ei) => {
         const last = getLastPerformance(ex.name);
-        const hasSub = SUBSTITUTIONS[ex.name];
+        const hasSub = aiConfig.enabled || SUBSTITUTIONS[ex.name];
         return (
           <div key={ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -1220,9 +1316,10 @@ function CoachPage() {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState("chat"); // "chat" | "program"
+  const [mode, setMode] = useState("chat"); // "chat" | "program" | "weekly"
   const [programPreview, setProgramPreview] = useState(null); // { program, commentary, unknownExercises }
   const [programSaving, setProgramSaving] = useState(false);
+  const [weeklyReport, setWeeklyReport] = useState(""); // cached report text
 
   const prs = {};
   workouts.forEach(w => w.exercises?.forEach(ex => ex.sets?.forEach(s => {
@@ -1304,6 +1401,36 @@ function CoachPage() {
     setProgramSaving(false);
   }
 
+  async function generateWeeklyReport() {
+    setLoading(true); setWeeklyReport("");
+    const context = buildContext();
+
+    // Add weekly-specific data
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+    const thisWeek = workouts.filter(w => new Date(w.date + "T12:00:00") >= weekAgo);
+    const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const lastWeek = workouts.filter(w => {
+      const d = new Date(w.date + "T12:00:00");
+      return d >= twoWeeksAgo && d < weekAgo;
+    });
+
+    const weeklyCtx = `${context}
+
+THIS WEEK (${thisWeek.length} sessions):
+${thisWeek.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5, Sleep:${w.sleep_hours || w.sleepHours || "?"}h, Duration:${w.duration || "?"}min)
+${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}
+
+PREVIOUS WEEK (${lastWeek.length} sessions):
+${lastWeek.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)
+${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+
+    try {
+      const data = await api.post("/coach/weekly", { context: weeklyCtx });
+      setWeeklyReport(data.report || "No report generated.");
+    } catch (e) { setWeeklyReport("Error: " + e.message); }
+    setLoading(false);
+  }
+
   const quick = [
     { l: "Next workout", p: "Give me specific target weights and reps for my next workout based on progressive overload." },
     { l: "Plateau advice", p: "Analyze my data for any lifts that have plateaued and give me a plan to break through." },
@@ -1324,8 +1451,9 @@ function CoachPage() {
 
         {/* Mode toggle */}
         <div style={{ display: "flex", gap: 4, marginBottom: 12, background: "#171717", borderRadius: 6, padding: 3 }}>
-          <button onClick={() => { setMode("chat"); setProgramPreview(null); }} style={{ ...S.sm(mode === "chat" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>💬 Chat</button>
-          <button onClick={() => { setMode("program"); setResponse(""); }} style={{ ...S.sm(mode === "program" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>📋 Build Program</button>
+          <button onClick={() => { setMode("chat"); setProgramPreview(null); setWeeklyReport(""); }} style={{ ...S.sm(mode === "chat" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>💬 Chat</button>
+          <button onClick={() => { setMode("program"); setResponse(""); setWeeklyReport(""); }} style={{ ...S.sm(mode === "program" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>📋 Program</button>
+          <button onClick={() => { setMode("weekly"); setResponse(""); setProgramPreview(null); }} style={{ ...S.sm(mode === "weekly" ? "primary" : "ghost"), flex: 1, textAlign: "center" }}>📊 Weekly</button>
         </div>
 
         {mode === "chat" && (
@@ -1349,6 +1477,19 @@ function CoachPage() {
               placeholder="e.g. Build me a 4-day upper/lower split focused on hypertrophy. I train Mon/Tue/Thu/Fri. Avoid deep squats due to hip bursitis." />
             <button onClick={() => buildProgram(prompt)} disabled={loading || !prompt.trim()} style={{ ...S.btn("primary"), width: "100%", opacity: (loading || !prompt.trim()) ? 0.5 : 1 }}>
               {loading ? "Building program..." : "Generate Program"}
+            </button>
+          </>
+        )}
+
+        {mode === "weekly" && (
+          <>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: "#a3a3a3", lineHeight: 1.5 }}>
+                Generate an AI analysis of your past 7 days — volume by muscle group, progression trends, recovery signals, and action items for next week.
+              </div>
+            </div>
+            <button onClick={generateWeeklyReport} disabled={loading} style={{ ...S.btn("primary"), width: "100%", opacity: loading ? 0.5 : 1 }}>
+              {loading ? "Generating report..." : "Generate Weekly Report"}
             </button>
           </>
         )}
@@ -1397,6 +1538,21 @@ function CoachPage() {
               {programSaving ? "Saving..." : "Save to Programs"}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Weekly Report */}
+      {(weeklyReport || (loading && mode === "weekly")) && (
+        <div style={S.card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 14 }}>📊</span>
+            <div style={S.label}>Weekly Training Report</div>
+          </div>
+          {loading && mode === "weekly" ? (
+            <div style={{ padding: 16, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing 7-day training data...</div>
+          ) : (
+            <MarkdownText text={weeklyReport} />
+          )}
         </div>
       )}
 

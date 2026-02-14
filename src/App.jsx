@@ -871,15 +871,17 @@ function ProgramsPage() {
             {day.exercises.map((ex, ei) => (
               <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #1a1a1a" }}>
               <span style={{ fontSize: 12, color: "#d4d4d4", flex: 1 }}>{ex.name}</span>
-              <input type="number" inputMode="numeric" value={ex.defaultSets} onChange={e => {
+              <select value={ex.defaultSets} onChange={e => {
                 setEditing(p => {
                   const n = { ...p, days: [...p.days] };
                   const exs = [...n.days[di].exercises];
-                  exs[ei] = { ...exs[ei], defaultSets: Number(e.target.value) || 3 };
+                  exs[ei] = { ...exs[ei], defaultSets: Number(e.target.value) };
                   n.days[di] = { ...n.days[di], exercises: exs };
                   return n;
                 });
-              }} style={{ ...S.smInput, width: 40 }} title="Sets" />
+              }} style={{ ...S.smInput, width: 48, textAlign: "center" }} title="Sets">
+              {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
               <span style={{ fontSize: 9, color: "#525252" }}>sets</span>
               {ei > 0 && <button onClick={() => moveExInDay(di, ei, -1)} style={S.sm()}>↑</button>}
               {ei < day.exercises.length - 1 && <button onClick={() => moveExInDay(di, ei, 1)} style={S.sm()}>↓</button>}

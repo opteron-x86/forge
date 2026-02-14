@@ -740,6 +740,7 @@ function ProgramsPage() {
   const { user, programs, saveProgram, deleteProgram, customExercises, addCustomExercise, editingProgram: editing, setEditingProgram: setEditing } = useForge();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerDayIdx, setPickerDayIdx] = useState(null);
+  const [replacingExIdx, setReplacingExIdx] = useState(null);
   const [collapsedDays, setCollapsedDays] = useState(new Set());
   const [newExName, setNewExName] = useState("");
   const [newExMuscle, setNewExMuscle] = useState("chest");
@@ -790,6 +791,16 @@ function ProgramsPage() {
     });
   }
 
+  function replaceExInDay(dayIdx, exIdx, newEx) {
+    setEditing(p => {
+      const n = { ...p, days: [...p.days] };
+      const exs = [...n.days[dayIdx].exercises];
+      exs[exIdx] = { ...exs[exIdx], name: newEx.name };
+      n.days[dayIdx] = { ...n.days[dayIdx], exercises: exs };
+      return n;
+    });
+  }
+
   function removeExFromDay(dayIdx, exIdx) {
     setEditing(p => {
       const n = { ...p, days: [...p.days] };
@@ -828,8 +839,15 @@ function ProgramsPage() {
       <div className="fade-in">
       {showPicker && (
         <ExercisePicker customExercises={customExercises}
-        onSelect={(ex) => { addExerciseToDay(pickerDayIdx, ex); }}
-        onClose={() => setShowPicker(false)} />
+        onSelect={(ex) => {
+          if (replacingExIdx !== null) {
+            replaceExInDay(pickerDayIdx, replacingExIdx, ex);
+            setReplacingExIdx(null);
+          } else {
+            addExerciseToDay(pickerDayIdx, ex);
+          }
+        }}
+        onClose={() => { setShowPicker(false); setReplacingExIdx(null); }} />
       )}
       <div style={S.card}>
       <div style={S.label}>{editing.id ? "Edit Program" : "New Program"}</div>
@@ -870,7 +888,7 @@ function ProgramsPage() {
 
             {day.exercises.map((ex, ei) => (
               <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #1a1a1a" }}>
-              <span style={{ fontSize: 12, color: "#d4d4d4", flex: 1 }}>{ex.name}</span>
+              <span onClick={() => { setPickerDayIdx(di); setReplacingExIdx(ei); setShowPicker(true); }} style={{ fontSize: 12, color: "#d4d4d4", flex: 1, cursor: "pointer", textDecoration: "underline", textDecorationColor: "#333", textUnderlineOffset: 2 }}>{ex.name}</span>
               <select value={ex.defaultSets} onChange={e => {
                 setEditing(p => {
                   const n = { ...p, days: [...p.days] };

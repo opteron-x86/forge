@@ -916,6 +916,38 @@ function ProgramsPage() {
   );
 }
 
+// ═══════════════════════ MARKDOWN RENDERER ═══════════════════════
+
+function MarkdownText({ text }) {
+  const html = (text || "")
+  // Escape HTML first
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  // Headers
+  .replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>')
+  .replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>')
+  .replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>')
+  // Bold + italic, bold, italic
+  .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*(.+?)\*/g, '<em>$1</em>')
+  // Inline code
+  .replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
+  // Horizontal rules
+  .replace(/^---+$/gm, '<hr class="md-hr" />')
+  // List items
+  .replace(/^[\-\*] (.+)$/gm, '<li class="md-li">$1</li>')
+  .replace(/^\d+\.\s+(.+)$/gm, '<li class="md-li md-oli">$1</li>')
+  // Wrap consecutive <li> in <ul>
+  .replace(/((?:<li class="md-li">.*<\/li>\n?)+)/g, '<ul class="md-ul">$1</ul>')
+  // Upgrade to <ol> when all items are ordered
+  .replace(/<ul class="md-ul">((?:<li class="md-li md-oli">.*<\/li>\n?)+)<\/ul>/g, '<ol class="md-ol">$1</ol>')
+  // Paragraph breaks and line breaks
+  .replace(/\n\n/g, '<div class="md-break"></div>')
+  .replace(/\n/g, '<br />');
+
+  return <div className="md-response" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
 // ═══════════════════════ COACH ═══════════════════════
 
 function CoachPage() {
@@ -975,7 +1007,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
         <div style={S.card}>
           <div style={S.label}>Response</div>
           {loading ? <div style={{ padding: 16, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing training data...</div>
-            : <div style={{ fontSize: 13, lineHeight: 1.6, color: "#d4d4d4", whiteSpace: "pre-wrap" }}>{response}</div>}
+            : <MarkdownText text={response} />
         </div>
       )}
     </div>

@@ -1007,7 +1007,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
         <div style={S.card}>
           <div style={S.label}>Response</div>
           {loading ? <div style={{ padding: 16, textAlign: "center", color: "#f97316", fontSize: 12 }}>Analyzing training data...</div>
-            : <MarkdownText text={response} />
+            : <MarkdownText text={response} />}
       )}
     </div>
   );

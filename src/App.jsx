@@ -445,7 +445,7 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
           <div key={ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{ex.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "#737373", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
                 {last && <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
                 {ex.notes && <div style={{ fontSize: 10, color: "#f97316", marginTop: 2 }}>{ex.notes}</div>}
               </div>
@@ -1033,7 +1033,16 @@ function ProgramsPage() {
               }} style={{ ...S.smInput, width: 48, textAlign: "center" }} title="Sets">
               {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              <span style={{ fontSize: 9, color: "#525252" }}>sets</span>
+              <span style={{ fontSize: 9, color: "#525252" }}>×</span>
+              <input value={ex.targetReps || ""} onChange={e => {
+                setEditing(p => {
+                  const n = { ...p, days: [...p.days] };
+                  const exs = [...n.days[di].exercises];
+                  exs[ei] = { ...exs[ei], targetReps: e.target.value };
+                  n.days[di] = { ...n.days[di], exercises: exs };
+                  return n;
+                });
+              }} style={{ ...S.smInput, width: 52, textAlign: "center" }} placeholder="8-12" title="Rep range" />
               {ei > 0 && <button onClick={() => moveExInDay(di, ei, -1)} style={S.sm()}>↑</button>}
               {ei < day.exercises.length - 1 && <button onClick={() => moveExInDay(di, ei, 1)} style={S.sm()}>↓</button>}
               <button onClick={() => removeExFromDay(di, ei)} style={S.sm("danger")}>✕</button>
@@ -1356,7 +1365,7 @@ export default function App() {
       for (let j = 0; j < (t.defaultSets || 3); j++) {
         sets.push({ weight: last?.sets?.[j]?.weight || "", reps: last?.sets?.[j]?.reps || "", rpe: "", completed: false });
       }
-      return { name: t.name, sets, notes: t.notes || "" };
+      return { name: t.name, sets, targetReps: t.targetReps || "", notes: t.notes || "" };
     });
     setCurrent({
       id: genId(), date: new Date().toISOString().split("T")[0],

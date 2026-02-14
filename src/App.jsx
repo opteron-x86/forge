@@ -90,7 +90,7 @@ function Login({ onLogin }) {
 
   return (
     <div style={{ ...S.app, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", padding: 32, paddingBottom: 32 }}>
-      <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}><span style={{ color: "#c9952d" }}>Δ</span> TALOS</div>
+      <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}><img src="/talos-icon.svg" alt="" style={{ width: 32, height: 32, verticalAlign: "middle", marginRight: 8 }} />TALOS</div>
       <div style={{ color: "#525252", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Unyielding</div>
 
       {mode === "select" && (
@@ -263,7 +263,7 @@ function LogPage({ onStartWorkout }) {
 
       {programs.length === 0 && (
         <div style={{ ...S.card, textAlign: "center" }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>Δ</div>
+          <div style={{ fontSize: 28, marginBottom: 8 }}><img src="/talos-icon.svg" alt="" style={{ width: 28, height: 28 }} /></div>
           <div style={{ color: "#fafafa", fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Welcome to TALOS</div>
           <div style={{ color: "#525252", fontSize: 12, lineHeight: 1.5 }}>Create a program in the <span style={{ color: "#c9952d" }}>Prog</span> tab to get started, or hit Blank Workout below to jump right in.</div>
         </div>
@@ -1853,7 +1853,7 @@ export default function App() {
     <Ctx.Provider value={ctx}>
       <div style={S.app}>
         <div style={S.header}>
-          <h1 style={S.title}><span style={{ color: user.color || "#c9952d" }}>Δ</span> TALOS {currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
+          <h1 style={S.title}><img src="/talos-icon.svg" alt="" style={{ width: 20, height: 20, verticalAlign: "middle", marginRight: 6 }} />TALOS {currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
           <div onClick={() => setShowSettings(true)} style={S.avatar(user.color || "#c9952d", 32)}>{user.name?.[0]?.toUpperCase()}</div>
         </div>
 

@@ -623,6 +623,7 @@ function StatsPage() {
         </div>
         {editing ? (
           <div>
+            {/* Row 1: Core biometrics */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
               {[["Weight", "weight", "number"], ["BF %", "bodyFat", "number"], ["Height", "height", "text"]].map(([l, k, t]) => (
                 <div key={k}>
@@ -631,21 +632,139 @@ function StatsPage() {
                 </div>
               ))}
             </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Rest Timer — Compound (seconds)</div>
-              <input type="number" inputMode="numeric" value={tmp.restTimerCompound || 150} onChange={e => setTmp(p => ({ ...p, restTimerCompound: Number(e.target.value) }))} style={S.smInput} />
+            {/* Row 2: Sex, DOB, Target Weight */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Sex</div>
+                <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                  <option value="">—</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>DOB</div>
+                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "4px 4px", fontSize: 11 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Target Wt</div>
+                <input type="number" inputMode="decimal" value={tmp.targetWeight || ""} onChange={e => setTmp(p => ({ ...p, targetWeight: Number(e.target.value) }))} style={S.smInput} placeholder="lbs" />
+              </div>
             </div>
+            {/* Row 3: Goal, Experience, Intensity */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Goal</div>
+                <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                  <option value="">—</option>
+                  <option value="bulk">Bulk</option>
+                  <option value="cut">Cut</option>
+                  <option value="recomp">Recomp</option>
+                  <option value="maintain">Maintain</option>
+                  <option value="strength">Strength</option>
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Experience</div>
+                <select value={tmp.experienceLevel || ""} onChange={e => setTmp(p => ({ ...p, experienceLevel: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                  <option value="">—</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Intensity</div>
+                <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                  <option value="">—</option>
+                  <option value="low">Low</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            {/* Row 4: Nutrition targets */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Calorie Target</div>
+                <input type="number" inputMode="numeric" value={tmp.caloriesTarget || ""} onChange={e => setTmp(p => ({ ...p, caloriesTarget: Number(e.target.value) }))} style={S.smInput} placeholder="kcal/day" />
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Protein Target</div>
+                <input type="number" inputMode="numeric" value={tmp.proteinTarget || ""} onChange={e => setTmp(p => ({ ...p, proteinTarget: Number(e.target.value) }))} style={S.smInput} placeholder="g/day" />
+              </div>
+            </div>
+            {/* Target PRs */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Rest Timer — Isolation (seconds)</div>
-              <input type="number" inputMode="numeric" value={tmp.restTimerIsolation || 90} onChange={e => setTmp(p => ({ ...p, restTimerIsolation: Number(e.target.value) }))} style={S.smInput} />
+              <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Target PRs</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                {["Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press"].map(lift => (
+                  <div key={lift} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ fontSize: 9, color: "#737373", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lift.replace("Conventional ", "")}</div>
+                    <input type="number" inputMode="numeric" value={tmp.targetPrs?.[lift] || ""} onChange={e => setTmp(p => ({ ...p, targetPrs: { ...(p.targetPrs || {}), [lift]: Number(e.target.value) || undefined } }))} style={{ ...S.smInput, width: 64, flex: "none" }} placeholder="lbs" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Injuries/Notes */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Injuries / Limitations</div>
+              <textarea value={tmp.injuriesNotes || ""} onChange={e => setTmp(p => ({ ...p, injuriesNotes: e.target.value }))} style={{ ...S.input, minHeight: 40, resize: "vertical", fontSize: 12 }} placeholder="Hip bursitis, bad shoulder, etc." />
+            </div>
+            {/* Rest timers */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Rest — Compound (sec)</div>
+                <input type="number" inputMode="numeric" value={tmp.restTimerCompound || 150} onChange={e => setTmp(p => ({ ...p, restTimerCompound: Number(e.target.value) }))} style={S.smInput} />
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Rest — Isolation (sec)</div>
+                <input type="number" inputMode="numeric" value={tmp.restTimerIsolation || 90} onChange={e => setTmp(p => ({ ...p, restTimerIsolation: Number(e.target.value) }))} style={S.smInput} />
+              </div>
             </div>
             <button onClick={() => { updateProfile(tmp); setEditing(false); }} style={S.btn("primary")}>Save</button>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.height || "—"}</div><div style={S.statL}>Height</div></div>
-            <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.weight || "—"}</div><div style={S.statL}>Weight</div></div>
-            <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.bodyFat || "—"}</div><div style={S.statL}>BF %</div></div>
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+              <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.height || "—"}</div><div style={S.statL}>Height</div></div>
+              <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.weight || "—"}</div><div style={S.statL}>Weight</div></div>
+              <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.bodyFat || "—"}</div><div style={S.statL}>BF %</div></div>
+            </div>
+            {/* Extended profile info — only show if any data exists */}
+            {(profile.sex || profile.goal || profile.experienceLevel || profile.targetWeight || profile.caloriesTarget || profile.proteinTarget) && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, paddingTop: 8, borderTop: "1px solid #262626" }}>
+                {profile.sex && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.sex === "male" ? "M" : "F"}</div><div style={S.statL}>Sex</div></div>}
+                {profile.dateOfBirth && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000)}</div><div style={S.statL}>Age</div></div>}
+                {profile.goal && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.goal}</div><div style={S.statL}>Goal</div></div>}
+                {profile.targetWeight && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.targetWeight}</div><div style={S.statL}>Target Wt</div></div>}
+                {profile.experienceLevel && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.experienceLevel}</div><div style={S.statL}>Level</div></div>}
+                {profile.trainingIntensity && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.trainingIntensity}</div><div style={S.statL}>Intensity</div></div>}
+                {profile.caloriesTarget && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.caloriesTarget}</div><div style={S.statL}>Cal Target</div></div>}
+                {profile.proteinTarget && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.proteinTarget}g</div><div style={S.statL}>Protein</div></div>}
+              </div>
+            )}
+            {/* Target PRs — only show if any set */}
+            {profile.targetPrs && Object.values(profile.targetPrs).some(v => v) && (
+              <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid #262626" }}>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Target PRs</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                  {Object.entries(profile.targetPrs).filter(([, v]) => v).map(([lift, target]) => (
+                    <div key={lift} style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                      <span style={{ color: "#737373" }}>{lift.replace("Conventional ", "")}</span>
+                      <span style={{ color: "#fafafa", fontWeight: 700 }}>{target} lbs</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Injuries — only show if set */}
+            {profile.injuriesNotes && (
+              <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid #262626" }}>
+                <div style={{ fontSize: 9, color: "#525252", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Injuries / Limitations</div>
+                <div style={{ fontSize: 11, color: "#a3a3a3", lineHeight: 1.4 }}>{profile.injuriesNotes}</div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1046,7 +1165,27 @@ function CoachPage() {
       `  Day ${i + 1} — ${d.label || "Untitled"}${d.subtitle ? ` (${d.subtitle})` : ""}: ${d.exercises?.map(e => `${e.name} ${e.defaultSets}x${e.targetReps || "?"}`).join(", ") || "no exercises"}`
     ).join("\n") || "no days"}`
     ).join("\n\n");
-    const context = `USER: ${user.name}, Height: ${profile.height}, Weight: ${profile.weight} lbs${profile.bodyFat ? `, BF: ${profile.bodyFat}%` : ""}
+    const age = profile.dateOfBirth ? Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000) : null;
+    const profileLines = [
+      `Name: ${user.name}`,
+      profile.sex ? `Sex: ${profile.sex}` : null,
+      age ? `Age: ${age}` : null,
+      profile.height ? `Height: ${profile.height}` : null,
+      profile.weight ? `Weight: ${profile.weight} lbs` : null,
+      profile.bodyFat ? `Body Fat: ${profile.bodyFat}%` : null,
+      profile.goal ? `Goal: ${profile.goal}` : null,
+      profile.targetWeight ? `Target Weight: ${profile.targetWeight} lbs` : null,
+      profile.experienceLevel ? `Experience: ${profile.experienceLevel}` : null,
+      profile.trainingIntensity ? `Training Intensity: ${profile.trainingIntensity}` : null,
+      profile.caloriesTarget ? `Calorie Target: ${profile.caloriesTarget} kcal/day` : null,
+      profile.proteinTarget ? `Protein Target: ${profile.proteinTarget}g/day` : null,
+    ].filter(Boolean).join(", ");
+    const targetPrLines = profile.targetPrs && Object.keys(profile.targetPrs).length > 0
+      ? `TARGET PRs:\n${Object.entries(profile.targetPrs).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lbs`).join("\n")}` : "";
+    const injuryLines = profile.injuriesNotes ? `INJURIES/LIMITATIONS: ${profile.injuriesNotes}` : "";
+    const context = `USER: ${profileLines}
+    ${injuryLines}
+    ${targetPrLines}
     PROGRAMS:\n${programCtx || "None"}
     PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
     RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
@@ -1146,7 +1285,7 @@ function SettingsModal({ onClose, onLogout }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [workouts, setWorkouts] = useState([]);
-  const [profile, setProfile] = useState({ height: "", weight: null, bodyFat: null, restTimerCompound: 150, restTimerIsolation: 90, bioHistory: [] });
+  const [profile, setProfile] = useState({ height: "", weight: null, bodyFat: null, restTimerCompound: 150, restTimerIsolation: 90, sex: "", dateOfBirth: "", goal: "", targetWeight: null, experienceLevel: "", trainingIntensity: "", targetPrs: {}, injuriesNotes: "", caloriesTarget: null, proteinTarget: null, bioHistory: [] });
   const [programs, setPrograms] = useState([]);
   const [customExercises, setCustomExercises] = useState([]);
   const [tab, setTab] = useState("log");

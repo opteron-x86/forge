@@ -85,6 +85,23 @@ db.exec(`
   );
 `);
 
+// --- Migrate profiles table (safe — ignores if columns already exist) ---
+const profileMigrations = [
+  "ALTER TABLE profiles ADD COLUMN sex TEXT",
+  "ALTER TABLE profiles ADD COLUMN date_of_birth TEXT",
+  "ALTER TABLE profiles ADD COLUMN goal TEXT",
+  "ALTER TABLE profiles ADD COLUMN target_weight REAL",
+  "ALTER TABLE profiles ADD COLUMN experience_level TEXT",
+  "ALTER TABLE profiles ADD COLUMN training_intensity TEXT",
+  "ALTER TABLE profiles ADD COLUMN target_prs TEXT",
+  "ALTER TABLE profiles ADD COLUMN injuries_notes TEXT",
+  "ALTER TABLE profiles ADD COLUMN calories_target INTEGER",
+  "ALTER TABLE profiles ADD COLUMN protein_target INTEGER",
+];
+for (const sql of profileMigrations) {
+  try { db.exec(sql); } catch (e) { /* column already exists */ }
+}
+
 function hashPin(pin) {
   return crypto.createHash("sha256").update(pin).digest("hex");
 }
@@ -197,16 +214,36 @@ app.get("/api/profile", (req, res) => {
     bodyFat: profile?.body_fat || null,
     restTimerCompound: profile?.rest_timer_compound || 150,
     restTimerIsolation: profile?.rest_timer_isolation || 90,
+    sex: profile?.sex || "",
+    dateOfBirth: profile?.date_of_birth || "",
+    goal: profile?.goal || "",
+    targetWeight: profile?.target_weight || null,
+    experienceLevel: profile?.experience_level || "",
+    trainingIntensity: profile?.training_intensity || "",
+    targetPrs: profile?.target_prs ? JSON.parse(profile.target_prs) : {},
+    injuriesNotes: profile?.injuries_notes || "",
+    caloriesTarget: profile?.calories_target || null,
+    proteinTarget: profile?.protein_target || null,
     bioHistory,
   });
 });
 
 app.put("/api/profile", (req, res) => {
-  const { user_id, height, weight, bodyFat, restTimerCompound, restTimerIsolation } = req.body;
+  const { user_id, height, weight, bodyFat, restTimerCompound, restTimerIsolation,
+    sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
+    targetPrs, injuriesNotes, caloriesTarget, proteinTarget } = req.body;
   if (!user_id) return res.status(400).json({ error: "user_id required" });
   db.prepare(
-    `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?, updated_at = datetime('now') WHERE user_id = ?`
-  ).run(height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90, user_id);
+    `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
+     sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
+     target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?,
+     updated_at = datetime('now') WHERE user_id = ?`
+  ).run(
+    height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90,
+    sex || null, dateOfBirth || null, goal || null, targetWeight || null, experienceLevel || null, trainingIntensity || null,
+    targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
+    user_id
+  );
   if (weight) {
     db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
       user_id, new Date().toISOString().split("T")[0], weight, bodyFat || null
@@ -283,7 +320,7 @@ app.post("/api/coach", async (req, res) => {
     const msg = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1500,
-      system: `You are a knowledgeable strength training coach analyzing real workout data. Give specific, evidence-based advice with exact numbers (weights, reps, sets). Be concise and actionable. Consider any injuries mentioned. Format with clear sections but keep it tight. No fluff.`,
+      system: `You are a knowledgeable strength training coach analyzing real workout data. The user's profile includes biometric data, training goals, experience level, injury notes, and nutrition targets — use all available context to personalize your advice. Give specific, evidence-based advice with exact numbers (weights, reps, sets). Be concise and actionable. Consider any injuries mentioned. Format with clear sections but keep it tight. No fluff.`,
       messages: [{ role: "user", content: `${context}\n\nQUESTION: ${prompt}` }],
     });
     res.json({ response: msg.content.map(b => b.type === "text" ? b.text : "").join("\n") });

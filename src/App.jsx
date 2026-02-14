@@ -779,6 +779,16 @@ function ProgramsPage() {
     setEditing(p => { const n = { ...p, days: [...p.days] }; n.days[idx] = { ...n.days[idx], [field]: val }; return n; });
   }
 
+  function moveDay(idx, dir) {
+    setEditing(p => {
+      const days = [...p.days];
+      const t = idx + dir;
+      if (t < 0 || t >= days.length) return p;
+      [days[idx], days[t]] = [days[t], days[idx]];
+      return { ...p, days };
+    });
+  }
+
   function removeDay(idx) {
     setEditing(p => ({ ...p, days: p.days.filter((_, i) => i !== idx) }));
   }
@@ -878,7 +888,11 @@ function ProgramsPage() {
           {isCollapsed && <div style={{ fontSize: 10, color: "#525252" }}>{day.exercises?.length || 0} exercises</div>}
           </div>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); removeDay(di); }} style={S.sm("danger")}>Remove</button>
+          <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
+            {di > 0 && <button onClick={() => moveDay(di, -1)} style={S.sm()}>↑</button>}
+            {di < editing.days.length - 1 && <button onClick={() => moveDay(di, 1)} style={S.sm()}>↓</button>}
+            <button onClick={() => removeDay(di)} style={S.sm("danger")}>Remove</button>
+          </div>
           </div>
 
           {!isCollapsed && (

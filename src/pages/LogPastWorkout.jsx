@@ -16,20 +16,48 @@ import { genId, fmtDate, FEEL } from "../lib/helpers";
 import ExercisePicker from "../components/ExercisePicker";
 import S from "../lib/styles";
 
-export default function LogPastWorkout({ onSave, onCancel }) {
+export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
   const { workouts, programs, profile, user, customExercises } = useTalos();
 
-  // ── Core state ──
+// ── Edit mode detection ──
+  const isEditing = !!editingWorkout;
+
+  // ── Core state (pre-populated when editing) ──
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-  const [date, setDate] = useState(yesterday);
-  const [selectedProgram, setSelectedProgram] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [exercises, setExercises] = useState([]);
-  const [feel, setFeel] = useState(3);
-  const [duration, setDuration] = useState("");
-  const [sleepHours, setSleepHours] = useState("");
-  const [notes, setNotes] = useState("");
+  const [date, setDate] = useState(isEditing ? editingWorkout.date : yesterday);
+  const [selectedProgram, setSelectedProgram] = useState(() => {
+    if (isEditing && editingWorkout.program_id) {
+      return programs.find(p => p.id === editingWorkout.program_id) || null;
+    }
+    return null;
+  });
+  const [selectedDay, setSelectedDay] = useState(() => {
+    if (isEditing && editingWorkout.program_id && editingWorkout.day_id) {
+      const prog = programs.find(p => p.id === editingWorkout.program_id);
+      return prog?.days?.find(d => d.id === editingWorkout.day_id) || null;
+    }
+    return null;
+  });
+  const [exercises, setExercises] = useState(() => {
+    if (isEditing && editingWorkout.exercises?.length) {
+      return editingWorkout.exercises.map(ex => ({
+        name: ex.name,
+        sets: ex.sets?.map(s => ({
+          weight: s.weight ?? "",
+          reps: s.reps ?? "",
+          rpe: s.rpe ?? "",
+          completed: true,
+        })) || [{ weight: "", reps: "", rpe: "", completed: true }],
+        notes: ex.notes || "",
+      }));
+    }
+    return [];
+  });
+  const [feel, setFeel] = useState(isEditing ? (editingWorkout.feel || 3) : 3);
+  const [duration, setDuration] = useState(isEditing ? (editingWorkout.duration?.toString() || "") : "");
+  const [sleepHours, setSleepHours] = useState(isEditing ? (editingWorkout.sleep_hours?.toString() || "") : "");
+  const [notes, setNotes] = useState(isEditing ? (editingWorkout.notes || "") : "");
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -142,42 +170,41 @@ export default function LogPastWorkout({ onSave, onCancel }) {
     return null;
   }
 
-  // ── Save ──
   async function handleSave() {
-    // Filter to only sets with at least weight and reps
-    const cleanExercises = exercises
-      .map((e) => ({
-        ...e,
-        sets: e.sets.filter((s) => s.weight && s.reps),
-      }))
-      .filter((e) => e.sets.length > 0);
+      const cleanExercises = exercises
+        .map((e) => ({
+          ...e,
+          sets: e.sets.filter((s) => s.weight && s.reps),
+        }))
+        .filter((e) => e.sets.length > 0);
 
-    if (cleanExercises.length === 0) {
-      alert("Add at least one exercise with weight and reps.");
-      return;
-    }
+      if (cleanExercises.length === 0) {
+        alert("Add at least one exercise with weight and reps.");
+        return;
+      }
 
-    setSaving(true);
-    try {
-      const workout = {
-        id: genId(),
-        user_id: user.id,
-        date,
-        program_id: selectedProgram?.id || null,
-        day_id: selectedDay?.id || null,
-        day_label: selectedDay?.label || (selectedProgram ? null : "Freestyle"),
-        feel,
-        sleepHours: sleepHours ? parseFloat(sleepHours) : null,
-        duration: duration ? parseInt(duration, 10) : null,
-        notes,
-        exercises: cleanExercises,
-      };
-      await onSave(workout);
-    } catch (e) {
-      alert("Error saving: " + e.message);
-      setSaving(false);
+      setSaving(true);
+      try {
+        const workout = {
+          id: isEditing ? editingWorkout.id : genId(),
+          user_id: user.id,
+          date,
+          program_id: selectedProgram?.id || null,
+          day_id: selectedDay?.id || null,
+          day_label: selectedDay?.label || (selectedProgram ? null : "Freestyle"),
+          feel,
+          sleepHours: sleepHours ? parseFloat(sleepHours) : null,
+          duration: duration ? parseInt(duration) : null,
+          notes,
+          exercises: cleanExercises,
+        };
+        await onSave(workout);
+      } catch (e) {
+        console.error(e);
+        alert("Error saving workout");
+        setSaving(false);
+      }
     }
-  }
 
   // ── Volume stats ──
   const totalSets = exercises.reduce((a, e) => a + e.sets.length, 0);
@@ -203,7 +230,9 @@ export default function LogPastWorkout({ onSave, onCancel }) {
       <div style={{ ...S.card, paddingBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa" }}>Log Past Workout</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#e5e5e5" }}>
+              {isEditing ? "Edit Workout" : "Log Past Workout"}
+            </div>
             <div style={{ fontSize: 11, color: "#525252", marginTop: 2 }}>
               Add a workout from a previous date
             </div>
@@ -423,7 +452,7 @@ export default function LogPastWorkout({ onSave, onCancel }) {
       {/* Save / Cancel */}
       <div style={{ margin: "12px 16px 24px", display: "flex", gap: 8 }}>
         <button onClick={onCancel} style={{ ...S.btn("ghost"), flex: 1 }}>
-          Cancel
+          {isEditing ? "Cancel" : "← Back"}
         </button>
         <button
           onClick={handleSave}
@@ -434,7 +463,7 @@ export default function LogPastWorkout({ onSave, onCancel }) {
             opacity: saving || exercises.length === 0 ? 0.5 : 1,
           }}
         >
-          {saving ? "Saving..." : "Save Workout"}
+          {saving ? "Saving..." : isEditing ? "Update Workout" : "Save Workout"}
         </button>
       </div>
     </div>

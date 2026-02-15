@@ -229,6 +229,22 @@ app.post("/api/workouts", (req, res) => {
   res.json({ ok: true });
 });
 
+app.put("/api/workouts/:id", (req, res) => {
+  const { date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
+  const existing = db.prepare("SELECT id FROM workouts WHERE id = ?").get(req.params.id);
+  if (!existing) return res.status(404).json({ error: "Workout not found" });
+  db.prepare(
+    `UPDATE workouts SET date = ?, program_id = ?, day_id = ?, day_label = ?,
+     feel = ?, sleep_hours = ?, duration = ?, notes = ?, exercises = ?
+     WHERE id = ?`
+  ).run(
+    date, program_id || null, day_id || null, day_label || null,
+    feel || 3, sleepHours || null, duration || null, notes || "",
+    JSON.stringify(exercises), req.params.id
+  );
+  res.json({ ok: true });
+});
+
 app.delete("/api/workouts/:id", (req, res) => {
   db.prepare("DELETE FROM workouts WHERE id = ?").run(req.params.id);
   res.json({ ok: true });

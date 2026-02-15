@@ -46,6 +46,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
+  const [editingWorkout, setEditingWorkout] = useState(null);
 
   // ── Load user data on login ──
   useEffect(() => {
@@ -93,6 +94,20 @@ export default function App() {
     if (!confirm("Delete this workout?")) return;
     await api.del(`/workouts/${id}`);
     setWorkouts((prev) => prev.filter((w) => w.id !== id));
+  }
+
+  async function updateWorkout(w) {
+    await api.put(`/workouts/${w.id}`, w);
+    setWorkouts((prev) => {
+      const next = prev.map((existing) => (existing.id === w.id ? { ...w, exercises: w.exercises } : existing));
+      next.sort((a, b) => a.date.localeCompare(b.date));
+      return next;
+    });
+  }
+
+  function editWorkout(workout) {
+    setEditingWorkout(workout);
+    setTab("editWorkout");
   }
 
   async function updateProfile(p) {
@@ -216,15 +231,17 @@ export default function App() {
 
   // ── Resolve active tab (handle edge cases) ──
   const activeTab =
-    tab === "logPast"
-      ? "logPast"
-      : tab === "summary" && sessionSummary
-        ? "summary"
-        : tab === "active" && currentWorkout
-          ? "active"
-          : tab === "active"
-            ? "train"
-            : tab;
+      tab === "logPast"
+        ? "logPast"
+        : tab === "editWorkout" && editingWorkout
+          ? "editWorkout"
+          : tab === "summary" && sessionSummary
+            ? "summary"
+            : tab === "active" && currentWorkout
+              ? "active"
+              : tab === "active"
+                ? "train"
+                : tab;
 
   // ── Context value ──
   const ctx = {
@@ -243,6 +260,8 @@ export default function App() {
     editingProgram,
     setEditingProgram,
     setActiveProgramId,
+    updateWorkout,
+    editWorkout,
   };
 
   // ── Render ──
@@ -315,6 +334,20 @@ export default function App() {
           <LogPastWorkout
             onSave={savePastWorkout}
             onCancel={() => setTab("train")}
+          />
+        )}
+        {activeTab === "editWorkout" && editingWorkout && (
+          <LogPastWorkout
+            editingWorkout={editingWorkout}
+            onSave={async (w) => {
+              await updateWorkout(w);
+              setEditingWorkout(null);
+              setTab("history");
+            }}
+            onCancel={() => {
+              setEditingWorkout(null);
+              setTab("history");
+            }}
           />
         )}
         {activeTab === "summary" && (

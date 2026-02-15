@@ -23,7 +23,7 @@ function getDayColor(label) {
 }
 
 export default function HistoryPage() {
-  const { workouts, programs, deleteWorkout } = useTalos();
+  const { workouts, programs, deleteWorkout, editWorkout } = useTalos();
   const [expanded, setExpanded] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [filterProgram, setFilterProgram] = useState("all");
@@ -224,7 +224,10 @@ export default function HistoryPage() {
                 ))}
                 {w.notes && <div style={{ fontSize: 11, color: "#737373", marginTop: 8, fontStyle: "italic" }}>{w.notes}</div>}
                 {w.duration && <div style={{ fontSize: 10, color: "#525252", marginTop: 6 }}>Duration: {w.duration}min</div>}
-                <button onClick={() => deleteWorkout(w.id)} style={{ ...S.sm("danger"), marginTop: 8 }}>Delete</button>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={() => editWorkout(w)} style={{ ...S.sm("ghost"), flex: 1 }}>Edit</button>
+                  <button onClick={() => deleteWorkout(w.id)} style={{ ...S.sm("danger"), flex: 1 }}>Delete</button>
+                </div>
               </div>
             )}
           </div>

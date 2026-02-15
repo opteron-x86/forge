@@ -48,6 +48,10 @@ export default function App() {
   const [sessionSummary, setSessionSummary] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null);
 
+  // ── Coach state (lifted here so it survives tab switches) ──
+  const [coachHistory, setCoachHistory] = useState([]);
+  const [coachMode, setCoachMode] = useState("chat");
+
   // ── Load user data on login ──
   useEffect(() => {
     if (!user) return;
@@ -58,13 +62,15 @@ export default function App() {
       api.get(`/programs?user_id=${user.id}`),
       api.get("/exercises"),
       api.get("/ai/config"),
+      api.get(`/coach/messages?user_id=${user.id}`),
     ])
-      .then(([w, p, pr, ex, ai]) => {
+      .then(([w, p, pr, ex, ai, coachMsgs]) => {
         setWorkouts(w);
         setProfile(p);
         setPrograms(pr);
         setCustomExercises(ex);
         setAiConfig(ai);
+        setCoachHistory(Array.isArray(coachMsgs) ? coachMsgs : []);
         setLoaded(true);
       })
       .catch((e) => {
@@ -262,6 +268,11 @@ export default function App() {
     setActiveProgramId,
     updateWorkout,
     editWorkout,
+    // Coach state (persists across tab switches)
+    coachHistory,
+    setCoachHistory,
+    coachMode,
+    setCoachMode,
   };
 
   // ── Render ──

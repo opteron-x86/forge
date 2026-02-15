@@ -28,6 +28,8 @@ const TalosContext = createContext();
  * - addCustomExercise(exercise): add to custom exercise library
  * - editingProgram / setEditingProgram: program editor state
  * - setActiveProgramId(id): set the active program
+ * - coachHistory / setCoachHistory: AI coach conversation messages (persisted)
+ * - coachMode / setCoachMode: current coach tab mode (chat/program/weekly)
  */
 export function useTalos() {
   const ctx = useContext(TalosContext);

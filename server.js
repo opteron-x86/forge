@@ -89,6 +89,16 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS coach_messages (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'chat',
+    prompt TEXT,
+    response TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `);
 
 // --- Migrate profiles table (safe — ignores if columns already exist) ---
@@ -206,6 +216,7 @@ app.delete("/api/users/:id", (req, res) => {
   db.prepare("DELETE FROM bio_history WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM profiles WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM programs WHERE user_id = ?").run(id);
+  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM users WHERE id = ?").run(id);
   res.json({ ok: true });
 });
@@ -408,16 +419,62 @@ const COACH_SYSTEM = `You are a knowledgeable strength training coach analyzing 
 
 app.post("/api/coach", async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
-  const { prompt, context } = req.body;
+  const { prompt, context, history } = req.body;
   try {
-    const result = await aiProvider.chat(COACH_SYSTEM, [
-      { role: "user", content: `${context}\n\nQUESTION: ${prompt}` },
-    ], { maxTokens: 1500 });
+    // Build multi-turn messages: context as first user message, then conversation history, then current question
+    const messages = [];
+    messages.push({ role: "user", content: `Here is my current training data and profile:\n\n${context}` });
+    messages.push({ role: "assistant", content: "Got it — I have your training data, profile, programs, and PRs loaded. What would you like to know?" });
+
+    // Include recent conversation history for multi-turn context (last 6 exchanges max)
+    if (history && Array.isArray(history)) {
+      const recentHistory = history.slice(-6);
+      for (const msg of recentHistory) {
+        if (msg.prompt) messages.push({ role: "user", content: msg.prompt });
+        if (msg.response) messages.push({ role: "assistant", content: msg.response });
+      }
+    }
+
+    messages.push({ role: "user", content: prompt });
+
+    const result = await aiProvider.chat(COACH_SYSTEM, messages, { maxTokens: 1500 });
     res.json({ response: result.text });
   } catch (e) {
     console.error("Coach error:", e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── Coach Message History ──
+
+app.get("/api/coach/messages", (req, res) => {
+  const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: "user_id required" });
+  const messages = db.prepare(
+    "SELECT * FROM coach_messages WHERE user_id = ? ORDER BY created_at ASC"
+  ).all(user_id);
+  res.json(messages);
+});
+
+app.post("/api/coach/messages", (req, res) => {
+  const { id, user_id, type, prompt, response } = req.body;
+  if (!user_id || !id) return res.status(400).json({ error: "id and user_id required" });
+  db.prepare(
+    "INSERT OR REPLACE INTO coach_messages (id, user_id, type, prompt, response) VALUES (?, ?, ?, ?, ?)"
+  ).run(id, user_id, type || "chat", prompt || null, response || null);
+  res.json({ ok: true });
+});
+
+app.delete("/api/coach/messages/:id", (req, res) => {
+  db.prepare("DELETE FROM coach_messages WHERE id = ?").run(req.params.id);
+  res.json({ ok: true });
+});
+
+app.delete("/api/coach/messages", (req, res) => {
+  const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: "user_id required" });
+  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(user_id);
+  res.json({ ok: true });
 });
 
 // ===================== AI PROGRAM BUILDER =====================

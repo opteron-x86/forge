@@ -13,7 +13,7 @@ import { useTalos } from "../context/TalosContext";
 import { fmtDate } from "../lib/helpers";
 import S from "../lib/styles";
 
-export default function TrainPage({ onStartWorkout }) {
+export default function TrainPage({ onStartWorkout, onLogPast }) {
   const { workouts, programs, profile, setActiveProgramId } = useTalos();
   const [showProgramPicker, setShowProgramPicker] = useState(false);
 

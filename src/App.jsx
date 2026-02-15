@@ -17,6 +17,7 @@ import S from "./lib/styles";
 // Pages
 import TrainPage from "./pages/TrainPage";
 import ActiveWorkout from "./pages/ActiveWorkout";
+import LogPastWorkout from "./pages/LogPastWorkout";
 import HistoryPage from "./pages/HistoryPage";
 import StatsPage from "./pages/StatsPage";
 import ProgramsPage from "./pages/ProgramsPage";
@@ -75,7 +76,17 @@ export default function App() {
 
   async function saveWorkout(w) {
     await api.post("/workouts", w);
-    setWorkouts((prev) => [...prev, w]);
+    // Insert in sorted order by date (supports past-dated workouts)
+    setWorkouts((prev) => {
+      const next = [...prev, w];
+      next.sort((a, b) => a.date.localeCompare(b.date));
+      return next;
+    });
+  }
+
+  async function savePastWorkout(w) {
+    await saveWorkout(w);
+    setTab("history");
   }
 
   async function deleteWorkout(id) {
@@ -205,13 +216,15 @@ export default function App() {
 
   // ── Resolve active tab (handle edge cases) ──
   const activeTab =
-    tab === "summary" && sessionSummary
-      ? "summary"
-      : tab === "active" && currentWorkout
-        ? "active"
-        : tab === "active"
-          ? "train"
-          : tab;
+    tab === "logPast"
+      ? "logPast"
+      : tab === "summary" && sessionSummary
+        ? "summary"
+        : tab === "active" && currentWorkout
+          ? "active"
+          : tab === "active"
+            ? "train"
+            : tab;
 
   // ── Context value ──
   const ctx = {
@@ -239,11 +252,34 @@ export default function App() {
         {/* Header */}
         <header style={S.header}>
           <h1 style={S.title}>Δ TALOS</h1>
-          <div
-            onClick={() => setShowSettings(true)}
-            style={S.avatar(user.color)}
-          >
-            {user.name?.[0]?.toUpperCase()}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => setTab("logPast")}
+              title="Log past workout"
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                border: "1px solid #333",
+                background: "transparent",
+                color: "#737373",
+                fontSize: 18,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "inherit",
+                fontWeight: 300,
+              }}
+            >
+              +
+            </button>
+            <div
+              onClick={() => setShowSettings(true)}
+              style={S.avatar(user.color)}
+            >
+              {user.name?.[0]?.toUpperCase()}
+            </div>
           </div>
         </header>
 
@@ -261,7 +297,7 @@ export default function App() {
         )}
 
         {/* Page router */}
-        {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} />}
+        {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} onLogPast={() => setTab("logPast")} />}
         {activeTab === "active" && currentWorkout && (
           <ActiveWorkout
             workout={currentWorkout}
@@ -273,6 +309,12 @@ export default function App() {
                 setTab("train");
               }
             }}
+          />
+        )}
+        {activeTab === "logPast" && (
+          <LogPastWorkout
+            onSave={savePastWorkout}
+            onCancel={() => setTab("train")}
           />
         )}
         {activeTab === "summary" && (

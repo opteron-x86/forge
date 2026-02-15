@@ -251,7 +251,7 @@ export default function App() {
       <div style={S.app}>
         {/* Header */}
         <header style={S.header}>
-          <h1 style={S.title}>Δ TALOS</h1>
+          <h1 style={S.title}><img src="/talos-icon.svg" alt="" style={{ width: 20, height: 20, verticalAlign: "middle", marginRight: 6 }} />TALOS{currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               onClick={() => setTab("logPast")}

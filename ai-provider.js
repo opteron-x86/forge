@@ -304,7 +304,7 @@ export function resolveConfig(dbSettings, env) {
   if (env.ANTHROPIC_API_KEY) {
     return {
       provider: "anthropic",
-      model: env.AI_MODEL || "claude-sonnet-4-20250514",
+      model: env.AI_MODEL || "claude-sonnet-4-5-20250929",
       apiKey: env.ANTHROPIC_API_KEY,
       baseUrl: "",
     };
@@ -315,9 +315,9 @@ export function resolveConfig(dbSettings, env) {
 
 export function defaultModelFor(provider) {
   switch (provider) {
-    case "anthropic": return "claude-sonnet-4-20250514";
-    case "openai": return "gpt-4o";
-    case "gemini": return "gemini-2.0-flash";
+    case "anthropic": return "claude-sonnet-4-5-20250929";
+    case "openai": return "gpt-4.1";
+    case "gemini": return "gemini-2.5-flash";
     case "openai-compatible": return "default";
     default: return "";
   }
@@ -326,8 +326,23 @@ export function defaultModelFor(provider) {
 // ─── Provider Info ───────────────────────────────────────────
 
 export const PROVIDERS = [
-  { id: "anthropic", name: "Anthropic (Claude)", models: ["claude-sonnet-4-20250514", "claude-haiku-4-5-20251001"] },
-  { id: "openai", name: "OpenAI", models: ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "o4-mini"] },
-  { id: "gemini", name: "Google Gemini", models: ["gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.5-flash"] },
-  { id: "openai-compatible", name: "OpenAI-Compatible (Ollama, LM Studio, etc.)", models: [] },
+  { id: "anthropic", name: "Anthropic (Claude)", models: [
+    { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+    { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
+    { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
+    { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
+  ]},
+{ id: "openai", name: "OpenAI", models: [
+  { id: "gpt-4.1", label: "GPT-4.1" },
+  { id: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+  { id: "gpt-4o", label: "GPT-4o" },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini" },
+  { id: "o4-mini", label: "o4 Mini" },
+]},
+{ id: "gemini", name: "Google Gemini", models: [
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+]},
+{ id: "openai-compatible", name: "OpenAI-Compatible (Ollama, LM Studio, etc.)", models: [] },
 ];

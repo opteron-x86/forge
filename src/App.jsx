@@ -1615,10 +1615,25 @@ function SettingsModal({ onClose, onLogout }) {
   }
 
   const PROVIDERS = [
-    { id: "anthropic", label: "Anthropic (Claude)" },
-    { id: "openai", label: "OpenAI" },
-    { id: "gemini", label: "Google Gemini" },
-    { id: "openai-compatible", label: "Custom (Ollama, LM Studio, etc.)" },
+    { id: "anthropic", label: "Anthropic (Claude)", models: [
+      { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
+      { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
+      { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
+      { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
+    ]},
+    { id: "openai", label: "OpenAI", models: [
+      { id: "gpt-4.1", label: "GPT-4.1" },
+      { id: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+      { id: "gpt-4o", label: "GPT-4o" },
+      { id: "gpt-4o-mini", label: "GPT-4o Mini" },
+      { id: "o4-mini", label: "o4 Mini" },
+    ]},
+    { id: "gemini", label: "Google Gemini", models: [
+      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    ]},
+    { id: "openai-compatible", label: "Custom (Ollama, LM Studio, etc.)", models: [] },
   ];
 
   return (
@@ -1656,13 +1671,51 @@ function SettingsModal({ onClose, onLogout }) {
           <div style={{ marginBottom: 16 }}>
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
-              <select value={aiForm.provider} onChange={e => setAiForm(f => ({ ...f, provider: e.target.value, model: "" }))} style={{ ...S.input, fontSize: 12 }}>
+              <select value={aiForm.provider} onChange={e => {
+                const newProvider = e.target.value;
+                const models = PROVIDERS.find(p => p.id === newProvider)?.models || [];
+                setAiForm(f => ({ ...f, provider: newProvider, model: models[0]?.id || "" }));
+                }} style={{ ...S.input, fontSize: 12 }}>
                 {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
               </select>
             </div>
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
-              <input value={aiForm.model} onChange={e => setAiForm(f => ({ ...f, model: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="e.g. claude-sonnet-4-20250514, gpt-4o, gemini-2.0-flash" />
+            <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
+            {(() => {
+              const providerModels = PROVIDERS.find(p => p.id === aiForm.provider)?.models || [];
+              const isKnownModel = providerModels.some(m => m.id === aiForm.model);
+              const isCustom = providerModels.length === 0 || (!isKnownModel && aiForm.model !== "");
+              return (
+                <>
+                {providerModels.length > 0 && (
+                  <select
+                  value={isKnownModel ? aiForm.model : "__custom__"}
+                  onChange={e => {
+                    if (e.target.value === "__custom__") {
+                      setAiForm(f => ({ ...f, model: "" }));
+                    } else {
+                      setAiForm(f => ({ ...f, model: e.target.value }));
+                    }
+                  }}
+                  style={{ ...S.input, fontSize: 12 }}
+                  >
+                  {providerModels.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                  <option value="__custom__">Custom model...</option>
+                  </select>
+                )}
+                {isCustom && (
+                  <input
+                  value={aiForm.model}
+                  onChange={e => setAiForm(f => ({ ...f, model: e.target.value }))}
+                  style={{ ...S.input, fontSize: 12, marginTop: providerModels.length > 0 ? 4 : 0 }}
+                  placeholder={providerModels.length > 0 ? "Enter model ID" : "e.g. llama3, mistral, deepseek-coder"}
+                  />
+                )}
+                </>
+              );
+            })()}
             </div>
             {aiForm.provider !== "openai-compatible" && (
               <div style={{ marginBottom: 8 }}>

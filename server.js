@@ -6,7 +6,7 @@ import { dirname, join } from "path";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "./ai-provider.js";
-import { EXERCISES } from "./src/exercises.js";
+import { EXERCISES } from "./src/lib/exercises.js";
 
 dotenv.config();
 

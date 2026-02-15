@@ -238,19 +238,42 @@ function RestTimer({ seconds, onDone, onCancel }) {
   );
 }
 
-// ═══════════════════════ LOG PAGE ═══════════════════════
+// ═══════════════════════ TRAIN PAGE ═══════════════════════
 
-function LogPage({ onStartWorkout }) {
-  const { workouts, programs, profile } = useTalos();
+function TrainPage({ onStartWorkout }) {
+  const { workouts, programs, profile, setActiveProgramId } = useTalos();
+  const [showProgramPicker, setShowProgramPicker] = useState(false);
   const totalVol = workouts.reduce((a, w) => a + (w.exercises?.reduce((b, e) => b + (e.sets?.reduce((c, s) => c + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0), 0);
 
-  // Determine next day from last workout's program
-  const last = workouts.length > 0 ? workouts[workouts.length - 1] : null;
-  const lastProgram = last?.program_id ? programs.find(p => p.id === last.program_id) : null;
+  // Resolve active program: explicit > last workout's program > first program
+  const activeProg = programs.find(p => p.id === profile.activeProgramId)
+    || (() => {
+      const last = workouts.length > 0 ? workouts[workouts.length - 1] : null;
+      return last?.program_id ? programs.find(p => p.id === last.program_id) : null;
+    })()
+    || programs[0]
+    || null;
+
+  // Determine next day from last workout within the active program
+  const lastInProg = activeProg ? [...workouts].reverse().find(w => w.program_id === activeProg.id) : null;
   let nextDayIdx = 0;
-  if (lastProgram && last.day_id) {
-    const idx = lastProgram.days.findIndex(d => d.id === last.day_id);
-    if (idx >= 0) nextDayIdx = (idx + 1) % lastProgram.days.length;
+  if (activeProg && lastInProg?.day_id) {
+    const idx = activeProg.days.findIndex(d => d.id === lastInProg.day_id);
+    if (idx >= 0) nextDayIdx = (idx + 1) % activeProg.days.length;
+  }
+
+  // Last workout date for each day
+  const dayLastDate = {};
+  if (activeProg) {
+    activeProg.days.forEach(d => {
+      const last = [...workouts].reverse().find(w => w.day_id === d.id);
+      if (last) dayLastDate[d.id] = last.date;
+    });
+  }
+
+  function switchProgram(progId) {
+    setActiveProgramId(progId);
+    setShowProgramPicker(false);
   }
 
   return (
@@ -269,23 +292,55 @@ function LogPage({ onStartWorkout }) {
         </div>
       )}
 
-      {programs.map(prog => (
-        <div key={prog.id}>
-          <div style={{ padding: "12px 16px 4px" }}><div style={S.label}>{prog.name}</div></div>
-          {prog.days?.map((day, i) => (
-            <div key={day.id} onClick={() => onStartWorkout(prog, day)}
-              style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: (lastProgram?.id === prog.id && i === nextDayIdx) ? "#c9952d" : "#262626" }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
-                {day.subtitle && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{day.subtitle}</div>}
-                <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>{day.exercises?.length || 0} exercises</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {lastProgram?.id === prog.id && i === nextDayIdx && <span style={S.tag()}>NEXT</span>}
-                <span style={{ color: "#525252", fontSize: 18 }}>→</span>
-              </div>
+      {/* Active Program Header */}
+      {activeProg && (
+        <div style={{ padding: "12px 16px 0" }}>
+          <div onClick={() => programs.length > 1 && setShowProgramPicker(!showProgramPicker)}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: programs.length > 1 ? "pointer" : "default" }}>
+            <div>
+              <div style={S.label}>Active Program</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa", marginTop: 2 }}>{activeProg.name}</div>
             </div>
-          ))}
+            {programs.length > 1 && (
+              <span style={{ color: "#737373", fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", padding: "4px 8px", border: "1px solid #333", borderRadius: 4 }}>
+                Switch {showProgramPicker ? "▲" : "▼"}
+              </span>
+            )}
+          </div>
+
+          {/* Program picker dropdown */}
+          {showProgramPicker && (
+            <div style={{ marginTop: 8, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, overflow: "hidden" }}>
+              {programs.filter(p => p.id !== activeProg.id).map(p => (
+                <div key={p.id} onClick={() => switchProgram(p.id)}
+                  style={{ padding: "10px 12px", cursor: "pointer", borderBottom: "1px solid #262626", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#d4d4d4" }}>{p.name}</div>
+                    <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>{p.days?.length || 0} days</div>
+                  </div>
+                  <span style={{ color: "#525252", fontSize: 14 }}>→</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Active program days */}
+      {activeProg?.days?.map((day, i) => (
+        <div key={day.id} onClick={() => onStartWorkout(activeProg, day)}
+          style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderColor: i === nextDayIdx ? "#c9952d" : "#262626" }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
+            {day.subtitle && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{day.subtitle}</div>}
+            <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
+              {day.exercises?.length || 0} exercises{dayLastDate[day.id] ? ` · Last: ${fmtDate(dayLastDate[day.id])}` : ""}
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {i === nextDayIdx && <span style={S.tag()}>NEXT</span>}
+            <span style={{ color: "#525252", fontSize: 18 }}>→</span>
+          </div>
         </div>
       ))}
 
@@ -591,37 +646,208 @@ function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
 
 // ═══════════════════════ HISTORY ═══════════════════════
 
+// Color mapping for workout types
+const DAY_COLORS = {
+  push: "#c9952d",
+  pull: "#3b82f6",
+  leg: "#10b981",
+  legs: "#10b981",
+};
+function getDayColor(label) {
+  if (!label) return "#737373";
+  const l = label.toLowerCase();
+  for (const [key, color] of Object.entries(DAY_COLORS)) {
+    if (l.includes(key)) return color;
+  }
+  return "#8b5cf6";
+}
+
 function HistoryPage() {
   const { workouts, programs, deleteWorkout } = useTalos();
-  const [filter, setFilter] = useState("all");
   const [expanded, setExpanded] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [filterProgram, setFilterProgram] = useState("all");
+  const [filterDay, setFilterDay] = useState("all");
 
-  const allDays = [];
-  const seen = new Set();
-  programs.forEach(p => p.days?.forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); allDays.push(d); } }));
+  // Calendar state
+  const today = new Date();
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
 
-  const filtered = (filter === "all" ? [...workouts] : workouts.filter(w => w.day_id === filter)).reverse();
+  // Build workout lookup by date
+  const workoutsByDate = {};
+  workouts.forEach(w => {
+    if (!workoutsByDate[w.date]) workoutsByDate[w.date] = [];
+    workoutsByDate[w.date].push(w);
+  });
+
+  // Calendar helpers
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const firstDow = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+  const monthLabel = new Date(calYear, calMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  function prevMonth() {
+    if (calMonth === 0) { setCalYear(calYear - 1); setCalMonth(11); }
+    else setCalMonth(calMonth - 1);
+    setSelectedDate(null);
+  }
+  function nextMonth() {
+    if (calMonth === 11) { setCalYear(calYear + 1); setCalMonth(0); }
+    else setCalMonth(calMonth + 1);
+    setSelectedDate(null);
+  }
+  function goToToday() {
+    setCalYear(today.getFullYear());
+    setCalMonth(today.getMonth());
+    setSelectedDate(null);
+  }
+
+  // Build filtered list
+  let filtered = [...workouts];
+  if (selectedDate) {
+    filtered = filtered.filter(w => w.date === selectedDate);
+  }
+  if (filterProgram !== "all") {
+    filtered = filtered.filter(w => w.program_id === filterProgram);
+  }
+  if (filterDay !== "all") {
+    filtered = filtered.filter(w => w.day_id === filterDay);
+  }
+  filtered = filtered.reverse();
+
+  // Days available for the selected program filter
+  const filteredDays = filterProgram === "all"
+    ? [...new Map(programs.flatMap(p => p.days?.map(d => [d.id, d]) || [])).values()]
+    : (programs.find(p => p.id === filterProgram)?.days || []);
+
+  // Stats for the visible month
+  const monthWorkouts = workouts.filter(w => {
+    const d = new Date(w.date + "T12:00:00");
+    return d.getFullYear() === calYear && d.getMonth() === calMonth;
+  });
+  const monthVol = monthWorkouts.reduce((a, w) => a + (w.exercises?.reduce((b, e) => b + (e.sets?.reduce((c, s) => c + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0), 0);
 
   return (
     <div className="fade-in">
-      <div style={{ padding: "4px 16px 8px", display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <button onClick={() => setFilter("all")} style={S.sm(filter === "all" ? "primary" : "ghost")}>All</button>
-        {allDays.map(d => <button key={d.id} onClick={() => setFilter(d.id)} style={S.sm(filter === d.id ? "primary" : "ghost")}>{d.label}</button>)}
+      {/* Calendar */}
+      <div style={S.card}>
+        {/* Month nav */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <button onClick={prevMonth} style={{ ...S.sm(), padding: "6px 10px" }}>◀</button>
+          <div onClick={goToToday} style={{ cursor: "pointer", textAlign: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fafafa" }}>{monthLabel}</div>
+            <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>{monthWorkouts.length} sessions · {monthVol >= 1000 ? `${Math.round(monthVol / 1000)}k` : monthVol} lbs</div>
+          </div>
+          <button onClick={nextMonth} style={{ ...S.sm(), padding: "6px 10px" }}>▶</button>
+        </div>
+
+        {/* Day-of-week headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+            <div key={i} style={{ textAlign: "center", fontSize: 9, color: "#525252", fontWeight: 700, padding: "2px 0" }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+          {/* Empty cells for offset */}
+          {Array.from({ length: firstDow }).map((_, i) => <div key={`e${i}`} />)}
+
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const dayNum = i + 1;
+            const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+            const dayWorkouts = workoutsByDate[dateStr] || [];
+            const isToday = dateStr === today.toISOString().split("T")[0];
+            const isSelected = dateStr === selectedDate;
+            const hasFuture = new Date(dateStr + "T12:00:00") > today;
+
+            return (
+              <div key={dayNum} onClick={() => {
+                if (dayWorkouts.length > 0) setSelectedDate(isSelected ? null : dateStr);
+              }}
+                style={{
+                  textAlign: "center", padding: "6px 2px", borderRadius: 6, cursor: dayWorkouts.length > 0 ? "pointer" : "default",
+                  background: isSelected ? "#262626" : "transparent",
+                  border: isToday ? "1px solid #c9952d" : "1px solid transparent",
+                  opacity: hasFuture ? 0.3 : 1,
+                  minHeight: 36, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
+                }}>
+                <div style={{ fontSize: 11, color: isToday ? "#c9952d" : dayWorkouts.length > 0 ? "#fafafa" : "#404040", fontWeight: isToday || dayWorkouts.length > 0 ? 700 : 400 }}>
+                  {dayNum}
+                </div>
+                {dayWorkouts.length > 0 && (
+                  <div style={{ display: "flex", gap: 2, justifyContent: "center" }}>
+                    {dayWorkouts.slice(0, 3).map((w, wi) => (
+                      <div key={wi} style={{ width: 5, height: 5, borderRadius: "50%", background: getDayColor(w.day_label) }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 10, flexWrap: "wrap" }}>
+          {Object.entries(DAY_COLORS).filter(([k]) => k !== "legs").map(([label, color]) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
+              <span style={{ fontSize: 9, color: "#525252", textTransform: "capitalize" }}>{label}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#8b5cf6" }} />
+            <span style={{ fontSize: 9, color: "#525252" }}>Other</span>
+          </div>
+        </div>
       </div>
-      {filtered.length === 0 && <div style={{ padding: 32, textAlign: "center", color: "#525252", fontSize: 13 }}>No workouts yet.</div>}
+
+      {/* Selected date detail */}
+      {selectedDate && workoutsByDate[selectedDate] && (
+        <div style={{ padding: "4px 16px 0" }}>
+          <div style={S.label}>{fmtDate(selectedDate)}</div>
+        </div>
+      )}
+
+      {/* Filters (when no date selected) */}
+      {!selectedDate && (
+        <div style={{ padding: "4px 16px 8px", display: "flex", gap: 6 }}>
+          <select value={filterProgram} onChange={e => { setFilterProgram(e.target.value); setFilterDay("all"); }}
+            style={{ ...S.sm(), padding: "4px 6px", background: "#1a1a1a", color: "#a3a3a3", border: "1px solid #333", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
+            <option value="all">All Programs</option>
+            {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          {filteredDays.length > 0 && (
+            <select value={filterDay} onChange={e => setFilterDay(e.target.value)}
+              style={{ ...S.sm(), padding: "4px 6px", background: "#1a1a1a", color: "#a3a3a3", border: "1px solid #333", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
+              <option value="all">All Days</option>
+              {filteredDays.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
+            </select>
+          )}
+          {(filterProgram !== "all" || filterDay !== "all") && (
+            <button onClick={() => { setFilterProgram("all"); setFilterDay("all"); }} style={S.sm()}>Clear</button>
+          )}
+        </div>
+      )}
+
+      {/* Workout list */}
+      {filtered.length === 0 && <div style={{ padding: 32, textAlign: "center", color: "#525252", fontSize: 13 }}>{selectedDate ? "No workouts this day." : "No workouts yet."}</div>}
       {filtered.map(w => {
         const isExp = expanded === w.id;
         const vol = w.exercises?.reduce((a, e) => a + (e.sets?.reduce((b, s) => b + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0;
         const sets = w.exercises?.reduce((a, e) => a + (e.sets?.length || 0), 0) || 0;
         return (
-          <div key={w.id} style={S.card}>
+          <div key={w.id} style={{ ...S.card, borderLeft: `3px solid ${getDayColor(w.day_label)}` }}>
             <div onClick={() => setExpanded(isExp ? null : w.id)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{w.day_label || "Workout"}</span>
                   <span style={S.tag(FEEL[w.feel - 1]?.c || "#737373")}>{FEEL[w.feel - 1]?.l || "—"}</span>
                 </div>
-                <div style={{ fontSize: 11, color: "#525252", marginTop: 3 }}>{fmtDate(w.date)}</div>
+                <div style={{ fontSize: 11, color: "#525252", marginTop: 3 }}>
+                  {selectedDate ? (w.duration ? `${w.duration}min` : "") : fmtDate(w.date)}
+                  {!selectedDate && w.duration ? ` · ${w.duration}min` : ""}
+                </div>
               </div>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: 11, color: "#a3a3a3" }}>{sets} sets</div>
@@ -645,6 +871,15 @@ function HistoryPage() {
           </div>
         );
       })}
+
+      {/* Back to all button when date is selected */}
+      {selectedDate && (
+        <div style={{ padding: "8px 16px" }}>
+          <button onClick={() => setSelectedDate(null)} style={{ ...S.btn("ghost"), display: "block", width: "100%", textAlign: "center" }}>
+            Show All History
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1758,10 +1993,10 @@ function SettingsModal({ onClose, onLogout }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [workouts, setWorkouts] = useState([]);
-  const [profile, setProfile] = useState({ height: "", weight: null, bodyFat: null, restTimerCompound: 150, restTimerIsolation: 90, sex: "", dateOfBirth: "", goal: "", targetWeight: null, experienceLevel: "", trainingIntensity: "", targetPrs: {}, injuriesNotes: "", caloriesTarget: null, proteinTarget: null, bioHistory: [] });
+  const [profile, setProfile] = useState({ height: "", weight: null, bodyFat: null, restTimerCompound: 150, restTimerIsolation: 90, sex: "", dateOfBirth: "", goal: "", targetWeight: null, experienceLevel: "", trainingIntensity: "", targetPrs: {}, injuriesNotes: "", caloriesTarget: null, proteinTarget: null, activeProgramId: null, bioHistory: [] });
   const [programs, setPrograms] = useState([]);
   const [customExercises, setCustomExercises] = useState([]);
-  const [tab, setTab] = useState("log");
+  const [tab, setTab] = useState("train");
   const [currentWorkout, setCurrent] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
@@ -1898,9 +2133,14 @@ export default function App() {
     </div>
   );
 
-  const activeTab = currentWorkout && tab === "log" ? "active" : tab;
+  const activeTab = currentWorkout && tab === "train" ? "active" : tab;
 
-  const ctx = { user, workouts, profile, programs, customExercises, saveWorkout, deleteWorkout, updateProfile, saveProgram, deleteProgram, addCustomExercise, editingProgram, setEditingProgram, aiConfig };
+  async function setActiveProgramId(programId) {
+    setProfile(prev => ({ ...prev, activeProgramId: programId }));
+    await api.put("/profile/active-program", { user_id: user.id, activeProgramId: programId });
+  }
+
+  const ctx = { user, workouts, profile, programs, customExercises, saveWorkout, deleteWorkout, updateProfile, saveProgram, deleteProgram, addCustomExercise, editingProgram, setEditingProgram, aiConfig, setActiveProgramId };
 
   return (
     <Ctx.Provider value={ctx}>
@@ -1910,14 +2150,14 @@ export default function App() {
           <div onClick={() => setShowSettings(true)} style={S.avatar(user.color || "#c9952d", 32)}>{user.name?.[0]?.toUpperCase()}</div>
         </div>
 
-        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLogout={() => { setUser(null); setShowSettings(false); setTab("log"); setCurrent(null); }} />}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onLogout={() => { setUser(null); setShowSettings(false); setTab("train"); setCurrent(null); }} />}
 
-        {activeTab === "log" && <LogPage onStartWorkout={startWorkout} />}
+        {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} />}
         {activeTab === "active" && currentWorkout && (
           <ActiveWorkout workout={currentWorkout} setWorkout={setCurrent}
-            onFinish={finishWorkout} onDiscard={() => { if (confirm("Discard this workout? All logged sets will be lost.")) { setCurrent(null); setTab("log"); } }} />
+            onFinish={finishWorkout} onDiscard={() => { if (confirm("Discard this workout? All logged sets will be lost.")) { setCurrent(null); setTab("train"); } }} />
         )}
-        {activeTab === "active" && !currentWorkout && <LogPage onStartWorkout={startWorkout} />}
+        {activeTab === "active" && !currentWorkout && <TrainPage onStartWorkout={startWorkout} />}
         {activeTab === "summary" && <SessionRecap summary={sessionSummary} onDone={() => { setSessionSummary(null); setTab("history"); }} />}
         {activeTab === "history" && <HistoryPage />}
         {activeTab === "stats" && <StatsPage />}
@@ -1926,7 +2166,7 @@ export default function App() {
 
         <nav style={S.nav}>
           {currentWorkout && <button onClick={() => setTab("active")} style={{ ...S.navBtn(activeTab === "active"), background: activeTab === "active" ? "#22c55e" : "#166534", color: activeTab === "active" ? "#000" : "#4ade80" }}>● Live</button>}
-          <button onClick={() => setTab("log")} style={S.navBtn(activeTab === "log")}>Log</button>
+          <button onClick={() => setTab("train")} style={S.navBtn(activeTab === "train")}>Train</button>
           <button onClick={() => setTab("history")} style={S.navBtn(activeTab === "history")}>Hist</button>
           <button onClick={() => setTab("stats")} style={S.navBtn(activeTab === "stats")}>Stats</button>
           <button onClick={() => setTab("programs")} style={S.navBtn(activeTab === "programs")}>{editingProgram ? "Prog ●" : "Prog"}</button>

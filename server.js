@@ -103,6 +103,7 @@ const profileMigrations = [
   "ALTER TABLE profiles ADD COLUMN injuries_notes TEXT",
   "ALTER TABLE profiles ADD COLUMN calories_target INTEGER",
   "ALTER TABLE profiles ADD COLUMN protein_target INTEGER",
+  "ALTER TABLE profiles ADD COLUMN active_program_id TEXT",
 ];
 for (const sql of profileMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
@@ -256,6 +257,7 @@ app.get("/api/profile", (req, res) => {
     injuriesNotes: profile?.injuries_notes || "",
     caloriesTarget: profile?.calories_target || null,
     proteinTarget: profile?.protein_target || null,
+    activeProgramId: profile?.active_program_id || null,
     bioHistory,
   });
 });
@@ -263,17 +265,18 @@ app.get("/api/profile", (req, res) => {
 app.put("/api/profile", (req, res) => {
   const { user_id, height, weight, bodyFat, restTimerCompound, restTimerIsolation,
     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
-    targetPrs, injuriesNotes, caloriesTarget, proteinTarget } = req.body;
+    targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId } = req.body;
   if (!user_id) return res.status(400).json({ error: "user_id required" });
   db.prepare(
     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
-     target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?,
+     target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?, active_program_id = ?,
      updated_at = datetime('now') WHERE user_id = ?`
   ).run(
     height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90,
     sex || null, dateOfBirth || null, goal || null, targetWeight || null, experienceLevel || null, trainingIntensity || null,
     targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
+    activeProgramId || null,
     user_id
   );
   if (weight) {
@@ -281,6 +284,15 @@ app.put("/api/profile", (req, res) => {
       user_id, new Date().toISOString().split("T")[0], weight, bodyFat || null
     );
   }
+  res.json({ ok: true });
+});
+
+// Set active program (lightweight — no bio_history side effect)
+app.put("/api/profile/active-program", (req, res) => {
+  const { user_id, activeProgramId } = req.body;
+  if (!user_id) return res.status(400).json({ error: "user_id required" });
+  db.prepare("UPDATE profiles SET active_program_id = ?, updated_at = datetime('now') WHERE user_id = ?")
+    .run(activeProgramId || null, user_id);
   res.json({ ok: true });
 });
 

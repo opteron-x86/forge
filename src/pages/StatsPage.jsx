@@ -19,6 +19,7 @@ export default function StatsPage() {
   const [tmp, setTmp] = useState({});
   const [chartExercise, setChartExercise] = useState(null); // null = auto-detect
   const [prFilter, setPrFilter] = useState("all"); // all | recent
+  const [prMode, setPrMode] = useState("e1rm"); // e1rm | actual
   const [showAllPrs, setShowAllPrs] = useState(false);
 
   // ── PRs ──
@@ -33,7 +34,11 @@ export default function StatsPage() {
     return map;
   }, [workouts]);
 
-  const prList = Object.entries(prs).sort((a, b) => (b[1].e1rm || 0) - (a[1].e1rm || 0));
+  const prList = useMemo(() => {
+    const entries = Object.entries(prs);
+    if (prMode === "e1rm") return entries.sort((a, b) => (b[1].e1rm || 0) - (a[1].e1rm || 0));
+    return entries.sort((a, b) => (b[1].weight || 0) - (a[1].weight || 0));
+  }, [prs, prMode]);
 
   // Recent PRs (last 30 days)
   const thirtyDaysAgo = new Date();
@@ -209,20 +214,29 @@ export default function StatsPage() {
       {/* ── Top Lifts (auto-detected) ── */}
       {topLifts.length > 0 && (
         <div style={S.card}>
-          <div style={S.label}>Top Lifts</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={S.label}>Top Lifts</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              <button onClick={() => setPrMode("e1rm")} style={{ ...S.sm(prMode === "e1rm" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Est 1RM</button>
+              <button onClick={() => setPrMode("actual")} style={{ ...S.sm(prMode === "actual" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Actual</button>
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {topLifts.map(lift => {
               const isRecent = daysSince(lift.date) <= 30;
+              const primary = prMode === "e1rm" ? (lift.e1rm || "—") : lift.weight;
+              const secondary = prMode === "e1rm" ? `${lift.weight}×${lift.reps}` : `~${lift.e1rm || "?"} e1RM`;
               return (
                 <div key={lift.name} style={{ background: "#1a1a1a", borderRadius: 8, padding: 10, border: "1px solid #262626" }}>
                   <div style={{ fontSize: 10, color: "#737373", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "#fafafa" }}>{lift.e1rm || "—"}</span>
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "#fafafa" }}>{primary}</span>
+                    {prMode === "actual" && <span style={{ fontSize: 12, color: "#525252" }}>×{lift.reps}</span>}
                     {isRecent && (
                       <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: "0.5px" }}>New</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: "#525252" }}>{lift.weight}×{lift.reps}</div>
+                  <div style={{ fontSize: 10, color: "#525252" }}>{secondary}</div>
                 </div>
               );
             })}
@@ -292,6 +306,8 @@ export default function StatsPage() {
         </div>
         {(prFilter === "recent" ? recentPrList : showAllPrs ? prList : prList.slice(0, 10)).map(([name, pr]) => {
           const isRecent = daysSince(pr.date) <= 30;
+          const primary = prMode === "e1rm" ? (pr.e1rm ? `~${pr.e1rm}` : "—") : `${pr.weight}×${pr.reps}`;
+          const secondary = prMode === "e1rm" ? `${pr.weight}×${pr.reps}` : (pr.e1rm ? `~${pr.e1rm}` : "—");
           return (
             <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -301,8 +317,8 @@ export default function StatsPage() {
                 )}
               </div>
               <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 12, color: "#a3a3a3" }}>{pr.weight}×{pr.reps}</span>
-                <span style={{ fontSize: 11, color: "#525252", marginLeft: 6 }}>{pr.e1rm ? `~${pr.e1rm}` : "—"}</span>
+                <span style={{ fontSize: 12, color: "#a3a3a3", fontWeight: 600 }}>{primary}</span>
+                <span style={{ fontSize: 11, color: "#525252", marginLeft: 6 }}>{secondary}</span>
                 <span style={{ fontSize: 9, color: "#404040", marginLeft: 6 }}>{pr.date.slice(5)}</span>
               </div>
             </div>

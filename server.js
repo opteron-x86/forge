@@ -3,6 +3,7 @@ import cors from "cors";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { mkdirSync } from "fs";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
@@ -35,6 +36,8 @@ const BCRYPT_ROUNDS = 12;
 
 // --- Database ---
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, "talos.db");
+// Ensure parent directory exists (critical for Railway volume mount at /data)
+try { mkdirSync(dirname(DB_PATH), { recursive: true }); } catch (e) { /* exists */ }
 const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 
@@ -1007,9 +1010,14 @@ app.get("/api/export", requireAuth, (req, res) => {
   res.send(lines.join("\n"));
 });
 
-// Health (public — kept minimal to avoid leaking operational info)
+// Health (public — Railway uses this for health checks)
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
+  try {
+    db.prepare("SELECT 1").get();
+    res.json({ status: "ok", db: "connected" });
+  } catch (e) {
+    res.status(503).json({ status: "error", db: "disconnected" });
+  }
 });
 
 // SPA fallback
@@ -1027,6 +1035,7 @@ app.listen(PORT, "0.0.0.0", () => {
 │   Gym Tracker v3.0 (JWT Auth)          │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│
+│   DB: ${DB_PATH.padEnd(33)}│
 │   AI: ${aiStatus.padEnd(33)}│
 │   Users: ${String(db.prepare("SELECT COUNT(*) as c FROM users").get().c).padEnd(29)}│
 │   Auth: ${authStatus.padEnd(30)}│

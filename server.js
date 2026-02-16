@@ -3,13 +3,14 @@ import cors from "cors";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { mkdirSync, writeFileSync, unlinkSync } from "fs";
+import { mkdirSync } from "fs";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "./ai-provider.js";
 import { EXERCISES } from "./src/lib/exercises.js";
+import { Resend } from "resend";
 
 dotenv.config();
 
@@ -33,6 +34,12 @@ if (!process.env.JWT_SECRET) {
 }
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
 const BCRYPT_ROUNDS = 12;
+
+// --- Email (Resend) ---
+const RESEND_API_KEY = process.env.RESEND_API_KEY || null;
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+const APP_URL = process.env.APP_URL || "https://talos.fit";
+const FROM_EMAIL = process.env.FROM_EMAIL || "TALOS <noreply@talos.fit>";
 
 // --- Database ---
 const DB_PATH = process.env.DATABASE_PATH || join(__dirname, "talos.db");
@@ -159,6 +166,8 @@ const userMigrations = [
   "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
   "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
   "ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'talos'",
+  "ALTER TABLE users ADD COLUMN reset_token TEXT",
+  "ALTER TABLE users ADD COLUMN reset_token_expires TEXT",
 ];
 for (const sql of userMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
@@ -369,6 +378,85 @@ app.post("/api/auth/change-password", requireAuth, (req, res) => {
   const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
   db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(newHash, req.user.id);
   res.json({ ok: true });
+});
+
+// Forgot password — send reset email
+app.post("/api/auth/forgot-password", authRateLimit, (req, res) => {
+  const { email } = req.body;
+  if (!email?.trim()) return res.status(400).json({ error: "Email required" });
+
+  // Always return success to prevent email enumeration
+  const successMsg = "If an account exists with that email, a reset link has been sent.";
+
+  const user = db.prepare("SELECT id, email, is_active FROM users WHERE email = ?").get(email.trim().toLowerCase());
+  if (!user || !user.is_active) return res.json({ message: successMsg });
+
+  if (!resend) {
+    console.warn("⚠️  Password reset requested but RESEND_API_KEY not set");
+    return res.json({ message: successMsg });
+  }
+
+  // Generate token (URL-safe random string)
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+  db.prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?")
+    .run(tokenHash, expires, user.id);
+
+  const resetUrl = `${APP_URL}?reset=${token}`;
+
+  resend.emails.send({
+    from: FROM_EMAIL,
+    to: user.email,
+    subject: "TALOS — Reset Your Password",
+    html: `
+      <div style="font-family: 'Courier New', monospace; max-width: 480px; margin: 0 auto; padding: 32px; background: #0a0a0a; color: #e5e5e5;">
+        <div style="font-size: 24px; font-weight: 800; margin-bottom: 4px; color: #fafafa;">Δ TALOS</div>
+        <div style="font-size: 11px; color: #737373; letter-spacing: 2px; margin-bottom: 32px;">PASSWORD RESET</div>
+        <p style="font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+          A password reset was requested for your TALOS account. Click the button below to set a new password.
+        </p>
+        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #c9952d; color: #000; font-weight: 700; text-decoration: none; border-radius: 8px; font-size: 13px; letter-spacing: 0.5px;">
+          RESET PASSWORD
+        </a>
+        <p style="font-size: 12px; color: #737373; margin-top: 24px; line-height: 1.5;">
+          This link expires in 1 hour. If you didn't request this, you can safely ignore this email.
+        </p>
+        <div style="border-top: 1px solid #262626; margin-top: 32px; padding-top: 16px; font-size: 10px; color: #525252;">
+          talos.fit — Unyielding
+        </div>
+      </div>
+    `,
+  }).catch(err => console.error("Reset email failed:", err));
+
+  res.json({ message: successMsg });
+});
+
+// Reset password — validate token and set new password
+app.post("/api/auth/reset-password", authRateLimit, (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) return res.status(400).json({ error: "Token and new password required" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const user = db.prepare(
+    "SELECT id, reset_token_expires FROM users WHERE reset_token = ? AND is_active = 1"
+  ).get(tokenHash);
+
+  if (!user) return res.status(400).json({ error: "Invalid or expired reset link" });
+
+  // Check expiration
+  if (new Date(user.reset_token_expires) < new Date()) {
+    db.prepare("UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = ?").run(user.id);
+    return res.status(400).json({ error: "Reset link has expired. Please request a new one." });
+  }
+
+  const passwordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+  db.prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?")
+    .run(passwordHash, user.id);
+
+  res.json({ message: "Password has been reset. You can now sign in." });
 });
 
 // Update own account (name, color, theme)
@@ -1022,46 +1110,6 @@ app.get("/api/health", (req, res) => {
     res.status(503).json({ status: "error", db: "disconnected" });
   }
 });
-
-/* TEMPORARY — remove immediately after use
-app.get("/api/debug-volume", (req, res) => {
-  import("fs").then(({ readdirSync, statSync }) => {
-    try {
-      const files = readdirSync("/data").map(f => ({
-        name: f,
-        size: statSync("/data/" + f).size,
-      }));
-      res.json({ DB_PATH, files });
-    } catch (e) {
-      res.json({ DB_PATH, error: e.message });
-    }
-  });
-});
-
-app.post("/api/migrate-db", async (req, res) => {
-  try {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const buf = Buffer.concat(chunks);
-    db.close();
-    writeFileSync(DB_PATH, buf);
-    res.json({ ok: true, bytes: buf.length, path: DB_PATH });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post("/api/migrate-cleanup", (req, res) => {
-  try {
-    db.close();
-    try { unlinkSync("/data/talos.db-wal"); } catch(e) {}
-    try { unlinkSync("/data/talos.db-shm"); } catch(e) {}
-    res.json({ ok: true, message: "DB closed, WAL/SHM removed. Restart now." });
-  } catch(e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-*/
 
 // SPA fallback
 if (process.env.NODE_ENV === "production") {

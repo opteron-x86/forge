@@ -29,6 +29,7 @@ import Login from "./components/Login";
 import Onboarding from "./components/Onboarding";
 import SettingsModal from "./components/SettingsModal";
 import SessionSummary from "./components/SessionSummary";
+import InstallPrompt from "./components/InstallPrompt";
 
 export default function App() {
   // ── Auth state ──
@@ -471,6 +472,9 @@ export default function App() {
             </div>
           </div>
         </header>
+
+        {/* PWA Install Prompt */}
+        <InstallPrompt />
 
         {/* Settings */}
         {showSettings && (

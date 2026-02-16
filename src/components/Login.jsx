@@ -1,8 +1,8 @@
 // ═══════════════════════ LOGIN ═══════════════════════
-// JWT auth: email/password login + registration.
-// Modes: login | register
+// JWT auth: email/password login + registration + forgot/reset password.
+// Modes: login | register | forgot | reset
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { USER_COLORS } from "../lib/helpers";
 import api from "../lib/api";
 import S from "../lib/styles";
@@ -15,10 +15,25 @@ export default function Login({ onLogin }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(USER_COLORS[0]);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetToken, setResetToken] = useState("");
+
+  // Check for ?reset=TOKEN in URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("reset");
+    if (token) {
+      setResetToken(token);
+      setMode("reset");
+      // Clean up URL without reload
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   function resetForm() {
-    setEmail(""); setPassword(""); setConfirmPassword(""); setName(""); setError(""); setLoading(false);
+    setEmail(""); setPassword(""); setConfirmPassword(""); setName("");
+    setError(""); setSuccess(""); setLoading(false);
   }
 
   async function handleLogin(e) {
@@ -43,6 +58,36 @@ export default function Login({ onLogin }) {
       const res = await api.post("/auth/register", { email, password, name, color });
       api.setToken(res.token);
       onLogin(res.user);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  async function handleForgot(e) {
+    e.preventDefault();
+    setError(""); setSuccess(""); setLoading(true);
+    try {
+      const res = await api.post("/auth/forgot-password", { email });
+      setSuccess(res.message);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  async function handleReset(e) {
+    e.preventDefault();
+    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords don't match"); return; }
+    setError(""); setSuccess(""); setLoading(true);
+    try {
+      const res = await api.post("/auth/reset-password", { token: resetToken, newPassword: password });
+      setSuccess(res.message);
+      setLoading(false);
+      // After short delay, switch to login
+      setTimeout(() => { resetForm(); setMode("login"); }, 2500);
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -77,7 +122,59 @@ export default function Login({ onLogin }) {
           <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
+          <button type="button" onClick={() => { resetForm(); setMode("forgot"); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11, fontFamily: "inherit", cursor: "pointer", marginTop: 12, textAlign: "center", width: "100%" }}>
+            Forgot password?
+          </button>
           <button type="button" onClick={() => { resetForm(); setMode("register"); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 8, fontSize: 12 }}>Create Account</button>
+        </form>
+      )}
+
+      {/* ── FORGOT PASSWORD ── */}
+      {mode === "forgot" && (
+        <form onSubmit={handleForgot} style={{ width: "100%", maxWidth: 320 }} className="fade-in">
+          <div style={S.label}>Reset Password</div>
+          <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
+              Enter your email and we'll send you a link to reset your password.
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" autoFocus autoComplete="email" required />
+            </div>
+          </div>
+          {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
+          {success && <div style={{ color: "#22c55e", fontSize: 12, marginTop: 8 }}>{success}</div>}
+          {!success && (
+            <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
+              {loading ? "Sending..." : "Send Reset Link"}
+            </button>
+          )}
+          <button type="button" onClick={() => { resetForm(); setMode("login"); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 8, fontSize: 12 }}>Back to Sign In</button>
+        </form>
+      )}
+
+      {/* ── RESET PASSWORD (from email link) ── */}
+      {mode === "reset" && (
+        <form onSubmit={handleReset} style={{ width: "100%", maxWidth: 320 }} className="fade-in">
+          <div style={S.label}>Set New Password</div>
+          <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>New Password</div>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="new-password" autoFocus required />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</div>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle} autoComplete="new-password" required />
+            </div>
+          </div>
+          {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
+          {success && <div style={{ color: "#22c55e", fontSize: 12, marginTop: 8 }}>{success}</div>}
+          {!success && (
+            <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
+              {loading ? "Resetting..." : "Reset Password"}
+            </button>
+          )}
+          <button type="button" onClick={() => { resetForm(); setMode("login"); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 8, fontSize: 12 }}>Back to Sign In</button>
         </form>
       )}
 

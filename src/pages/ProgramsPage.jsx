@@ -1,21 +1,256 @@
 // ═══════════════════════ PROGRAMS PAGE ═══════════════════════
-// Extracted from App.jsx — ProgramsPage function
+// User's programs + unified "Browse Programs" view combining
+// starter templates and community (shared) programs.
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTalos } from "../context/TalosContext";
 import { genId } from "../lib/helpers";
 import { STARTER_TEMPLATES } from "../lib/starterTemplates";
 import ExercisePicker from "../components/ExercisePicker";
+import api from "../lib/api";
 import S from "../lib/styles";
 
+// ── Browse Programs sub-view ──
+function BrowsePrograms({ onAdopt, onClose }) {
+  const [communityPrograms, setCommunityPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all"); // all | templates | community
+  const [preview, setPreview] = useState(null);
+  const [adopted, setAdopted] = useState(new Set());
+  const [adopting, setAdopting] = useState(false);
+
+  useEffect(() => {
+    api.get("/programs/browse").then(data => {
+      setCommunityPrograms(data.community || []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  // Merge templates + community into one browseable list
+  const allPrograms = useMemo(() => {
+    const templates = STARTER_TEMPLATES.map((t, i) => ({
+      ...t,
+      _browseId: `template-${i}`,
+      source: "template",
+      creator_name: "TALOS",
+      _searchText: `${t.name} ${t.description} ${t.tags?.goal || ""} ${t.tags?.level || ""} ${t.days.map(d => d.exercises.map(e => e.name).join(" ")).join(" ")}`.toLowerCase(),
+    }));
+    const community = communityPrograms.map(p => ({
+      ...p,
+      _browseId: p.id,
+      source: "community",
+      tags: null,
+      _searchText: `${p.name} ${p.description || ""} ${p.creator_name || ""} ${p.days?.map(d => d.exercises?.map(e => e.name).join(" ")).join(" ") || ""}`.toLowerCase(),
+    }));
+    return [...templates, ...community];
+  }, [communityPrograms]);
+
+  // Filter + search
+  const filtered = useMemo(() => {
+    let list = allPrograms;
+    if (filter === "templates") list = list.filter(p => p.source === "template");
+    if (filter === "community") list = list.filter(p => p.source === "community");
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      list = list.filter(p => p._searchText.includes(q));
+    }
+    return list;
+  }, [allPrograms, filter, search]);
+
+  async function handleAdopt(program) {
+    setAdopting(true);
+    try {
+      const payload = {
+        name: program.name,
+        description: program.description || "",
+        days: program.days.map(d => ({
+          id: genId(),
+          label: d.label,
+          subtitle: d.subtitle || "",
+          exercises: (d.exercises || []).map(e => ({ ...e })),
+        })),
+        forked_from: program.source === "community" ? program.id : `template:${program.name}`,
+      };
+      await onAdopt(payload);
+      setAdopted(prev => new Set(prev).add(program._browseId));
+      setPreview(null);
+    } catch (e) {
+      alert("Failed to add program: " + e.message);
+    }
+    setAdopting(false);
+  }
+
+  function isAlreadyAdded(program) {
+    return adopted.has(program._browseId);
+  }
+
+  // ── Preview view ──
+  if (preview) {
+    const p = preview;
+    const totalExercises = (p.days || []).reduce((a, d) => a + (d.exercises?.length || 0), 0);
+    const alreadyAdded = isAlreadyAdded(p);
+
+    return (
+      <div className="fade-in">
+        <div style={S.card}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            {p.source === "template" ? (
+              <span style={S.tag("#c9952d")}>✦ TALOS Template</span>
+            ) : (
+              <span style={S.tag("#6366f1")}>⊕ {p.creator_name}</span>
+            )}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa" }}>{p.name}</div>
+          {p.tags && (
+            <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <span style={S.tag({ strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" }[p.tags.goal] || "#737373")}>{p.tags.goal}</span>
+              <span style={S.tag("#525252")}>{p.tags.daysPerWeek}x/week</span>
+              <span style={S.tag("#525252")}>{p.tags.level}</span>
+            </div>
+          )}
+          {p.description && <div style={{ fontSize: 12, color: "#737373", marginTop: 8, lineHeight: 1.5 }}>{p.description}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12, textAlign: "center" }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{(p.days || []).length}</div>
+              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Days</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{totalExercises}</div>
+              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Exercises</div>
+            </div>
+          </div>
+        </div>
+
+        {(p.days || []).map((day, di) => (
+          <div key={di} style={S.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
+                {day.subtitle && <div style={{ fontSize: 10, color: "#737373", marginTop: 1 }}>{day.subtitle}</div>}
+              </div>
+              <span style={{ fontSize: 10, color: "#525252" }}>{(day.exercises || []).length} exercises</span>
+            </div>
+            {(day.exercises || []).map((ex, ei) => (
+              <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+                <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
+                <span style={{ fontSize: 11, color: "#525252" }}>{ex.defaultSets}×{ex.targetReps}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
+          <button onClick={() => setPreview(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+          <button
+            onClick={() => handleAdopt(p)}
+            disabled={adopting || alreadyAdded}
+            style={{ ...S.btn("primary"), flex: 2, opacity: (adopting || alreadyAdded) ? 0.5 : 1 }}
+          >
+            {alreadyAdded ? "✓ Added" : adopting ? "Adding..." : "Add to My Programs"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Browse list view ──
+  const filterBtn = (id) => ({
+    padding: "6px 12px",
+    borderRadius: 6,
+    border: filter === id ? "1px solid #c9952d" : "1px solid #333",
+    background: filter === id ? "#c9952d15" : "transparent",
+    color: filter === id ? "#c9952d" : "#737373",
+    fontSize: 11,
+    fontWeight: 700,
+    fontFamily: "inherit",
+    cursor: "pointer",
+    letterSpacing: "0.3px",
+  });
+
+  return (
+    <div className="fade-in">
+      {/* Header */}
+      <div style={{ padding: "4px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={S.label}>Browse Programs</div>
+        <button onClick={onClose} style={S.sm()}>← Back</button>
+      </div>
+
+      {/* Search */}
+      <div style={{ padding: "8px 16px" }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ ...S.input, fontSize: 13 }}
+          placeholder="Search programs, exercises, creators..."
+        />
+      </div>
+
+      {/* Filter tabs */}
+      <div style={{ padding: "0 16px 8px", display: "flex", gap: 6 }}>
+        <button onClick={() => setFilter("all")} style={filterBtn("all")}>All</button>
+        <button onClick={() => setFilter("templates")} style={filterBtn("templates")}>Templates</button>
+        <button onClick={() => setFilter("community")} style={filterBtn("community")}>Community</button>
+      </div>
+
+      {/* Results */}
+      {loading ? (
+        <div style={{ color: "#525252", fontSize: 12, textAlign: "center", padding: 32 }}>Loading...</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ color: "#525252", fontSize: 12, textAlign: "center", padding: 32 }}>
+          {search ? "No programs match your search" : "No programs available"}
+        </div>
+      ) : (
+        filtered.map(p => {
+          const goalColors = { strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" };
+          const alreadyAdded = isAlreadyAdded(p);
+          return (
+            <div key={p._browseId} onClick={() => setPreview(p)} style={{ ...S.card, cursor: "pointer", opacity: alreadyAdded ? 0.6 : 1 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    {p.source === "template" ? (
+                      <span style={{ ...S.tag("#c9952d"), fontSize: 8, padding: "2px 6px" }}>✦ TALOS</span>
+                    ) : (
+                      <span style={{ ...S.tag("#6366f1"), fontSize: 8, padding: "2px 6px" }}>⊕ {p.creator_name}</span>
+                    )}
+                    {alreadyAdded && <span style={{ fontSize: 9, color: "#22c55e" }}>✓ Added</span>}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{p.name}</div>
+                  {p.description && <div style={{ fontSize: 10, color: "#737373", marginTop: 2, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.description}</div>}
+                  <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                    {p.tags && (
+                      <>
+                        <span style={S.tag(goalColors[p.tags.goal] || "#737373")}>{p.tags.goal}</span>
+                        <span style={S.tag("#525252")}>{p.tags.daysPerWeek}x</span>
+                        <span style={S.tag("#525252")}>{p.tags.level}</span>
+                      </>
+                    )}
+                    {!p.tags && (
+                      <span style={S.tag("#525252")}>{(p.days || []).length} days</span>
+                    )}
+                  </div>
+                </div>
+                <span style={{ color: "#525252", fontSize: 14, flexShrink: 0, marginLeft: 8, marginTop: 4 }}>→</span>
+              </div>
+            </div>
+          );
+        })
+      )}
+
+      <div style={{ height: 20 }} />
+    </div>
+  );
+}
+
+// ═══════════════════════ MAIN PROGRAMS PAGE ═══════════════════════
 export default function ProgramsPage() {
-  const { user, programs, saveProgram, deleteProgram, customExercises, editingProgram: editing, setEditingProgram: setEditing } = useTalos();
+  const { user, programs, saveProgram, deleteProgram, adoptProgram, customExercises, editingProgram: editing, setEditingProgram: setEditing } = useTalos();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerDayIdx, setPickerDayIdx] = useState(null);
   const [replacingExIdx, setReplacingExIdx] = useState(null);
   const [collapsedDays, setCollapsedDays] = useState(new Set());
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [previewTemplate, setPreviewTemplate] = useState(null);
+  const [browsing, setBrowsing] = useState(false);
 
   function toggleDayCollapse(dayId) {
     setCollapsedDays(prev => {
@@ -102,23 +337,6 @@ export default function ProgramsPage() {
     });
   }
 
-  async function adoptTemplate(template) {
-    const program = {
-      name: template.name,
-      description: template.description,
-      days: template.days.map(d => ({
-        id: genId(),
-        label: d.label,
-        subtitle: d.subtitle || "",
-        exercises: d.exercises.map(e => ({ ...e })),
-      })),
-      shared: false,
-    };
-    await saveProgram(program);
-    setPreviewTemplate(null);
-    setShowTemplates(false);
-  }
-
   async function save() {
     if (!editing.name.trim()) return alert("Program needs a name");
     if (editing.days.length === 0) return alert("Add at least one day");
@@ -126,50 +344,17 @@ export default function ProgramsPage() {
     setEditing(null);
   }
 
-  if (previewTemplate) {
-    const t = previewTemplate;
-    const totalExercises = t.days.reduce((a, d) => a + d.exercises.length, 0);
+  // ── Browse Programs view ──
+  if (browsing) {
     return (
-      <div className="fade-in">
-        <div style={S.card}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa" }}>{t.name}</div>
-          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-            <span style={S.tag("#c9952d")}>{t.tags.goal}</span>
-            <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x/week</span>
-            <span style={S.tag("#525252")}>{t.tags.level}</span>
-          </div>
-          <div style={{ fontSize: 12, color: "#737373", marginTop: 8, lineHeight: 1.5 }}>{t.description}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12, textAlign: "center" }}>
-            <div><div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{t.days.length}</div><div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Days</div></div>
-            <div><div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{totalExercises}</div><div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Exercises</div></div>
-            <div><div style={{ fontSize: 18, fontWeight: 800, color: "#c9952d" }}>{t.tags.level}</div><div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Level</div></div>
-          </div>
-        </div>
-        {t.days.map((day, di) => (
-          <div key={di} style={S.card}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
-                {day.subtitle && <div style={{ fontSize: 10, color: "#737373", marginTop: 1 }}>{day.subtitle}</div>}
-              </div>
-              <span style={{ fontSize: 10, color: "#525252" }}>{day.exercises.length} exercises</span>
-            </div>
-            {day.exercises.map((ex, ei) => (
-              <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-                <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
-                <span style={{ fontSize: 11, color: "#525252" }}>{ex.defaultSets}×{ex.targetReps}</span>
-              </div>
-            ))}
-          </div>
-        ))}
-        <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
-          <button onClick={() => setPreviewTemplate(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
-          <button onClick={() => adoptTemplate(t)} style={{ ...S.btn("primary"), flex: 2 }}>Add to My Programs</button>
-        </div>
-      </div>
+      <BrowsePrograms
+        onAdopt={adoptProgram}
+        onClose={() => setBrowsing(false)}
+      />
     );
   }
 
+  // ── Editing view ──
   if (editing) {
     return (
       <div className="fade-in">
@@ -191,7 +376,7 @@ export default function ProgramsPage() {
       <input value={editing.description} onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} style={{ ...S.input, marginBottom: 8, fontSize: 12 }} placeholder="Description (optional)" />
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#737373", cursor: "pointer" }}>
       <input type="checkbox" checked={editing.shared} onChange={e => setEditing(p => ({ ...p, shared: e.target.checked }))} />
-      Share with all users
+      Publish to community
       </label>
       </div>
 
@@ -278,63 +463,40 @@ export default function ProgramsPage() {
     );
   }
 
+  // ── Main list view ──
   return (
     <div className="fade-in">
     <div style={{ padding: "4px 16px 0" }}><div style={S.label}>Your Programs</div></div>
-    {programs.filter(p => p.user_id === user.id).map(p => (
+
+    {programs.length === 0 && (
+      <div style={{ ...S.card, textAlign: "center" }}>
+        <div style={{ fontSize: 12, color: "#525252", padding: "8px 0" }}>
+          No programs yet. Create one or browse templates and community programs.
+        </div>
+      </div>
+    )}
+
+    {programs.map(p => (
         <div key={p.id} onClick={() => editProgram(p)} style={{ ...S.card, cursor: "pointer" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{p.name}</div>
               {p.description && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{p.description}</div>}
-            <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>{p.days?.length || 0} days · {p.shared ? "Shared" : "Private"}</div>
+            <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>
+              {p.days?.length || 0} days · {p.shared ? "Published" : "Private"}
+            </div>
           </div>
           <span style={{ color: "#525252", fontSize: 18 }}>→</span>
         </div>
       </div>
     ))}
-      {programs.filter(p => p.user_id !== user.id && p.shared).length > 0 && (
-        <>
-          <div style={{ padding: "12px 16px 0" }}><div style={S.label}>Shared Programs</div></div>
-          {programs.filter(p => p.user_id !== user.id && p.shared).map(p => (
-            <div key={p.id} style={S.card}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{p.name}</div>
-              <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>{p.days?.length || 0} days</div>
-            </div>
-          ))}
-        </>
-      )}
+
       <div style={{ padding: "8px 16px", display: "flex", gap: 8 }}>
         <button onClick={startNew} style={{ ...S.btn("primary"), flex: 1 }}>+ New Program</button>
-        <button onClick={() => setShowTemplates(!showTemplates)} style={{ ...S.btn("ghost"), flex: 1 }}>
-          {showTemplates ? "Hide" : "Browse"} Templates
+        <button onClick={() => setBrowsing(true)} style={{ ...S.btn("ghost"), flex: 1 }}>
+          Browse Programs
         </button>
       </div>
-
-      {/* Starter Templates */}
-      {showTemplates && (
-        <>
-          <div style={{ padding: "8px 16px 4px" }}><div style={S.label}>Starter Templates</div></div>
-          {STARTER_TEMPLATES.map((t, i) => {
-            const goalColors = { strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" };
-            return (
-              <div key={i} onClick={() => setPreviewTemplate(t)} style={{ ...S.card, cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{t.name}</div>
-                    <div style={{ display: "flex", gap: 4, marginTop: 3 }}>
-                      <span style={S.tag(goalColors[t.tags.goal] || "#737373")}>{t.tags.goal}</span>
-                      <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x</span>
-                      <span style={S.tag("#525252")}>{t.tags.level}</span>
-                    </div>
-                  </div>
-                  <span style={{ color: "#525252", fontSize: 14 }}>→</span>
-                </div>
-              </div>
-            );
-          })}
-        </>
-      )}
 
     </div>
   );

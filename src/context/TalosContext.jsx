@@ -26,6 +26,7 @@ const TalosContext = createContext();
  * - updateProfile(profile): update profile fields
  * - saveProgram(program): create or update a program
  * - deleteProgram(id): remove a program
+ * - adoptProgram(program): copy a template or community program into user's library
  * - addCustomExercise(exercise): add to custom exercise library
  * - editingProgram / setEditingProgram: program editor state
  * - setActiveProgramId(id): set the active program

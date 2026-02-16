@@ -1,7 +1,5 @@
 # Δ TALOS
 
-*The Bronze Guardian of Your Gains*
-
 Multi-user gym tracking app with AI coaching, built for self-hosting over Tailscale.
 
 ## Features
@@ -29,14 +27,6 @@ npm start
 ```
 
 App runs at `http://localhost:3000`.
-
-## Migrating from FORGE
-
-If upgrading from FORGE, rename your database to preserve all data:
-
-```bash
-mv forge.db talos.db
-```
 
 ## Access Over Tailscale
 

@@ -120,6 +120,15 @@ export default function App() {
       });
   }, [user]);
 
+  // ── Listen for program refresh events (e.g. after adopting a program) ──
+  useEffect(() => {
+    function handleRefresh() {
+      api.get("/programs").then(setPrograms).catch(console.error);
+    }
+    window.addEventListener("talos-refresh-programs", handleRefresh);
+    return () => window.removeEventListener("talos-refresh-programs", handleRefresh);
+  }, []);
+
   // ── Actions (passed through context) ──
 
   async function saveWorkout(w) {
@@ -179,6 +188,13 @@ export default function App() {
     await api.del(`/programs/${id}`);
     setPrograms((prev) => prev.filter((p) => p.id !== id));
     if (editingProgram?.id === id) setEditingProgram(null);
+  }
+
+  async function adoptProgram(program) {
+    const res = await api.post("/programs/adopt", program);
+    const updated = await api.get("/programs");
+    setPrograms(updated);
+    return res;
   }
 
   async function addCustomExercise(ex) {
@@ -392,6 +408,7 @@ export default function App() {
     updateProfile,
     saveProgram,
     deleteProgram,
+    adoptProgram,
     addCustomExercise,
     editingProgram,
     setEditingProgram,

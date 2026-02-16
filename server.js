@@ -162,6 +162,14 @@ for (const sql of userMigrations) {
 // Unique index on email (separate from ALTER TABLE — SQLite doesn't support ADD COLUMN ... UNIQUE)
 try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)"); } catch (e) { /* already exists */ }
 
+// --- Migrate programs table ---
+const programMigrations = [
+  "ALTER TABLE programs ADD COLUMN forked_from TEXT",
+];
+for (const sql of programMigrations) {
+  try { db.exec(sql); } catch (e) { /* column already exists */ }
+}
+
 // --- Set admin role for ADMIN_EMAIL if configured ---
 if (ADMIN_EMAIL) {
   const adminUser = db.prepare("SELECT id FROM users WHERE email = ?").get(ADMIN_EMAIL);
@@ -534,9 +542,54 @@ app.put("/api/profile/active-program", requireAuth, (req, res) => {
 
 // ===================== PROGRAMS =====================
 
+// User's own programs only
 app.get("/api/programs", requireAuth, (req, res) => {
-  const rows = db.prepare("SELECT * FROM programs WHERE user_id = ? OR shared = 1 ORDER BY created_at ASC").all(req.user.id);
+  const rows = db.prepare("SELECT * FROM programs WHERE user_id = ? ORDER BY created_at ASC").all(req.user.id);
   res.json(rows.map(r => ({ ...r, days: JSON.parse(r.days) })));
+});
+
+// Browse: shared programs from other users (client merges starter templates)
+app.get("/api/programs/browse", requireAuth, (req, res) => {
+  const rows = db.prepare(
+    `SELECT p.*, u.name as creator_name, u.color as creator_color
+     FROM programs p JOIN users u ON p.user_id = u.id
+     WHERE p.shared = 1 AND p.user_id != ?
+     ORDER BY p.created_at DESC`
+  ).all(req.user.id);
+
+  const programs = rows.map(r => ({
+    ...r,
+    days: JSON.parse(r.days),
+    source: "community",
+  }));
+
+  // Which programs has this user already adopted?
+  const adopted = db.prepare(
+    "SELECT forked_from FROM programs WHERE user_id = ? AND forked_from IS NOT NULL"
+  ).all(req.user.id).map(r => r.forked_from);
+
+  res.json({ programs, adopted });
+});
+
+// Adopt: copy a shared program or template into user's programs
+app.post("/api/programs/adopt", requireAuth, (req, res) => {
+  const { source_id, name, description, days } = req.body;
+  if (!name) return res.status(400).json({ error: "name required" });
+  if (!days || !Array.isArray(days)) return res.status(400).json({ error: "days required" });
+
+  const id = genId();
+  // Regenerate day IDs so they're unique to this copy
+  const newDays = days.map(d => ({
+    ...d,
+    id: genId(),
+    exercises: (d.exercises || []).map(e => ({ ...e })),
+  }));
+
+  db.prepare(
+    "INSERT INTO programs (id, user_id, name, description, days, shared, forked_from) VALUES (?, ?, ?, ?, ?, 0, ?)"
+  ).run(id, req.user.id, name, description || "", JSON.stringify(newDays), source_id || null);
+
+  res.json({ ok: true, id });
 });
 
 app.post("/api/programs", requireAuth, (req, res) => {

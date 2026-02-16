@@ -2,11 +2,11 @@
 // Extracted from App.jsx — the S object containing all inline style definitions
 
 const S = {
-  app: { fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#0a0a0a", color: "#e5e5e5", minHeight: "100dvh", maxWidth: 520, margin: "0 auto", position: "relative", paddingBottom: 72 },
+  app: { fontFamily: "'JetBrains Mono','SF Mono',monospace", background: "#0a0a0a", color: "#e5e5e5", minHeight: "100dvh", maxWidth: 520, margin: "0 auto", position: "relative", paddingBottom: 80 },
   header: { padding: "16px 16px 10px", borderBottom: "1px solid #262626", background: "#0a0a0a", position: "sticky", top: 0, zIndex: 100, display: "flex", justifyContent: "space-between", alignItems: "center" },
   title: { fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", color: "#fafafa", margin: 0, display: "flex", alignItems: "center", gap: 8 },
-  nav: { display: "flex", gap: 2, background: "#171717", borderRadius: 8, padding: 3, position: "fixed", bottom: "max(12px,env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", zIndex: 200, border: "1px solid #262626" },
-  navBtn: (a) => ({ padding: "8px 12px", borderRadius: 6, border: "none", background: a ? "#c9952d" : "transparent", color: a ? "#000" : "#737373", fontSize: 10, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
+  nav: { display: "flex", gap: 4, background: "#1a1a1a", borderRadius: 12, padding: 4, position: "fixed", bottom: "max(12px,env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", zIndex: 200, border: "1px solid #333", boxShadow: "0 -4px 20px rgba(0,0,0,0.6)" },
+  navBtn: (a) => ({ padding: "10px 16px", borderRadius: 8, border: "none", background: a ? "#c9952d" : "transparent", color: a ? "#000" : "#737373", fontSize: 11, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.5px", textTransform: "uppercase" }),
   card: { background: "#141414", border: "1px solid #262626", borderRadius: 10, padding: 16, margin: "8px 16px" },
   label: { fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: "#737373", marginBottom: 6 },
   input: { background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, padding: "8px 10px", color: "#e5e5e5", fontSize: 14, fontFamily: "inherit", width: "100%", boxSizing: "border-box", outline: "none" },

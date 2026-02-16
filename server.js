@@ -3,7 +3,7 @@ import cors from "cors";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync, unlinkSync } from "fs";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
@@ -1044,6 +1044,17 @@ app.post("/api/migrate-db", async (req, res) => {
     writeFileSync(DB_PATH, buf);
     res.json({ ok: true, bytes: buf.length, path: DB_PATH });
   } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post("/api/migrate-cleanup", (req, res) => {
+  try {
+    db.close();
+    try { unlinkSync("/data/talos.db-wal"); } catch(e) {}
+    try { unlinkSync("/data/talos.db-shm"); } catch(e) {}
+    res.json({ ok: true, message: "DB closed, WAL/SHM removed. Restart now." });
+  } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });

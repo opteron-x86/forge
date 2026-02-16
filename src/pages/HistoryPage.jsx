@@ -40,7 +40,7 @@ function getDayColor(label) {
 const RECENT_COUNT = 5;
 const LOAD_MORE_COUNT = 10;
 
-export default function HistoryPage() {
+export default function HistoryPage({ onLogPast }) {
   const { workouts, programs, deleteWorkout, editWorkout } = useTalos();
   const [expanded, setExpanded] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -198,9 +198,10 @@ export default function HistoryPage() {
             return (
               <div key={dayNum} onClick={() => {
                 if (dayWorkouts.length > 0) selectDate(dateStr);
+                else if (!hasFuture && onLogPast) onLogPast(dateStr);
               }}
                 style={{
-                  textAlign: "center", padding: "6px 2px", borderRadius: 6, cursor: dayWorkouts.length > 0 ? "pointer" : "default",
+                  textAlign: "center", padding: "6px 2px", borderRadius: 6, cursor: hasFuture ? "default" : "pointer",
                   background: isSelected ? "#262626" : "transparent",
                   border: isToday ? "1px solid #c9952d" : "1px solid transparent",
                   opacity: hasFuture ? 0.3 : 1,
@@ -238,6 +239,18 @@ export default function HistoryPage() {
           </div>
         )}
       </div>
+
+      {/* ── Log Past Workout ── */}
+      {onLogPast && (
+        <div style={{ padding: "0 16px" }}>
+          <button
+            onClick={() => onLogPast(null)}
+            style={{ ...S.btn("ghost"), width: "100%", textAlign: "center", fontSize: 11 }}
+          >
+            + Log Past Workout
+          </button>
+        </div>
+      )}
 
       {/* ── Section Header ── */}
       <div style={{ padding: "8px 16px 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

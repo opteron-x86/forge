@@ -47,6 +47,7 @@ export default function App() {
   const [editingProgram, setEditingProgram] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null);
+  const [logPastDate, setLogPastDate] = useState(null);
 
   // ── Coach state (lifted here so it survives tab switches) ──
   const [coachHistory, setCoachHistory] = useState([]);
@@ -284,25 +285,25 @@ export default function App() {
           <h1 style={S.title}><img src="/talos-icon.svg" alt="" style={{ width: 20, height: 20, verticalAlign: "middle", marginRight: 6 }} />TALOS{currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
-              onClick={() => setTab("logPast")}
-              title="Log past workout"
+              onClick={() => setTab("coach")}
+              title="AI Coach"
               style={{
                 width: 32,
                 height: 32,
                 borderRadius: "50%",
-                border: "1px solid #333",
-                background: "transparent",
-                color: "#737373",
-                fontSize: 18,
+                border: activeTab === "coach" ? "1px solid #c9952d" : "1px solid #333",
+                background: activeTab === "coach" ? "#c9952d20" : "transparent",
+                color: activeTab === "coach" ? "#c9952d" : "#737373",
+                fontSize: 15,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontFamily: "inherit",
-                fontWeight: 300,
+                fontWeight: 500,
               }}
             >
-              +
+              ⚡
             </button>
             <div
               onClick={() => setShowSettings(true)}
@@ -327,7 +328,7 @@ export default function App() {
         )}
 
         {/* Page router */}
-        {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} onLogPast={() => setTab("logPast")} />}
+        {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} />}
         {activeTab === "active" && currentWorkout && (
           <ActiveWorkout
             workout={currentWorkout}
@@ -343,8 +344,9 @@ export default function App() {
         )}
         {activeTab === "logPast" && (
           <LogPastWorkout
-            onSave={savePastWorkout}
-            onCancel={() => setTab("train")}
+            initialDate={logPastDate}
+            onSave={(w) => { setLogPastDate(null); return savePastWorkout(w); }}
+            onCancel={() => { setLogPastDate(null); setTab("history"); }}
           />
         )}
         {activeTab === "editWorkout" && editingWorkout && (
@@ -370,7 +372,7 @@ export default function App() {
             }}
           />
         )}
-        {activeTab === "history" && <HistoryPage />}
+        {activeTab === "history" && <HistoryPage onLogPast={(date) => { setLogPastDate(date || null); setTab("logPast"); }} />}
         {activeTab === "stats" && <StatsPage />}
         {activeTab === "programs" && <ProgramsPage />}
         {activeTab === "coach" && <CoachPage />}
@@ -395,7 +397,6 @@ export default function App() {
           <button onClick={() => setTab("programs")} style={S.navBtn(activeTab === "programs")}>
             {editingProgram ? "Prog ●" : "Prog"}
           </button>
-          <button onClick={() => setTab("coach")} style={S.navBtn(activeTab === "coach")}>Coach</button>
         </nav>
       </div>
     </TalosContext.Provider>

@@ -70,7 +70,7 @@ export default function Login({ onLogin }) {
             </div>
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="••••••••" autoComplete="current-password" required />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" required />
             </div>
           </div>
           {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
@@ -96,11 +96,11 @@ export default function Login({ onLogin }) {
             </div>
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="Min 8 characters" autoComplete="new-password" required />
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="new-password" required />
             </div>
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</div>
-              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle} placeholder="••••••••" autoComplete="new-password" required />
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle} autoComplete="new-password" required />
             </div>
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Color</div>

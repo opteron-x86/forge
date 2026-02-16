@@ -336,7 +336,7 @@ export default function HistoryPage({ onLogPast }) {
                   </div>
                 ))}
                 {w.notes && <div style={{ fontSize: 11, color: "#737373", marginTop: 8, fontStyle: "italic" }}>{w.notes}</div>}
-                {w.sleepHours && <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>Sleep: {w.sleepHours}h</div>}
+                {w.sleep_hours && <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>Sleep: {w.sleep_hours}h</div>}
                 {/* AI Review section */}
                 {hasReview && (
                   <ReviewSection review={workoutReviews[w.id]} />

@@ -75,11 +75,11 @@ export default function SessionSummary({ summary, onDone, onReviewSaved }) {
 
   // ── Volume comparison vs last same-day workout ──
   const volumeComparison = useMemo(() => {
-    const dayLabel = workout.day_label || workout.dayLabel;
+    const dayLabel = workout.day_label;
     if (!dayLabel || dayLabel === "Freestyle") return null;
     for (let i = prevWorkouts.length - 1; i >= 0; i--) {
       const pw = prevWorkouts[i];
-      if ((pw.day_label || pw.dayLabel) === dayLabel) {
+      if (pw.day_label === dayLabel) {
         const prevVol = pw.exercises?.reduce((a, e) =>
           a + (e.sets?.reduce((b, s) => b + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0;
         if (prevVol > 0 && totalVolume > 0) {
@@ -172,7 +172,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
           <div style={{ fontSize: 32, marginBottom: 4 }}>✓</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: "#22c55e" }}>Session Complete</div>
           <div style={{ fontSize: 11, color: "#737373", marginTop: 4 }}>
-            {workout.day_label || workout.dayLabel || "Workout"} · {fmtDate(workout.date)}
+            {workout.day_label || "Workout"} · {fmtDate(workout.date)}
           </div>
         </div>
 
@@ -192,7 +192,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
         {volumeComparison && (
           <div style={{ marginTop: 12, padding: "8px 12px", background: "#1a1a1a", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "#737373" }}>
-              vs last {workout.day_label || workout.dayLabel}
+              vs last {workout.day_label}
             </span>
             <span style={{
               fontSize: 12, fontWeight: 700,

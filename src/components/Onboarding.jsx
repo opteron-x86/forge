@@ -5,6 +5,7 @@
 
 import { useState, useMemo } from "react";
 import { STARTER_TEMPLATES } from "../lib/starterTemplates";
+import { genId } from "../lib/helpers";
 import S from "../lib/styles";
 
 const LEVELS = [
@@ -49,7 +50,7 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
       name: template.name,
       description: template.description,
       days: template.days.map(d => ({
-        id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+        id: genId(),
         label: d.label,
         subtitle: d.subtitle || "",
         exercises: d.exercises.map(e => ({ ...e })),

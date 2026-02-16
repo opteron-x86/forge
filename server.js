@@ -12,6 +12,14 @@ import { EXERCISES } from "./src/lib/exercises.js";
 
 dotenv.config();
 
+// --- Graceful error handling ---
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection:", reason);
+});
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,7 +42,6 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    pin_hash TEXT,
     color TEXT DEFAULT '#f97316',
     created_at TEXT DEFAULT (datetime('now'))
   );
@@ -584,7 +591,13 @@ app.delete("/api/exercises/:id", requireAuth, (req, res) => {
 
 // ===================== AI CONFIG =====================
 
-app.get("/api/ai/config", requireAuth, (req, res) => {
+// AI status (any authenticated user — just shows if AI is available)
+app.get("/api/ai/status", requireAuth, (req, res) => {
+  res.json({ enabled: !!aiProvider });
+});
+
+// AI config details (admin only — shows provider, model, key status)
+app.get("/api/ai/config", requireAuth, requireAdmin, (req, res) => {
   const dbSettings = loadAIConfig();
   const config = resolveConfig(dbSettings, process.env);
   res.json({
@@ -592,6 +605,7 @@ app.get("/api/ai/config", requireAuth, (req, res) => {
     model: config?.model || "",
     baseUrl: dbSettings.baseUrl || process.env.AI_BASE_URL || "",
     hasKey: !!(config?.apiKey),
+    keySource: config?.apiKey ? "environment" : "none",
     supportsTools: dbSettings.supportsTools !== "false",
     enabled: !!aiProvider,
     providerName: aiProvider?.providerName || "",
@@ -600,11 +614,10 @@ app.get("/api/ai/config", requireAuth, (req, res) => {
 });
 
 app.put("/api/ai/config", requireAuth, requireAdmin, (req, res) => {
-  const { provider, model, apiKey, baseUrl, supportsTools } = req.body;
+  const { provider, model, baseUrl, supportsTools } = req.body;
   const upsert = db.prepare("INSERT INTO ai_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
   if (provider !== undefined) upsert.run("provider", provider);
   if (model !== undefined) upsert.run("model", model);
-  if (apiKey !== undefined) upsert.run("apiKey", apiKey);
   if (baseUrl !== undefined) upsert.run("baseUrl", baseUrl);
   if (supportsTools !== undefined) upsert.run("supportsTools", String(supportsTools));
 
@@ -648,9 +661,10 @@ app.post("/api/coach", requireAuth, async (req, res) => {
 // ── Coach Message History ──
 
 app.get("/api/coach/messages", requireAuth, (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit) || 200, 500);
   const messages = db.prepare(
-    "SELECT * FROM coach_messages WHERE user_id = ? ORDER BY created_at ASC"
-  ).all(req.user.id);
+    "SELECT * FROM coach_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ?"
+  ).all(req.user.id, limit).reverse();
   res.json(messages);
 });
 
@@ -940,15 +954,9 @@ app.get("/api/export", requireAuth, (req, res) => {
   res.send(lines.join("\n"));
 });
 
-// Health
+// Health (public — kept minimal to avoid leaking operational info)
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    users: db.prepare("SELECT COUNT(*) as c FROM users").get().c,
-    ai: !!aiProvider,
-    aiProvider: aiProvider?.providerName || null,
-    aiModel: aiProvider?.modelName || null,
-  });
+  res.json({ status: "ok" });
 });
 
 // SPA fallback

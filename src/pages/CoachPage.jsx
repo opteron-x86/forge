@@ -5,14 +5,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTalos } from "../context/TalosContext";
-import { est1RM } from "../lib/helpers";
+import { est1RM, genId } from "../lib/helpers";
 import api from "../lib/api";
 import MarkdownText from "../components/MarkdownText";
 import S from "../lib/styles";
-
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
-}
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -202,7 +198,7 @@ export default function CoachPage() {
       return d >= twoWeeksAgo && d < weekAgo;
     });
 
-    const weeklyCtx = `${context}\n\nTHIS WEEK (${thisWeek.length} sessions):\n${thisWeek.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5, Sleep:${w.sleep_hours || w.sleepHours || "?"}h, Duration:${w.duration || "?"}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}\n\nPREVIOUS WEEK (${lastWeek.length} sessions):\n${lastWeek.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+    const weeklyCtx = `${context}\n\nTHIS WEEK (${thisWeek.length} sessions):\n${thisWeek.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5, Sleep:${w.sleep_hours || "?"}h, Duration:${w.duration || "?"}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}\n\nPREVIOUS WEEK (${lastWeek.length} sessions):\n${lastWeek.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
 
     try {
       const data = await api.post("/coach/weekly", { context: weeklyCtx });

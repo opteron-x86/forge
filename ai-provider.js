@@ -71,7 +71,7 @@ class AnthropicProvider extends AIProvider {
 
   async chat(system, messages, options = {}) {
     const msg = await this.client.messages.create({
-      model: this.config.model || "claude-sonnet-4-20250514",
+      model: this.config.model || "claude-sonnet-4-5-20250929",
       max_tokens: options.maxTokens || 1500,
       system,
       messages,
@@ -81,7 +81,7 @@ class AnthropicProvider extends AIProvider {
 
   async chatWithTools(system, messages, tools, options = {}) {
     const msg = await this.client.messages.create({
-      model: this.config.model || "claude-sonnet-4-20250514",
+      model: this.config.model || "claude-sonnet-4-5-20250929",
       max_tokens: options.maxTokens || 4000,
       system,
       messages,
@@ -278,12 +278,16 @@ export function createProvider(config) {
 // Resolves AI config from: DB settings → .env → legacy ANTHROPIC_API_KEY
 
 export function resolveConfig(dbSettings, env) {
-  // DB settings take priority
+  // API key always comes from environment variables, never from the database.
+  // DB settings only control provider, model, base URL, and tool support.
+  const apiKey = env.AI_API_KEY || env.ANTHROPIC_API_KEY || "";
+
+  // DB settings take priority for provider/model selection
   if (dbSettings?.provider) {
     return {
       provider: dbSettings.provider,
       model: dbSettings.model || defaultModelFor(dbSettings.provider),
-      apiKey: dbSettings.apiKey || "",
+      apiKey,
       baseUrl: dbSettings.baseUrl || "",
       supportsTools: dbSettings.supportsTools !== "false",
     };
@@ -294,7 +298,7 @@ export function resolveConfig(dbSettings, env) {
     return {
       provider: env.AI_PROVIDER,
       model: env.AI_MODEL || defaultModelFor(env.AI_PROVIDER),
-      apiKey: env.AI_API_KEY || "",
+      apiKey,
       baseUrl: env.AI_BASE_URL || "",
       supportsTools: env.AI_SUPPORTS_TOOLS !== "false",
     };
@@ -304,7 +308,7 @@ export function resolveConfig(dbSettings, env) {
   if (env.ANTHROPIC_API_KEY) {
     return {
       provider: "anthropic",
-      model: env.AI_MODEL || "claude-sonnet-4-5-20250929",
+      model: env.AI_MODEL || defaultModelFor("anthropic"),
       apiKey: env.ANTHROPIC_API_KEY,
       baseUrl: "",
     };

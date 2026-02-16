@@ -14,7 +14,8 @@ const TalosContext = createContext();
  * Hook to access TALOS global state from any component.
  * 
  * Available values (provided by App.jsx):
- * - user: { id, name, color, has_pin }
+ * - user: { id, name, email, role, color }
+ * - updateUser(updates): merge updates into the user object
  * - workouts: array of workout objects
  * - profile: user profile with biometrics, goals, preferences
  * - programs: array of training programs

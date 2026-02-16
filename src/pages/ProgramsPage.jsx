@@ -3,21 +3,17 @@
 
 import { useState } from "react";
 import { useTalos } from "../context/TalosContext";
-import { MUSCLE_GROUPS, EQUIPMENT } from "../lib/exercises";
 import { genId } from "../lib/helpers";
 import { STARTER_TEMPLATES } from "../lib/starterTemplates";
 import ExercisePicker from "../components/ExercisePicker";
 import S from "../lib/styles";
 
 export default function ProgramsPage() {
-  const { user, programs, saveProgram, deleteProgram, customExercises, addCustomExercise, editingProgram: editing, setEditingProgram: setEditing } = useTalos();
+  const { user, programs, saveProgram, deleteProgram, customExercises, editingProgram: editing, setEditingProgram: setEditing } = useTalos();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerDayIdx, setPickerDayIdx] = useState(null);
   const [replacingExIdx, setReplacingExIdx] = useState(null);
   const [collapsedDays, setCollapsedDays] = useState(new Set());
-  const [newExName, setNewExName] = useState("");
-  const [newExMuscle, setNewExMuscle] = useState("chest");
-  const [newExEquip, setNewExEquip] = useState("barbell");
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
 
@@ -128,12 +124,6 @@ export default function ProgramsPage() {
     if (editing.days.length === 0) return alert("Add at least one day");
     await saveProgram(editing);
     setEditing(null);
-  }
-
-  async function handleAddCustom() {
-    if (!newExName.trim()) return;
-    await addCustomExercise({ name: newExName, muscle: newExMuscle, equipment: newExEquip });
-    setNewExName("");
   }
 
   if (previewTemplate) {
@@ -346,20 +336,6 @@ export default function ProgramsPage() {
         </>
       )}
 
-      {/* Custom exercise creator */}
-      <div style={S.card}>
-        <div style={S.label}>Add Custom Exercise</div>
-        <input value={newExName} onChange={e => setNewExName(e.target.value)} style={{ ...S.input, marginBottom: 6 }} placeholder="Exercise name" />
-        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-          <select value={newExMuscle} onChange={e => setNewExMuscle(e.target.value)} style={{ ...S.input, fontSize: 11, flex: 1 }}>
-            {MUSCLE_GROUPS.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-          <select value={newExEquip} onChange={e => setNewExEquip(e.target.value)} style={{ ...S.input, fontSize: 11, flex: 1 }}>
-            {EQUIPMENT.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
-        </div>
-        <button onClick={handleAddCustom} disabled={!newExName.trim()} style={{ ...S.btn("ghost"), width: "100%", opacity: newExName.trim() ? 1 : 0.4 }}>Add to Library</button>
-      </div>
     </div>
   );
 }

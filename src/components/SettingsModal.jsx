@@ -9,11 +9,12 @@ import S from "../lib/styles";
 import AdminPanel from "./AdminPanel";
 
 export default function SettingsModal({ onClose, onLogout }) {
-  const { user } = useTalos();
+  const { user, updateUser } = useTalos();
   const [name, setName] = useState(user.name);
   const [color, setColor] = useState(user.color);
   const [showAI, setShowAI] = useState(false);
-  const [aiForm, setAiForm] = useState({ provider: "", model: "", apiKey: "", baseUrl: "", supportsTools: true });
+  const [aiForm, setAiForm] = useState({ provider: "", model: "", baseUrl: "", supportsTools: true });
+  const [aiProviders, setAiProviders] = useState([]);
   const [aiStatus, setAiStatus] = useState("");
   const [aiLoaded, setAiLoaded] = useState(false);
 
@@ -35,11 +36,11 @@ export default function SettingsModal({ onClose, onLogout }) {
         setAiForm({
           provider: cfg.provider || "anthropic",
           model: cfg.model || "",
-          apiKey: "",
           baseUrl: cfg.baseUrl || "",
           supportsTools: cfg.supportsTools !== false,
         });
-        setAiStatus(cfg.enabled ? `Active: ${cfg.providerName}` : "Not configured");
+        setAiProviders(cfg.providers || []);
+        setAiStatus(cfg.enabled ? `Active: ${cfg.providerName}` : (cfg.hasKey ? "Configured but not active" : "No API key — set via environment variables"));
         setAiLoaded(true);
       }).catch(() => setAiLoaded(true));
     }
@@ -48,8 +49,8 @@ export default function SettingsModal({ onClose, onLogout }) {
   async function save() {
     try {
       await api.put("/auth/account", { name, color });
+      updateUser({ name, color });
       onClose();
-      window.location.reload();
     } catch (e) {
       alert("Save failed: " + e.message);
     }
@@ -72,33 +73,12 @@ export default function SettingsModal({ onClose, onLogout }) {
     setAiStatus("Saving...");
     try {
       const body = { provider: aiForm.provider, model: aiForm.model, baseUrl: aiForm.baseUrl, supportsTools: aiForm.supportsTools };
-      if (aiForm.apiKey) body.apiKey = aiForm.apiKey;
       const res = await api.put("/ai/config", body);
-      setAiStatus(res.enabled ? `Active: ${res.providerName}` : "Configuration saved (no API key)");
+      setAiStatus(res.enabled ? `Active: ${res.providerName}` : "Configuration saved — set API key via environment variables");
     } catch (e) { setAiStatus("Error: " + e.message); }
   }
 
-  const PROVIDERS = [
-    { id: "anthropic", label: "Anthropic (Claude)", models: [
-      { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-      { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-      { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-      { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-    ]},
-    { id: "openai", label: "OpenAI", models: [
-      { id: "gpt-4.1", label: "GPT-4.1" },
-      { id: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
-      { id: "gpt-4o", label: "GPT-4o" },
-      { id: "gpt-4o-mini", label: "GPT-4o Mini" },
-      { id: "o4-mini", label: "o4 Mini" },
-    ]},
-    { id: "gemini", label: "Google Gemini", models: [
-      { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-      { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-    ]},
-    { id: "openai-compatible", label: "Custom (Ollama, LM Studio, etc.)", models: [] },
-  ];
+  const PROVIDERS = aiProviders;
 
   // ── Admin Panel overlay ──
   if (showAdmin) {
@@ -144,11 +124,11 @@ export default function SettingsModal({ onClose, onLogout }) {
             </div>
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>New Password</div>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="Min 8 characters" autoComplete="new-password" />
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="new-password" />
             </div>
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Confirm New Password</div>
-              <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="••••••••" autoComplete="new-password" />
+              <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="new-password" />
             </div>
             {passwordMsg && <div style={{ fontSize: 11, color: passwordMsg === "Password updated!" ? "#22c55e" : "#ef4444", marginBottom: 8 }}>{passwordMsg}</div>}
             <button onClick={changePassword} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Update Password</button>
@@ -175,7 +155,7 @@ export default function SettingsModal({ onClose, onLogout }) {
                     const models = PROVIDERS.find(p => p.id === newProvider)?.models || [];
                     setAiForm(f => ({ ...f, provider: newProvider, model: models[0]?.id || "" }));
                   }} style={{ ...S.input, fontSize: 12 }}>
-                    {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div style={{ marginBottom: 8 }}>
@@ -204,21 +184,11 @@ export default function SettingsModal({ onClose, onLogout }) {
                     );
                   })()}
                 </div>
-                {aiForm.provider !== "openai-compatible" && (
-                  <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (leave blank to keep current)</div>
-                    <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="sk-..." />
-                  </div>
-                )}
                 {aiForm.provider === "openai-compatible" && (
                   <>
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Base URL</div>
                       <input value={aiForm.baseUrl} onChange={e => setAiForm(f => ({ ...f, baseUrl: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="http://localhost:11434/v1" />
-                    </div>
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (optional for local)</div>
-                      <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="Leave blank for Ollama" />
                     </div>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#737373", cursor: "pointer", marginBottom: 8 }}>
                       <input type="checkbox" checked={aiForm.supportsTools} onChange={e => setAiForm(f => ({ ...f, supportsTools: e.target.checked }))} />
@@ -227,7 +197,7 @@ export default function SettingsModal({ onClose, onLogout }) {
                   </>
                 )}
                 <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save AI Config</button>
-                <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "center" }}>Key stored in local database. Server-level .env takes priority if set.</div>
+                <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "center" }}>API keys are set via environment variables (AI_API_KEY or ANTHROPIC_API_KEY).</div>
               </div>
             )}
           </>

@@ -2,7 +2,7 @@
 // Extracted from App.jsx — shared utilities used across components
 
 export const genId = () =>
-  Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+  Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
 
 export const fmtDate = (d) => {
   const dt = new Date(d + "T12:00:00");

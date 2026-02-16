@@ -11,7 +11,7 @@
 import { useState, useEffect } from "react";
 import TalosContext from "./context/TalosContext";
 import api from "./lib/api";
-import { DEFAULT_PROFILE } from "./lib/helpers";
+import { DEFAULT_PROFILE, genId } from "./lib/helpers";
 import S from "./lib/styles";
 
 // Pages
@@ -82,6 +82,10 @@ export default function App() {
     setLoaded(false);
   }
 
+  function updateUser(updates) {
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
+  }
+
   // ── Load user data on login ──
   useEffect(() => {
     if (!user) return;
@@ -91,7 +95,7 @@ export default function App() {
       api.get("/profile"),
       api.get("/programs"),
       api.get("/exercises"),
-      api.get("/ai/config"),
+      api.get("/ai/status").catch(() => ({ enabled: false })),
       api.get("/coach/messages"),
       api.get("/workout-reviews"),
     ])
@@ -193,7 +197,7 @@ export default function App() {
     for (let i = workouts.length - 1; i >= 0; i--) {
       const w = workouts[i];
       if (dayId && w.day_id === dayId) return w;
-      if (!dayId && dayLabel && (w.day_label || w.dayLabel) === dayLabel) return w;
+      if (!dayId && dayLabel && w.day_label === dayLabel) return w;
     }
     return null;
   }
@@ -260,12 +264,12 @@ export default function App() {
     }
 
     const workout = {
-      id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+      id: genId(),
       date: new Date().toISOString().split("T")[0],
       startTime: Date.now(),
       program_id: template?.program_id || program?.id || null,
       day_id: template?.day_id || day?.id || null,
-      dayLabel: template?.day_label || template?.dayLabel || day?.label || "Freestyle",
+      day_label: template?.day_label || day?.label || "Freestyle",
       exercises,
       feel: 3,
       notes: "",
@@ -377,6 +381,7 @@ export default function App() {
   // ── Context value ──
   const ctx = {
     user,
+    updateUser,
     workouts,
     profile,
     programs,

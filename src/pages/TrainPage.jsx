@@ -92,7 +92,7 @@ export default function TrainPage({ onStartWorkout }) {
       // Skip if it's from the active program (those are in the day cards already)
       if (activeDayIds.has(w.day_id)) continue;
       // Deduplicate by day_label + program_id combo
-      const key = `${w.day_label || w.dayLabel || ""}|${w.program_id || ""}`;
+      const key = `${w.day_label || ""}|${w.program_id || ""}`;
       if (seen.has(key)) continue;
       seen.add(key);
       // Must have exercises to be useful as a template
@@ -149,7 +149,7 @@ export default function TrainPage({ onStartWorkout }) {
                 </span>
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", marginTop: 3 }}>
-                {lastWorkout.day_label || lastWorkout.dayLabel || "Workout"}
+                {lastWorkout.day_label || "Workout"}
               </div>
               <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
                 {daysAgoText(lastWorkout.date)}
@@ -279,7 +279,7 @@ export default function TrainPage({ onStartWorkout }) {
                 style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>
-                    {w.day_label || w.dayLabel || "Workout"}
+                    {w.day_label || "Workout"}
                   </div>
                   <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
                     {daysAgoText(w.date)}

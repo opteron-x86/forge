@@ -198,7 +198,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
       {/* Header card */}
       <div style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={S.tag()}>{workout.dayLabel || "Workout"}</span>
+          <span style={S.tag()}>{workout.day_label || "Workout"}</span>
           <div style={{ fontSize: 11, color: "#737373", marginTop: 6 }}>{fmtDate(workout.date)}</div>
         </div>
         <div style={{ textAlign: "right" }}>

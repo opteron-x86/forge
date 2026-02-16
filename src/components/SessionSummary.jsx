@@ -151,7 +151,6 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
         workout,
         context,
         workout_id: workout.id,
-        user_id: user.id,
       });
 
       const analysis = res.analysis;

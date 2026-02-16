@@ -32,6 +32,7 @@ import SessionSummary from "./components/SessionSummary";
 export default function App() {
   // ── Auth state ──
   const [user, setUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // ── Core data ──
   const [workouts, setWorkouts] = useState([]);
@@ -55,18 +56,44 @@ export default function App() {
   const [coachMode, setCoachMode] = useState("chat");
   const [workoutReviews, setWorkoutReviews] = useState({});
 
+  // ── Restore session from stored JWT on mount ──
+  useEffect(() => {
+    api.setAuthErrorHandler(() => {
+      setUser(null);
+      setAuthChecked(true);
+    });
+
+    const token = api.getToken();
+    if (!token) {
+      setAuthChecked(true);
+      return;
+    }
+    api.get("/auth/me")
+      .then((u) => { setUser(u); setAuthChecked(true); })
+      .catch(() => { api.clearToken(); setAuthChecked(true); });
+  }, []);
+
+  function logout() {
+    api.clearToken();
+    setUser(null);
+    setShowSettings(false);
+    setTab("train");
+    setCurrent(null);
+    setLoaded(false);
+  }
+
   // ── Load user data on login ──
   useEffect(() => {
     if (!user) return;
     setLoaded(false);
     Promise.all([
-      api.get(`/workouts?user_id=${user.id}`),
-      api.get(`/profile?user_id=${user.id}`),
-      api.get(`/programs?user_id=${user.id}`),
+      api.get("/workouts"),
+      api.get("/profile"),
+      api.get("/programs"),
       api.get("/exercises"),
       api.get("/ai/config"),
-      api.get(`/coach/messages?user_id=${user.id}`),
-      api.get(`/workout-reviews?user_id=${user.id}`),
+      api.get("/coach/messages"),
+      api.get("/workout-reviews"),
     ])
       .then(([w, p, pr, ex, ai, coachMsgs, reviews]) => {
         setWorkouts(w);
@@ -127,8 +154,8 @@ export default function App() {
   }
 
   async function updateProfile(p) {
-    await api.put("/profile", { user_id: user.id, ...p });
-    const updated = await api.get(`/profile?user_id=${user.id}`);
+    await api.put("/profile", p);
+    const updated = await api.get("/profile");
     setProfile(updated);
   }
 
@@ -136,10 +163,10 @@ export default function App() {
     if (p.id) {
       await api.put(`/programs/${p.id}`, p);
     } else {
-      const res = await api.post("/programs", { ...p, user_id: user.id });
+      const res = await api.post("/programs", p);
       p.id = res.id;
     }
-    const updated = await api.get(`/programs?user_id=${user.id}`);
+    const updated = await api.get("/programs");
     setPrograms(updated);
   }
 
@@ -234,7 +261,6 @@ export default function App() {
 
     const workout = {
       id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-      user_id: user.id,
       date: new Date().toISOString().split("T")[0],
       startTime: Date.now(),
       program_id: template?.program_id || program?.id || null,
@@ -279,6 +305,14 @@ export default function App() {
   }
 
   // ── Auth gate ──
+  if (!authChecked) {
+    return (
+      <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "#c9952d", fontSize: 14 }}>Loading...</div>
+      </div>
+    );
+  }
+
   if (!user) {
     return <Login onLogin={setUser} />;
   }
@@ -297,9 +331,9 @@ export default function App() {
   async function completeOnboarding(program, level) {
     // Save the selected program
     if (program) {
-      await saveProgram({ ...program, user_id: user.id });
+      await saveProgram(program);
       // Refresh programs to get the saved one with its ID
-      const updated = await api.get(`/programs?user_id=${user.id}`);
+      const updated = await api.get("/programs");
       setPrograms(updated);
       // Set as active program
       if (updated.length > 0) {
@@ -412,12 +446,7 @@ export default function App() {
         {showSettings && (
           <SettingsModal
             onClose={() => setShowSettings(false)}
-            onLogout={() => {
-              setUser(null);
-              setShowSettings(false);
-              setTab("train");
-              setCurrent(null);
-            }}
+            onLogout={logout}
           />
         )}
 

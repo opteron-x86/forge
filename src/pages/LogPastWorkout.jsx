@@ -187,7 +187,6 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
       try {
         const workout = {
           id: isEditing ? editingWorkout.id : genId(),
-          user_id: user.id,
           date,
           program_id: selectedProgram?.id || null,
           day_id: selectedDay?.id || null,

@@ -1,0 +1,1957 @@
+diff --git a/.env.example b/.env.example
+index b46a37a..03fd36d 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,6 +1,17 @@
+ # ─── TALOS Configuration ───
+ 
+ PORT=3000
++# NODE_ENV=production
++
++# ─── Authentication ───
++# Required for production — tokens won't survive server restarts without this
++JWT_SECRET=change-me-to-a-random-string-at-least-32-chars
++
++# Email that gets admin role automatically on registration
++ADMIN_EMAIL=you@example.com
++
++# Database path (default: ./talos.db)
++# DATABASE_PATH=/data/talos.db
+ 
+ # ─── AI Provider ───
+ # Configure here OR in the app's Settings UI (Settings > AI Coach Provider).
+diff --git a/package-lock.json b/package-lock.json
+index 5bb776b..01afdad 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,18 +1,20 @@
+ {
+-  "name": "forge",
+-  "version": "2.0.0",
++  "name": "talos",
++  "version": "3.0.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+-      "name": "forge",
+-      "version": "2.0.0",
++      "name": "talos",
++      "version": "3.0.0",
+       "dependencies": {
+         "@anthropic-ai/sdk": "^0.39.0",
++        "bcryptjs": "^3.0.3",
+         "better-sqlite3": "^11.7.0",
+         "cors": "^2.8.5",
+         "dotenv": "^16.4.7",
+-        "express": "^4.21.2"
++        "express": "^4.21.2",
++        "jsonwebtoken": "^9.0.3"
+       },
+       "devDependencies": {
+         "@vitejs/plugin-react": "^4.3.4",
+@@ -1448,6 +1450,15 @@
+         "baseline-browser-mapping": "dist/cli.js"
+       }
+     },
++    "node_modules/bcryptjs": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz",
++      "integrity": "sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==",
++      "license": "BSD-3-Clause",
++      "bin": {
++        "bcrypt": "bin/bcrypt"
++      }
++    },
+     "node_modules/better-sqlite3": {
+       "version": "11.10.0",
+       "resolved": "https://registry.npmjs.org/better-sqlite3/-/better-sqlite3-11.10.0.tgz",
+@@ -1576,6 +1587,12 @@
+         "ieee754": "^1.1.13"
+       }
+     },
++    "node_modules/buffer-equal-constant-time": {
++      "version": "1.0.1",
++      "resolved": "https://registry.npmjs.org/buffer-equal-constant-time/-/buffer-equal-constant-time-1.0.1.tgz",
++      "integrity": "sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==",
++      "license": "BSD-3-Clause"
++    },
+     "node_modules/bytes": {
+       "version": "3.1.2",
+       "resolved": "https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz",
+@@ -2075,6 +2092,15 @@
+         "node": ">= 0.4"
+       }
+     },
++    "node_modules/ecdsa-sig-formatter": {
++      "version": "1.0.11",
++      "resolved": "https://registry.npmjs.org/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz",
++      "integrity": "sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==",
++      "license": "Apache-2.0",
++      "dependencies": {
++        "safe-buffer": "^5.0.1"
++      }
++    },
+     "node_modules/ee-first": {
+       "version": "1.1.1",
+       "resolved": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz",
+@@ -2720,6 +2746,61 @@
+         "node": ">=6"
+       }
+     },
++    "node_modules/jsonwebtoken": {
++      "version": "9.0.3",
++      "resolved": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz",
++      "integrity": "sha512-MT/xP0CrubFRNLNKvxJ2BYfy53Zkm++5bX9dtuPbqAeQpTVe0MQTFhao8+Cp//EmJp244xt6Drw/GVEGCUj40g==",
++      "license": "MIT",
++      "dependencies": {
++        "jws": "^4.0.1",
++        "lodash.includes": "^4.3.0",
++        "lodash.isboolean": "^3.0.3",
++        "lodash.isinteger": "^4.0.4",
++        "lodash.isnumber": "^3.0.3",
++        "lodash.isplainobject": "^4.0.6",
++        "lodash.isstring": "^4.0.1",
++        "lodash.once": "^4.0.0",
++        "ms": "^2.1.1",
++        "semver": "^7.5.4"
++      },
++      "engines": {
++        "node": ">=12",
++        "npm": ">=6"
++      }
++    },
++    "node_modules/jsonwebtoken/node_modules/semver": {
++      "version": "7.7.4",
++      "resolved": "https://registry.npmjs.org/semver/-/semver-7.7.4.tgz",
++      "integrity": "sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==",
++      "license": "ISC",
++      "bin": {
++        "semver": "bin/semver.js"
++      },
++      "engines": {
++        "node": ">=10"
++      }
++    },
++    "node_modules/jwa": {
++      "version": "2.0.1",
++      "resolved": "https://registry.npmjs.org/jwa/-/jwa-2.0.1.tgz",
++      "integrity": "sha512-hRF04fqJIP8Abbkq5NKGN0Bbr3JxlQ+qhZufXVr0DvujKy93ZCbXZMHDL4EOtodSbCWxOqR8MS1tXA5hwqCXDg==",
++      "license": "MIT",
++      "dependencies": {
++        "buffer-equal-constant-time": "^1.0.1",
++        "ecdsa-sig-formatter": "1.0.11",
++        "safe-buffer": "^5.0.1"
++      }
++    },
++    "node_modules/jws": {
++      "version": "4.0.1",
++      "resolved": "https://registry.npmjs.org/jws/-/jws-4.0.1.tgz",
++      "integrity": "sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==",
++      "license": "MIT",
++      "dependencies": {
++        "jwa": "^2.0.1",
++        "safe-buffer": "^5.0.1"
++      }
++    },
+     "node_modules/lodash": {
+       "version": "4.17.23",
+       "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.23.tgz",
+@@ -2727,6 +2808,48 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/lodash.includes": {
++      "version": "4.3.0",
++      "resolved": "https://registry.npmjs.org/lodash.includes/-/lodash.includes-4.3.0.tgz",
++      "integrity": "sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==",
++      "license": "MIT"
++    },
++    "node_modules/lodash.isboolean": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/lodash.isboolean/-/lodash.isboolean-3.0.3.tgz",
++      "integrity": "sha512-Bz5mupy2SVbPHURB98VAcw+aHh4vRV5IPNhILUCsOzRmsTmSQ17jIuqopAentWoehktxGd9e/hbIXq980/1QJg==",
++      "license": "MIT"
++    },
++    "node_modules/lodash.isinteger": {
++      "version": "4.0.4",
++      "resolved": "https://registry.npmjs.org/lodash.isinteger/-/lodash.isinteger-4.0.4.tgz",
++      "integrity": "sha512-DBwtEWN2caHQ9/imiNeEA5ys1JoRtRfY3d7V9wkqtbycnAmTvRRmbHKDV4a0EYc678/dia0jrte4tjYwVBaZUA==",
++      "license": "MIT"
++    },
++    "node_modules/lodash.isnumber": {
++      "version": "3.0.3",
++      "resolved": "https://registry.npmjs.org/lodash.isnumber/-/lodash.isnumber-3.0.3.tgz",
++      "integrity": "sha512-QYqzpfwO3/CWf3XP+Z+tkQsfaLL/EnUlXWVkIk5FUPc4sBdTehEqZONuyRt2P67PXAk+NXmTBcc97zw9t1FQrw==",
++      "license": "MIT"
++    },
++    "node_modules/lodash.isplainobject": {
++      "version": "4.0.6",
++      "resolved": "https://registry.npmjs.org/lodash.isplainobject/-/lodash.isplainobject-4.0.6.tgz",
++      "integrity": "sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==",
++      "license": "MIT"
++    },
++    "node_modules/lodash.isstring": {
++      "version": "4.0.1",
++      "resolved": "https://registry.npmjs.org/lodash.isstring/-/lodash.isstring-4.0.1.tgz",
++      "integrity": "sha512-0wJxfxH1wgO3GrbuP+dTTk7op+6L41QCXbGINEmD+ny/G/eCqGzxyCsh7159S+mgDDcoarnBw6PC1PS5+wUGgw==",
++      "license": "MIT"
++    },
++    "node_modules/lodash.once": {
++      "version": "4.1.1",
++      "resolved": "https://registry.npmjs.org/lodash.once/-/lodash.once-4.1.1.tgz",
++      "integrity": "sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==",
++      "license": "MIT"
++    },
+     "node_modules/loose-envify": {
+       "version": "1.4.0",
+       "resolved": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz",
+diff --git a/package.json b/package.json
+index 9b875a2..873b8a1 100644
+--- a/package.json
++++ b/package.json
+@@ -1,7 +1,7 @@
+ {
+   "name": "talos",
+   "version": "3.0.0",
+-  "description": "Multi-user gym tracking app with AI coaching — the bronze guardian of your gains",
++  "description": "Multi-user gym tracking app with AI coaching and JWT auth — the bronze guardian of your gains",
+   "type": "module",
+   "scripts": {
+     "dev": "concurrently \"node server.js\" \"vite\"",
+@@ -11,10 +11,12 @@
+   },
+   "dependencies": {
+     "@anthropic-ai/sdk": "^0.39.0",
++    "bcryptjs": "^3.0.3",
+     "better-sqlite3": "^11.7.0",
+     "cors": "^2.8.5",
+     "dotenv": "^16.4.7",
+-    "express": "^4.21.2"
++    "express": "^4.21.2",
++    "jsonwebtoken": "^9.0.3"
+   },
+   "devDependencies": {
+     "@vitejs/plugin-react": "^4.3.4",
+diff --git a/server.js b/server.js
+index b7c652f..c87fe6e 100644
+--- a/server.js
++++ b/server.js
+@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
+ import { dirname, join } from "path";
+ import Database from "better-sqlite3";
+ import dotenv from "dotenv";
++import bcrypt from "bcryptjs";
++import jwt from "jsonwebtoken";
+ import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "./ai-provider.js";
+ import { EXERCISES } from "./src/lib/exercises.js";
+ 
+@@ -14,8 +16,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
+ const app = express();
+ const PORT = process.env.PORT || 3000;
+ 
++// --- JWT Config ---
++const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
++const JWT_EXPIRES_IN = "7d";
++if (!process.env.JWT_SECRET) {
++  console.warn("⚠️  No JWT_SECRET set — using random secret (tokens won't survive restarts)");
++}
++const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
++const BCRYPT_ROUNDS = 12;
++
+ // --- Database ---
+-const db = new Database(join(__dirname, "talos.db"));
++const DB_PATH = process.env.DATABASE_PATH || join(__dirname, "talos.db");
++const db = new Database(DB_PATH);
+ db.pragma("journal_mode = WAL");
+ 
+ db.exec(`
+@@ -130,6 +142,25 @@ for (const sql of profileMigrations) {
+   try { db.exec(sql); } catch (e) { /* column already exists */ }
+ }
+ 
++// --- Migrate users table for proper auth ---
++const userMigrations = [
++  "ALTER TABLE users ADD COLUMN email TEXT UNIQUE",
++  "ALTER TABLE users ADD COLUMN password_hash TEXT",
++  "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
++  "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
++];
++for (const sql of userMigrations) {
++  try { db.exec(sql); } catch (e) { /* column already exists */ }
++}
++
++// --- Set admin role for ADMIN_EMAIL if configured ---
++if (ADMIN_EMAIL) {
++  const adminUser = db.prepare("SELECT id FROM users WHERE email = ?").get(ADMIN_EMAIL);
++  if (adminUser) {
++    db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(adminUser.id);
++  }
++}
++
+ function hashPin(pin) {
+   return crypto.createHash("sha256").update(pin).digest("hex");
+ }
+@@ -138,6 +169,67 @@ function genId() {
+   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+ }
+ 
++// --- JWT Helpers ---
++function signToken(user) {
++  return jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
++}
++
++function verifyToken(token) {
++  return jwt.verify(token, JWT_SECRET);
++}
++
++// --- Auth Middleware ---
++function requireAuth(req, res, next) {
++  const header = req.headers.authorization;
++  if (!header?.startsWith("Bearer ")) {
++    return res.status(401).json({ error: "Authentication required" });
++  }
++  try {
++    const payload = verifyToken(header.slice(7));
++    const user = db.prepare("SELECT id, name, email, role, color, is_active FROM users WHERE id = ?").get(payload.id);
++    if (!user) return res.status(401).json({ error: "User not found" });
++    if (!user.is_active) return res.status(403).json({ error: "Account deactivated" });
++    req.user = user;
++    next();
++  } catch (e) {
++    if (e.name === "TokenExpiredError") return res.status(401).json({ error: "Token expired" });
++    return res.status(401).json({ error: "Invalid token" });
++  }
++}
++
++function requireAdmin(req, res, next) {
++  if (req.user.role !== "admin") {
++    return res.status(403).json({ error: "Admin access required" });
++  }
++  next();
++}
++
++// --- Rate Limiting (in-memory, per-IP) ---
++const rateLimitMap = new Map();
++function rateLimit(maxAttempts, windowMs) {
++  return (req, res, next) => {
++    const key = req.ip || req.connection.remoteAddress;
++    const now = Date.now();
++    const entry = rateLimitMap.get(key);
++    if (entry && now - entry.start < windowMs) {
++      if (entry.count >= maxAttempts) {
++        return res.status(429).json({ error: "Too many attempts. Try again later." });
++      }
++      entry.count++;
++    } else {
++      rateLimitMap.set(key, { count: 1, start: now });
++    }
++    next();
++  };
++}
++// Clean up rate limit entries every 10 minutes
++setInterval(() => {
++  const now = Date.now();
++  for (const [key, entry] of rateLimitMap) {
++    if (now - entry.start > 900000) rateLimitMap.delete(key);
++  }
++}, 600000);
++
+ // --- AI Provider ---
+ function loadAIConfig() {
+   const rows = db.prepare("SELECT key, value FROM ai_config").all();
+@@ -180,49 +272,176 @@ if (process.env.NODE_ENV === "production") {
+   app.use(express.static(join(__dirname, "dist")));
+ }
+ 
+-// ===================== AUTH =====================
++// ===================== AUTH (PUBLIC ROUTES) =====================
+ 
+-app.get("/api/users", (req, res) => {
+-  const users = db.prepare("SELECT id, name, color, pin_hash IS NOT NULL as has_pin, created_at FROM users ORDER BY created_at ASC").all();
+-  res.json(users);
+-});
++// Rate limit: 10 attempts per 15 minutes on auth endpoints
++const authRateLimit = rateLimit(10, 15 * 60 * 1000);
+ 
+-app.post("/api/users", (req, res) => {
+-  const { name, pin, color } = req.body;
++// Register — email + password + display name
++app.post("/api/auth/register", authRateLimit, (req, res) => {
++  const { email, password, name, color } = req.body;
++  if (!email?.trim()) return res.status(400).json({ error: "Email required" });
++  if (!password || password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+   if (!name?.trim()) return res.status(400).json({ error: "Name required" });
++
++  const normalizedEmail = email.trim().toLowerCase();
++
++  // Check if email is already taken
++  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
++  if (existing) return res.status(409).json({ error: "Email already registered" });
++
+   const id = genId();
+-  const pinHash = pin ? hashPin(pin) : null;
+-  db.prepare("INSERT INTO users (id, name, pin_hash, color) VALUES (?, ?, ?, ?)").run(id, name.trim(), pinHash, color || "#f97316");
++  const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
++  const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
++
++  db.prepare(
++    "INSERT INTO users (id, name, email, password_hash, role, color) VALUES (?, ?, ?, ?, ?, ?)"
++  ).run(id, name.trim(), normalizedEmail, passwordHash, role, color || "#f97316");
+   db.prepare("INSERT INTO profiles (user_id) VALUES (?)").run(id);
+-  res.json({ id, name: name.trim(), color: color || "#f97316", has_pin: !!pin });
++
++  const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316" };
++  const token = signToken(user);
++  res.json({ token, user });
++});
++
++// Login — email + password
++app.post("/api/auth/login", authRateLimit, (req, res) => {
++  const { email, password } = req.body;
++  if (!email || !password) return res.status(400).json({ error: "Email and password required" });
++
++  const normalizedEmail = email.trim().toLowerCase();
++  const user = db.prepare("SELECT id, name, email, password_hash, role, color, is_active FROM users WHERE email = ?").get(normalizedEmail);
++  if (!user) return res.status(401).json({ error: "Invalid email or password" });
++  if (!user.is_active) return res.status(403).json({ error: "Account deactivated. Contact support." });
++  if (!user.password_hash) return res.status(401).json({ error: "Account not set up. Use 'Claim Account' to set a password." });
++
++  if (!bcrypt.compareSync(password, user.password_hash)) {
++    return res.status(401).json({ error: "Invalid email or password" });
++  }
++
++  const token = signToken(user);
++  res.json({
++    token,
++    user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color },
++  });
+ });
+ 
+-app.post("/api/users/:id/verify", (req, res) => {
+-  const { pin } = req.body;
+-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
++// Claim account — existing PIN-based user sets email + password
++app.post("/api/auth/claim", authRateLimit, (req, res) => {
++  const { userId, pin, email, password, name } = req.body;
++  if (!userId || !email?.trim() || !password) return res.status(400).json({ error: "userId, email, and password required" });
++  if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
++
++  const normalizedEmail = email.trim().toLowerCase();
++
++  // Verify the old user exists and doesn't already have email auth
++  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+   if (!user) return res.status(404).json({ error: "User not found" });
+-  if (!user.pin_hash) return res.json({ ok: true });
+-  if (!pin) return res.status(401).json({ error: "PIN required" });
+-  if (hashPin(pin) === user.pin_hash) return res.json({ ok: true });
+-  return res.status(401).json({ error: "Wrong PIN" });
++  if (user.email) return res.status(400).json({ error: "Account already claimed" });
++
++  // Verify PIN if the user had one
++  if (user.pin_hash) {
++    if (!pin) return res.status(401).json({ error: "PIN required to claim this account" });
++    if (hashPin(pin) !== user.pin_hash) return res.status(401).json({ error: "Wrong PIN" });
++  }
++
++  // Check email isn't taken by someone else
++  const emailTaken = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
++  if (emailTaken) return res.status(409).json({ error: "Email already registered" });
++
++  const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
++  const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
++
++  const updates = { email: normalizedEmail, password_hash: passwordHash, role };
++  if (name?.trim()) updates.name = name.trim();
++
++  db.prepare(
++    "UPDATE users SET email = ?, password_hash = ?, role = ?" + (name?.trim() ? ", name = ?" : "") + " WHERE id = ?"
++  ).run(...(name?.trim()
++    ? [normalizedEmail, passwordHash, role, name.trim(), userId]
++    : [normalizedEmail, passwordHash, role, userId]
++  ));
++
++  const updated = db.prepare("SELECT id, name, email, role, color FROM users WHERE id = ?").get(userId);
++  const token = signToken(updated);
++  res.json({ token, user: updated });
++});
++
++// Get legacy (unclaimed) users — for the claim flow UI
++app.get("/api/auth/legacy-users", (req, res) => {
++  const users = db.prepare(
++    "SELECT id, name, color, pin_hash IS NOT NULL as has_pin FROM users WHERE email IS NULL ORDER BY created_at ASC"
++  ).all();
++  res.json(users);
+ });
+ 
+-app.put("/api/users/:id", (req, res) => {
+-  const { name, pin, color, removePin } = req.body;
++// Get current user from token
++app.get("/api/auth/me", requireAuth, (req, res) => {
++  res.json({
++    id: req.user.id,
++    name: req.user.name,
++    email: req.user.email,
++    role: req.user.role,
++    color: req.user.color,
++  });
++});
++
++// Change password
++app.post("/api/auth/change-password", requireAuth, (req, res) => {
++  const { currentPassword, newPassword } = req.body;
++  if (!currentPassword || !newPassword) return res.status(400).json({ error: "Current and new password required" });
++  if (newPassword.length < 8) return res.status(400).json({ error: "New password must be at least 8 characters" });
++
++  const user = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(req.user.id);
++  if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
++    return res.status(401).json({ error: "Current password is wrong" });
++  }
++
++  const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
++  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(newHash, req.user.id);
++  res.json({ ok: true });
++});
++
++// Update own account (name, color)
++app.put("/api/auth/account", requireAuth, (req, res) => {
++  const { name, color } = req.body;
+   const sets = [];
+   const vals = [];
+   if (name !== undefined) { sets.push("name = ?"); vals.push(name.trim()); }
+   if (color !== undefined) { sets.push("color = ?"); vals.push(color); }
+-  if (removePin) { sets.push("pin_hash = NULL"); }
+-  else if (pin !== undefined) { sets.push("pin_hash = ?"); vals.push(hashPin(pin)); }
+   if (sets.length === 0) return res.json({ ok: true });
+-  vals.push(req.params.id);
++  vals.push(req.user.id);
+   db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+   res.json({ ok: true });
+ });
+ 
+-app.delete("/api/users/:id", (req, res) => {
++// ===================== ADMIN ROUTES =====================
++
++// List all users (admin only)
++app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => {
++  const users = db.prepare(
++    "SELECT id, name, email, role, color, is_active, created_at FROM users ORDER BY created_at ASC"
++  ).all();
++  // Add workout count for each user
++  const enriched = users.map(u => {
++    const stats = db.prepare("SELECT COUNT(*) as workouts FROM workouts WHERE user_id = ?").get(u.id);
++    return { ...u, workoutCount: stats.workouts };
++  });
++  res.json(enriched);
++});
++
++// Deactivate / reactivate user (admin only)
++app.put("/api/admin/users/:id/status", requireAuth, requireAdmin, (req, res) => {
++  const { is_active } = req.body;
++  if (req.params.id === req.user.id) return res.status(400).json({ error: "Cannot deactivate yourself" });
++  db.prepare("UPDATE users SET is_active = ? WHERE id = ?").run(is_active ? 1 : 0, req.params.id);
++  res.json({ ok: true });
++});
++
++// Delete user and all data (admin only)
++app.delete("/api/admin/users/:id", requireAuth, requireAdmin, (req, res) => {
+   const id = req.params.id;
++  if (id === req.user.id) return res.status(400).json({ error: "Cannot delete yourself" });
+   db.prepare("DELETE FROM workouts WHERE user_id = ?").run(id);
+   db.prepare("DELETE FROM workout_reviews WHERE user_id = ?").run(id);
+   db.prepare("DELETE FROM bio_history WHERE user_id = ?").run(id);
+@@ -235,82 +454,73 @@ app.delete("/api/users/:id", (req, res) => {
+ 
+ // ===================== WORKOUTS =====================
+ 
+-app.get("/api/workouts", (req, res) => {
+-  const { user_id } = req.query;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+-  const rows = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC, created_at ASC").all(user_id);
++app.get("/api/workouts", requireAuth, (req, res) => {
++  const rows = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC, created_at ASC").all(req.user.id);
+   res.json(rows.map(r => ({ ...r, exercises: JSON.parse(r.exercises) })));
+ });
+ 
+-app.post("/api/workouts", (req, res) => {
+-  const { id, user_id, date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
++app.post("/api/workouts", requireAuth, (req, res) => {
++  const { id, date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
+   db.prepare(
+     `INSERT INTO workouts (id, user_id, date, program_id, day_id, day_label, feel, sleep_hours, duration, notes, exercises)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+-  ).run(id || genId(), user_id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
++  ).run(id || genId(), req.user.id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
+   res.json({ ok: true });
+ });
+ 
+-app.put("/api/workouts/:id", (req, res) => {
++app.put("/api/workouts/:id", requireAuth, (req, res) => {
+   const { date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
+-  const existing = db.prepare("SELECT id FROM workouts WHERE id = ?").get(req.params.id);
++  const existing = db.prepare("SELECT id FROM workouts WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
+   if (!existing) return res.status(404).json({ error: "Workout not found" });
+   db.prepare(
+     `UPDATE workouts SET date = ?, program_id = ?, day_id = ?, day_label = ?,
+      feel = ?, sleep_hours = ?, duration = ?, notes = ?, exercises = ?
+-     WHERE id = ?`
++     WHERE id = ? AND user_id = ?`
+   ).run(
+     date, program_id || null, day_id || null, day_label || null,
+     feel || 3, sleepHours || null, duration || null, notes || "",
+-    JSON.stringify(exercises), req.params.id
++    JSON.stringify(exercises), req.params.id, req.user.id
+   );
+   res.json({ ok: true });
+ });
+ 
+-app.delete("/api/workouts/:id", (req, res) => {
+-  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ?").run(req.params.id);
+-  db.prepare("DELETE FROM workouts WHERE id = ?").run(req.params.id);
++app.delete("/api/workouts/:id", requireAuth, (req, res) => {
++  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.id, req.user.id);
++  db.prepare("DELETE FROM workouts WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
+   res.json({ ok: true });
+ });
+ 
+ // ===================== WORKOUT REVIEWS =====================
+ 
+-app.get("/api/workout-reviews", (req, res) => {
+-  const { user_id, workout_id } = req.query;
++app.get("/api/workout-reviews", requireAuth, (req, res) => {
++  const { workout_id } = req.query;
+   if (workout_id) {
+-    const review = db.prepare("SELECT * FROM workout_reviews WHERE workout_id = ?").get(workout_id);
++    const review = db.prepare("SELECT * FROM workout_reviews WHERE workout_id = ? AND user_id = ?").get(workout_id, req.user.id);
+     return res.json(review || null);
+   }
+-  if (user_id) {
+-    // Return map of workout_id -> review for efficient lookup
+-    const reviews = db.prepare("SELECT * FROM workout_reviews WHERE user_id = ?").all(user_id);
+-    return res.json(reviews);
+-  }
+-  res.status(400).json({ error: "user_id or workout_id required" });
++  const reviews = db.prepare("SELECT * FROM workout_reviews WHERE user_id = ?").all(req.user.id);
++  return res.json(reviews);
+ });
+ 
+-app.post("/api/workout-reviews", (req, res) => {
+-  const { id, workout_id, user_id, review } = req.body;
+-  if (!workout_id || !user_id || !review) return res.status(400).json({ error: "workout_id, user_id, and review required" });
++app.post("/api/workout-reviews", requireAuth, (req, res) => {
++  const { id, workout_id, review } = req.body;
++  if (!workout_id || !review) return res.status(400).json({ error: "workout_id and review required" });
+   db.prepare(
+     "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
+-  ).run(id || genId(), workout_id, user_id, review);
++  ).run(id || genId(), workout_id, req.user.id, review);
+   res.json({ ok: true });
+ });
+ 
+-app.delete("/api/workout-reviews/:workout_id", (req, res) => {
+-  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ?").run(req.params.workout_id);
++app.delete("/api/workout-reviews/:workout_id", requireAuth, (req, res) => {
++  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.workout_id, req.user.id);
+   res.json({ ok: true });
+ });
+ 
+ // ===================== PROFILE =====================
+ 
+-app.get("/api/profile", (req, res) => {
+-  const { user_id } = req.query;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+-  const profile = db.prepare("SELECT * FROM profiles WHERE user_id = ?").get(user_id);
+-  const bioHistory = db.prepare("SELECT * FROM bio_history WHERE user_id = ? ORDER BY date ASC").all(user_id);
++app.get("/api/profile", requireAuth, (req, res) => {
++  const profile = db.prepare("SELECT * FROM profiles WHERE user_id = ?").get(req.user.id);
++  const bioHistory = db.prepare("SELECT * FROM bio_history WHERE user_id = ? ORDER BY date ASC").all(req.user.id);
+   res.json({
+     height: profile?.height || "",
+     weight: profile?.weight || null,
+@@ -333,11 +543,10 @@ app.get("/api/profile", (req, res) => {
+   });
+ });
+ 
+-app.put("/api/profile", (req, res) => {
+-  const { user_id, height, weight, bodyFat, restTimerCompound, restTimerIsolation,
++app.put("/api/profile", requireAuth, (req, res) => {
++  const { height, weight, bodyFat, restTimerCompound, restTimerIsolation,
+     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
+     targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId, onboardingComplete } = req.body;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+   db.prepare(
+     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
+      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
+@@ -349,71 +558,68 @@ app.put("/api/profile", (req, res) => {
+     sex || null, dateOfBirth || null, goal || null, targetWeight || null, experienceLevel || null, trainingIntensity || null,
+     targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
+     activeProgramId || null, onboardingComplete ? 1 : 0,
+-    user_id
++    req.user.id
+   );
+   if (weight) {
+     db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
+-      user_id, new Date().toISOString().split("T")[0], weight, bodyFat || null
++      req.user.id, new Date().toISOString().split("T")[0], weight, bodyFat || null
+     );
+   }
+   res.json({ ok: true });
+ });
+ 
+ // Set active program (lightweight — no bio_history side effect)
+-app.put("/api/profile/active-program", (req, res) => {
+-  const { user_id, activeProgramId } = req.body;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
++app.put("/api/profile/active-program", requireAuth, (req, res) => {
++  const { activeProgramId } = req.body;
+   db.prepare("UPDATE profiles SET active_program_id = ?, updated_at = datetime('now') WHERE user_id = ?")
+-    .run(activeProgramId || null, user_id);
++    .run(activeProgramId || null, req.user.id);
+   res.json({ ok: true });
+ });
+ 
+ // ===================== PROGRAMS =====================
+ 
+-app.get("/api/programs", (req, res) => {
+-  const { user_id } = req.query;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+-  const rows = db.prepare("SELECT * FROM programs WHERE user_id = ? OR shared = 1 ORDER BY created_at ASC").all(user_id);
++app.get("/api/programs", requireAuth, (req, res) => {
++  const rows = db.prepare("SELECT * FROM programs WHERE user_id = ? OR shared = 1 ORDER BY created_at ASC").all(req.user.id);
+   res.json(rows.map(r => ({ ...r, days: JSON.parse(r.days) })));
+ });
+ 
+-app.post("/api/programs", (req, res) => {
+-  const { user_id, name, description, days, shared } = req.body;
+-  if (!user_id || !name) return res.status(400).json({ error: "user_id and name required" });
++app.post("/api/programs", requireAuth, (req, res) => {
++  const { name, description, days, shared } = req.body;
++  if (!name) return res.status(400).json({ error: "name required" });
+   const id = genId();
+   db.prepare("INSERT INTO programs (id, user_id, name, description, days, shared) VALUES (?, ?, ?, ?, ?, ?)").run(
+-    id, user_id, name, description || "", JSON.stringify(days || []), shared ? 1 : 0
++    id, req.user.id, name, description || "", JSON.stringify(days || []), shared ? 1 : 0
+   );
+   res.json({ ok: true, id });
+ });
+ 
+-app.put("/api/programs/:id", (req, res) => {
++app.put("/api/programs/:id", requireAuth, (req, res) => {
+   const { name, description, days, shared } = req.body;
+-  db.prepare("UPDATE programs SET name = ?, description = ?, days = ?, shared = ? WHERE id = ?").run(
+-    name, description || "", JSON.stringify(days || []), shared ? 1 : 0, req.params.id
++  db.prepare("UPDATE programs SET name = ?, description = ?, days = ?, shared = ? WHERE id = ? AND user_id = ?").run(
++    name, description || "", JSON.stringify(days || []), shared ? 1 : 0, req.params.id, req.user.id
+   );
+   res.json({ ok: true });
+ });
+ 
+-app.delete("/api/programs/:id", (req, res) => {
+-  db.prepare("DELETE FROM programs WHERE id = ?").run(req.params.id);
++app.delete("/api/programs/:id", requireAuth, (req, res) => {
++  db.prepare("DELETE FROM programs WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
+   res.json({ ok: true });
+ });
+ 
+ // ===================== EXERCISES =====================
+ 
+-app.get("/api/exercises", (req, res) => {
++app.get("/api/exercises", requireAuth, (req, res) => {
+   const rows = db.prepare("SELECT * FROM custom_exercises ORDER BY name ASC").all();
+   res.json(rows);
+ });
+ 
+-app.post("/api/exercises", (req, res) => {
+-  const { name, muscle, equipment, type, created_by } = req.body;
++app.post("/api/exercises", requireAuth, (req, res) => {
++  const { name, muscle, equipment, type } = req.body;
+   if (!name?.trim()) return res.status(400).json({ error: "Name required" });
+   const id = genId();
+   try {
+     db.prepare("INSERT INTO custom_exercises (id, name, muscle, equipment, type, created_by) VALUES (?, ?, ?, ?, ?, ?)").run(
+-      id, name.trim(), muscle || "other", equipment || "other", type || "isolation", created_by || null
++      id, name.trim(), muscle || "other", equipment || "other", type || "isolation", req.user.id
+     );
+     res.json({ ok: true, id });
+   } catch (e) {
+@@ -422,14 +628,14 @@ app.post("/api/exercises", (req, res) => {
+   }
+ });
+ 
+-app.delete("/api/exercises/:id", (req, res) => {
++app.delete("/api/exercises/:id", requireAuth, (req, res) => {
+   db.prepare("DELETE FROM custom_exercises WHERE id = ?").run(req.params.id);
+   res.json({ ok: true });
+ });
+ 
+ // ===================== AI CONFIG =====================
+ 
+-app.get("/api/ai/config", (req, res) => {
++app.get("/api/ai/config", requireAuth, (req, res) => {
+   const dbSettings = loadAIConfig();
+   const config = resolveConfig(dbSettings, process.env);
+   res.json({
+@@ -444,7 +650,7 @@ app.get("/api/ai/config", (req, res) => {
+   });
+ });
+ 
+-app.put("/api/ai/config", (req, res) => {
++app.put("/api/ai/config", requireAuth, requireAdmin, (req, res) => {
+   const { provider, model, apiKey, baseUrl, supportsTools } = req.body;
+   const upsert = db.prepare("INSERT INTO ai_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
+   if (provider !== undefined) upsert.run("provider", provider);
+@@ -462,7 +668,7 @@ app.put("/api/ai/config", (req, res) => {
+ 
+ const COACH_SYSTEM = `You are a knowledgeable strength training coach analyzing real workout data. The user's profile includes biometric data, training goals, experience level, injury notes, and nutrition targets — use all available context to personalize your advice. Give specific, evidence-based advice with exact numbers (weights, reps, sets). Be concise and actionable. Consider any injuries mentioned. Format with clear sections but keep it tight. No fluff.`;
+ 
+-app.post("/api/coach", async (req, res) => {
++app.post("/api/coach", requireAuth, async (req, res) => {
+   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+   const { prompt, context, history } = req.body;
+   try {
+@@ -492,33 +698,29 @@ app.post("/api/coach", async (req, res) => {
+ 
+ // ── Coach Message History ──
+ 
+-app.get("/api/coach/messages", (req, res) => {
+-  const { user_id } = req.query;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
++app.get("/api/coach/messages", requireAuth, (req, res) => {
+   const messages = db.prepare(
+     "SELECT * FROM coach_messages WHERE user_id = ? ORDER BY created_at ASC"
+-  ).all(user_id);
++  ).all(req.user.id);
+   res.json(messages);
+ });
+ 
+-app.post("/api/coach/messages", (req, res) => {
+-  const { id, user_id, type, prompt, response } = req.body;
+-  if (!user_id || !id) return res.status(400).json({ error: "id and user_id required" });
++app.post("/api/coach/messages", requireAuth, (req, res) => {
++  const { id, type, prompt, response } = req.body;
++  if (!id) return res.status(400).json({ error: "id required" });
+   db.prepare(
+     "INSERT OR REPLACE INTO coach_messages (id, user_id, type, prompt, response) VALUES (?, ?, ?, ?, ?)"
+-  ).run(id, user_id, type || "chat", prompt || null, response || null);
++  ).run(id, req.user.id, type || "chat", prompt || null, response || null);
+   res.json({ ok: true });
+ });
+ 
+-app.delete("/api/coach/messages/:id", (req, res) => {
+-  db.prepare("DELETE FROM coach_messages WHERE id = ?").run(req.params.id);
++app.delete("/api/coach/messages/:id", requireAuth, (req, res) => {
++  db.prepare("DELETE FROM coach_messages WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
+   res.json({ ok: true });
+ });
+ 
+-app.delete("/api/coach/messages", (req, res) => {
+-  const { user_id } = req.query;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+-  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(user_id);
++app.delete("/api/coach/messages", requireAuth, (req, res) => {
++  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(req.user.id);
+   res.json({ ok: true });
+ });
+ 
+@@ -562,7 +764,7 @@ const PROGRAM_TOOL = {
+   },
+ };
+ 
+-app.post("/api/coach/program", async (req, res) => {
++app.post("/api/coach/program", requireAuth, async (req, res) => {
+   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+   const { prompt, context } = req.body;
+ 
+@@ -629,9 +831,9 @@ PROGRAM DESIGN PRINCIPLES:
+ 
+ // ===================== AI SESSION ANALYSIS =====================
+ 
+-app.post("/api/coach/analyze", async (req, res) => {
++app.post("/api/coach/analyze", requireAuth, async (req, res) => {
+   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+-  const { workout, context, workout_id, user_id } = req.body;
++  const { workout, context, workout_id } = req.body;
+ 
+   const system = `You are a concise strength training coach providing a post-workout session analysis. Analyze the just-completed workout and give brief, specific feedback.
+ 
+@@ -649,10 +851,10 @@ Keep it tight — max 150 words total. Be encouraging but honest. Use the user's
+     ], { maxTokens: 800 });
+ 
+     // Persist the review if workout_id provided
+-    if (workout_id && user_id && result.text) {
++    if (workout_id && result.text) {
+       db.prepare(
+         "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
+-      ).run(genId(), workout_id, user_id, result.text);
++      ).run(genId(), workout_id, req.user.id, result.text);
+     }
+ 
+     res.json({ analysis: result.text });
+@@ -688,7 +890,7 @@ const SUBSTITUTE_TOOL = {
+   },
+ };
+ 
+-app.post("/api/coach/substitute", async (req, res) => {
++app.post("/api/coach/substitute", requireAuth, async (req, res) => {
+   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+   const { exercise, reason, context } = req.body;
+ 
+@@ -744,7 +946,7 @@ ${exerciseLib}${customLib}`;
+ 
+ // ===================== AI WEEKLY REPORT =====================
+ 
+-app.post("/api/coach/weekly", async (req, res) => {
++app.post("/api/coach/weekly", requireAuth, async (req, res) => {
+   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+   const { context } = req.body;
+ 
+@@ -773,10 +975,8 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
+ 
+ // ===================== EXPORT =====================
+ 
+-app.get("/api/export", (req, res) => {
+-  const { user_id } = req.query;
+-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+-  const workouts = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC").all(user_id);
++app.get("/api/export", requireAuth, (req, res) => {
++  const workouts = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC").all(req.user.id);
+   const lines = ["date,day_label,exercise,set_num,weight,reps,rpe,feel,duration,notes"];
+   workouts.forEach(w => {
+     const exs = JSON.parse(w.exercises);
+@@ -787,7 +987,7 @@ app.get("/api/export", (req, res) => {
+     });
+   });
+   res.setHeader("Content-Type", "text/csv");
+-  res.setHeader("Content-Disposition", `attachment; filename=talos-export-${user_id}.csv`);
++  res.setHeader("Content-Disposition", `attachment; filename=talos-export.csv`);
+   res.send(lines.join("\n"));
+ });
+ 
+@@ -809,15 +1009,17 @@ if (process.env.NODE_ENV === "production") {
+ 
+ app.listen(PORT, "0.0.0.0", () => {
+   const aiStatus = aiProvider ? `✅ ${aiProvider.providerName} (${aiProvider.modelName})` : "❌ Not configured";
++  const authStatus = ADMIN_EMAIL ? `Admin: ${ADMIN_EMAIL}` : "No admin email set";
+   console.log(`
+ ┌────────────────────────────────────────┐
+ │                                        │
+ │   Δ TALOS                             │
+-│   Gym Tracker v2.2                     │
++│   Gym Tracker v3.0 (JWT Auth)          │
+ │                                        │
+ │   http://0.0.0.0:${String(PORT).padEnd(24)}│
+ │   AI: ${aiStatus.padEnd(33)}│
+ │   Users: ${String(db.prepare("SELECT COUNT(*) as c FROM users").get().c).padEnd(29)}│
++│   Auth: ${authStatus.padEnd(30)}│
+ │                                        │
+ └────────────────────────────────────────┘`);
+ });
+diff --git a/src/App.jsx b/src/App.jsx
+index 6887aac..97def4f 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -32,6 +32,7 @@ import SessionSummary from "./components/SessionSummary";
+ export default function App() {
+   // ── Auth state ──
+   const [user, setUser] = useState(null);
++  const [authChecked, setAuthChecked] = useState(false);
+ 
+   // ── Core data ──
+   const [workouts, setWorkouts] = useState([]);
+@@ -55,18 +56,44 @@ export default function App() {
+   const [coachMode, setCoachMode] = useState("chat");
+   const [workoutReviews, setWorkoutReviews] = useState({});
+ 
++  // ── Restore session from stored JWT on mount ──
++  useEffect(() => {
++    api.setAuthErrorHandler(() => {
++      setUser(null);
++      setAuthChecked(true);
++    });
++
++    const token = api.getToken();
++    if (!token) {
++      setAuthChecked(true);
++      return;
++    }
++    api.get("/auth/me")
++      .then((u) => { setUser(u); setAuthChecked(true); })
++      .catch(() => { api.clearToken(); setAuthChecked(true); });
++  }, []);
++
++  function logout() {
++    api.clearToken();
++    setUser(null);
++    setShowSettings(false);
++    setTab("train");
++    setCurrent(null);
++    setLoaded(false);
++  }
++
+   // ── Load user data on login ──
+   useEffect(() => {
+     if (!user) return;
+     setLoaded(false);
+     Promise.all([
+-      api.get(`/workouts?user_id=${user.id}`),
+-      api.get(`/profile?user_id=${user.id}`),
+-      api.get(`/programs?user_id=${user.id}`),
++      api.get("/workouts"),
++      api.get("/profile"),
++      api.get("/programs"),
+       api.get("/exercises"),
+       api.get("/ai/config"),
+-      api.get(`/coach/messages?user_id=${user.id}`),
+-      api.get(`/workout-reviews?user_id=${user.id}`),
++      api.get("/coach/messages"),
++      api.get("/workout-reviews"),
+     ])
+       .then(([w, p, pr, ex, ai, coachMsgs, reviews]) => {
+         setWorkouts(w);
+@@ -127,8 +154,8 @@ export default function App() {
+   }
+ 
+   async function updateProfile(p) {
+-    await api.put("/profile", { user_id: user.id, ...p });
+-    const updated = await api.get(`/profile?user_id=${user.id}`);
++    await api.put("/profile", p);
++    const updated = await api.get("/profile");
+     setProfile(updated);
+   }
+ 
+@@ -136,10 +163,10 @@ export default function App() {
+     if (p.id) {
+       await api.put(`/programs/${p.id}`, p);
+     } else {
+-      const res = await api.post("/programs", { ...p, user_id: user.id });
++      const res = await api.post("/programs", p);
+       p.id = res.id;
+     }
+-    const updated = await api.get(`/programs?user_id=${user.id}`);
++    const updated = await api.get("/programs");
+     setPrograms(updated);
+   }
+ 
+@@ -234,7 +261,6 @@ export default function App() {
+ 
+     const workout = {
+       id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+-      user_id: user.id,
+       date: new Date().toISOString().split("T")[0],
+       startTime: Date.now(),
+       program_id: template?.program_id || program?.id || null,
+@@ -279,6 +305,14 @@ export default function App() {
+   }
+ 
+   // ── Auth gate ──
++  if (!authChecked) {
++    return (
++      <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
++        <div style={{ color: "#c9952d", fontSize: 14 }}>Loading...</div>
++      </div>
++    );
++  }
++
+   if (!user) {
+     return <Login onLogin={setUser} />;
+   }
+@@ -297,9 +331,9 @@ export default function App() {
+   async function completeOnboarding(program, level) {
+     // Save the selected program
+     if (program) {
+-      await saveProgram({ ...program, user_id: user.id });
++      await saveProgram(program);
+       // Refresh programs to get the saved one with its ID
+-      const updated = await api.get(`/programs?user_id=${user.id}`);
++      const updated = await api.get("/programs");
+       setPrograms(updated);
+       // Set as active program
+       if (updated.length > 0) {
+@@ -412,12 +446,7 @@ export default function App() {
+         {showSettings && (
+           <SettingsModal
+             onClose={() => setShowSettings(false)}
+-            onLogout={() => {
+-              setUser(null);
+-              setShowSettings(false);
+-              setTab("train");
+-              setCurrent(null);
+-            }}
++            onLogout={logout}
+           />
+         )}
+ 
+diff --git a/src/components/AdminPanel.jsx b/src/components/AdminPanel.jsx
+new file mode 100644
+index 0000000..0897f92
+--- /dev/null
++++ b/src/components/AdminPanel.jsx
+@@ -0,0 +1,105 @@
++// ═══════════════════════ ADMIN PANEL ═══════════════════════
++// View all users, deactivate/reactivate, delete user + data.
++// Only accessible to admin users (role check happens server-side too).
++
++import { useState, useEffect } from "react";
++import api from "../lib/api";
++import S from "../lib/styles";
++
++export default function AdminPanel({ onBack }) {
++  const [users, setUsers] = useState([]);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState("");
++  const [actionMsg, setActionMsg] = useState("");
++
++  useEffect(() => {
++    loadUsers();
++  }, []);
++
++  async function loadUsers() {
++    try {
++      const data = await api.get("/admin/users");
++      setUsers(data);
++      setLoading(false);
++    } catch (e) {
++      setError(e.message);
++      setLoading(false);
++    }
++  }
++
++  async function toggleActive(userId, currentlyActive) {
++    setActionMsg("");
++    try {
++      await api.put(`/admin/users/${userId}/status`, { is_active: !currentlyActive });
++      setActionMsg(currentlyActive ? "User deactivated" : "User reactivated");
++      loadUsers();
++    } catch (e) {
++      setActionMsg("Error: " + e.message);
++    }
++  }
++
++  async function deleteUser(userId, userName) {
++    if (!confirm(`Delete ${userName} and ALL their data? This cannot be undone.`)) return;
++    if (!confirm(`Are you absolutely sure? This deletes workouts, programs, messages — everything.`)) return;
++    setActionMsg("");
++    try {
++      await api.del(`/admin/users/${userId}`);
++      setActionMsg(`${userName} deleted`);
++      loadUsers();
++    } catch (e) {
++      setActionMsg("Error: " + e.message);
++    }
++  }
++
++  return (
++    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
++      <div style={{ ...S.card, margin: 0, maxWidth: 420, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
++        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
++          <div style={S.label}>Admin — Users</div>
++          <button onClick={onBack} style={S.sm()}>← Back</button>
++        </div>
++
++        {loading && <div style={{ color: "#737373", fontSize: 13, textAlign: "center", padding: 20 }}>Loading...</div>}
++        {error && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 12 }}>{error}</div>}
++        {actionMsg && <div style={{ fontSize: 11, color: actionMsg.startsWith("Error") ? "#ef4444" : "#22c55e", marginBottom: 12 }}>{actionMsg}</div>}
++
++        {!loading && users.map(u => (
++          <div key={u.id} style={{ ...S.card, margin: "0 0 8px 0", padding: "10px 12px" }}>
++            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
++              <div style={{ ...S.avatar(u.color), width: 28, height: 28, fontSize: 12 }}>{u.name?.[0]?.toUpperCase()}</div>
++              <div style={{ flex: 1 }}>
++                <div style={{ fontSize: 13, fontWeight: 700, color: u.is_active ? "#fafafa" : "#525252" }}>
++                  {u.name}
++                  {u.role === "admin" && <span style={{ ...S.tag("#c9952d"), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
++                  {!u.is_active && <span style={{ ...S.tag("#ef4444"), marginLeft: 6, fontSize: 9 }}>INACTIVE</span>}
++                </div>
++                <div style={{ fontSize: 10, color: "#525252" }}>{u.email || "No email (legacy)"}</div>
++              </div>
++              <div style={{ fontSize: 11, color: "#737373", textAlign: "right" }}>
++                {u.workoutCount} workout{u.workoutCount !== 1 ? "s" : ""}
++              </div>
++            </div>
++            <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
++              <button
++                onClick={() => toggleActive(u.id, u.is_active)}
++                style={{ ...S.sm(), fontSize: 10, color: u.is_active ? "#f97316" : "#22c55e" }}
++              >
++                {u.is_active ? "Deactivate" : "Reactivate"}
++              </button>
++              <button
++                onClick={() => deleteUser(u.id, u.name)}
++                style={{ ...S.sm(), fontSize: 10, color: "#ef4444" }}
++              >
++                Delete
++              </button>
++            </div>
++          </div>
++        ))}
++
++        {!loading && users.length === 0 && (
++          <div style={{ color: "#737373", fontSize: 13, textAlign: "center", padding: 20 }}>No users found.</div>
++        )}
++      </div>
++    </div>
++  );
++}
+diff --git a/src/components/Login.jsx b/src/components/Login.jsx
+index 7101181..773b791 100644
+--- a/src/components/Login.jsx
++++ b/src/components/Login.jsx
+@@ -1,8 +1,8 @@
+ // ═══════════════════════ LOGIN ═══════════════════════
+-// Extracted from App.jsx — Login function
++// JWT auth: email/password login + registration.
++// Includes "Claim Account" flow for existing PIN-based users.
+ //
+-// Modes: select (user list) | pin (enter PIN) | create (new user)
+-// Face ID / biometric auth works via Safari Keychain autofill on PIN field.
++// Modes: login | register | claim-select | claim-verify
+ 
+ import { useState, useEffect, useRef } from "react";
+ import { USER_COLORS } from "../lib/helpers";
+@@ -10,112 +10,214 @@ import api from "../lib/api";
+ import S from "../lib/styles";
+ 
+ export default function Login({ onLogin }) {
+-  const [users, setUsers] = useState([]);
+-  const [mode, setMode] = useState("select");
+-  const [selected, setSelected] = useState(null);
+-  const [pin, setPin] = useState("");
++  const [mode, setMode] = useState("login");
++  const [email, setEmail] = useState("");
++  const [password, setPassword] = useState("");
++  const [name, setName] = useState("");
++  const [color, setColor] = useState(USER_COLORS[0]);
+   const [error, setError] = useState("");
+-  const [newName, setNewName] = useState("");
+-  const [newPin, setNewPin] = useState("");
+-  const [newColor, setNewColor] = useState(USER_COLORS[0]);
++  const [loading, setLoading] = useState(false);
++
++  // Claim flow state
++  const [legacyUsers, setLegacyUsers] = useState([]);
++  const [selectedLegacy, setSelectedLegacy] = useState(null);
++  const [pin, setPin] = useState("");
+   const pinRef = useRef(null);
+ 
+-  useEffect(() => { api.get("/users").then(setUsers).catch(() => {}); }, []);
++  // Load legacy users when entering claim mode
++  useEffect(() => {
++    if (mode === "claim-select") {
++      api.get("/auth/legacy-users").then(setLegacyUsers).catch(() => setLegacyUsers([]));
++    }
++  }, [mode]);
+ 
+-  async function selectUser(u) {
+-    setSelected(u);
+-    setError("");
+-    if (u.has_pin) { setMode("pin"); setTimeout(() => pinRef.current?.focus(), 100); }
+-    else { try { await api.post(`/users/${u.id}/verify`, {}); onLogin(u); } catch(e) { setError(e.message); } }
++  function resetForm() {
++    setEmail(""); setPassword(""); setName(""); setError(""); setPin("");
++    setSelectedLegacy(null); setLoading(false);
++  }
++
++  async function handleLogin(e) {
++    e.preventDefault();
++    setError(""); setLoading(true);
++    try {
++      const res = await api.post("/auth/login", { email, password });
++      api.setToken(res.token);
++      onLogin(res.user);
++    } catch (err) {
++      setError(err.message);
++      setLoading(false);
++    }
+   }
+ 
+-  async function verifyPin() {
++  async function handleRegister(e) {
++    e.preventDefault();
++    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
++    setError(""); setLoading(true);
+     try {
+-      await api.post(`/users/${selected.id}/verify`, { pin });
+-      onLogin(selected);
+-    } catch(e) { setError("Wrong PIN"); setPin(""); }
++      const res = await api.post("/auth/register", { email, password, name, color });
++      api.setToken(res.token);
++      onLogin(res.user);
++    } catch (err) {
++      setError(err.message);
++      setLoading(false);
++    }
+   }
+ 
+-  async function createUser() {
+-    if (!newName.trim()) return;
++  async function handleClaim(e) {
++    e.preventDefault();
++    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
++    setError(""); setLoading(true);
+     try {
+-      const u = await api.post("/users", { name: newName, pin: newPin || undefined, color: newColor });
+-      onLogin(u);
+-    } catch(e) { setError(e.message); }
++      const res = await api.post("/auth/claim", {
++        userId: selectedLegacy.id,
++        pin: selectedLegacy.has_pin ? pin : undefined,
++        email,
++        password,
++        name: name || selectedLegacy.name,
++      });
++      api.setToken(res.token);
++      onLogin(res.user);
++    } catch (err) {
++      setError(err.message);
++      setLoading(false);
++    }
+   }
+ 
++  const inputStyle = { ...S.input, marginBottom: 0 };
++
+   return (
+-    <div style={{ ...S.app, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", padding: 32, paddingBottom: 32 }}>
+-      <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}><img src="/talos-icon.svg" alt="" style={{ width: 32, height: 32, verticalAlign: "middle", marginRight: 8 }} />TALOS</div>
++    <div style={{ ...S.app, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", padding: 32 }}>
++      <div style={{ fontSize: 32, fontWeight: 800, marginBottom: 4 }}>
++        <img src="/talos-icon.svg" alt="" style={{ width: 32, height: 32, verticalAlign: "middle", marginRight: 8 }} />
++        TALOS
++      </div>
+       <div style={{ color: "#525252", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Unyielding</div>
+ 
+-      {mode === "select" && (
+-        <div style={{ width: "100%", maxWidth: 320 }} className="fade-in">
+-          {users.length > 0 && <div style={S.label}>Select Profile</div>}
+-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+-            {users.map(u => (
+-              <div key={u.id} onClick={() => selectUser(u)} style={{ ...S.card, margin: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+-                <div style={S.avatar(u.color)}>{u.name[0].toUpperCase()}</div>
+-                <div style={{ flex: 1 }}>
+-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{u.name}</div>
+-                </div>
+-                <span style={{ color: "#525252" }}>→</span>
+-              </div>
+-            ))}
+-          </div>
+-          <button onClick={() => setMode("create")} style={{ ...S.btn("ghost"), width: "100%" }}>+ New Profile</button>
+-        </div>
+-      )}
+-
+-      {mode === "pin" && selected && (
+-        <div style={{ width: "100%", maxWidth: 280, textAlign: "center" }} className="fade-in">
+-          <div style={S.avatar(selected.color, 56)}>{selected.name[0].toUpperCase()}</div>
+-          <div style={{ fontSize: 16, fontWeight: 700, color: "#fafafa", marginTop: 12 }}>{selected.name}</div>
+-          <div style={{ marginTop: 16 }}>
+-            <input
+-              ref={pinRef} type="password" inputMode="numeric" autoComplete="current-password"
+-              value={pin} onChange={e => { setPin(e.target.value); setError(""); }}
+-              onKeyDown={e => e.key === "Enter" && verifyPin()}
+-              style={{ ...S.input, textAlign: "center", fontSize: 24, letterSpacing: 12 }}
+-              placeholder="PIN"
+-            />
++      {/* ── LOGIN ── */}
++      {mode === "login" && (
++        <form onSubmit={handleLogin} style={{ width: "100%", maxWidth: 320 }} className="fade-in">
++          <div style={S.label}>Sign In</div>
++          <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
++            <div>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
++              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" autoFocus autoComplete="email" required />
++            </div>
++            <div>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
++              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="••••••••" autoComplete="current-password" required />
++            </div>
+           </div>
+           {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
+-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+-            <button onClick={() => { setMode("select"); setPin(""); setError(""); }} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+-            <button onClick={verifyPin} style={{ ...S.btn("primary"), flex: 1 }}>Enter</button>
++          <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
++            {loading ? "Signing in..." : "Sign In"}
++          </button>
++          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
++            <button type="button" onClick={() => { resetForm(); setMode("register"); }} style={{ ...S.btn("ghost"), flex: 1, fontSize: 12 }}>Create Account</button>
++            <button type="button" onClick={() => { resetForm(); setMode("claim-select"); }} style={{ ...S.btn("ghost"), flex: 1, fontSize: 12 }}>Claim Existing</button>
+           </div>
+-        </div>
++        </form>
+       )}
+ 
+-      {mode === "create" && (
+-        <div style={{ width: "100%", maxWidth: 320 }} className="fade-in">
+-          <div style={S.label}>Create Profile</div>
+-          <div style={{ ...S.card, margin: "8px 0" }}>
+-            <div style={{ marginBottom: 12 }}>
++      {/* ── REGISTER ── */}
++      {mode === "register" && (
++        <form onSubmit={handleRegister} style={{ width: "100%", maxWidth: 320 }} className="fade-in">
++          <div style={S.label}>Create Account</div>
++          <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
++            <div>
+               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Name</div>
+-              <input value={newName} onChange={e => setNewName(e.target.value)} style={S.input} placeholder="Your name" autoFocus />
++              <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} placeholder="Your name" autoFocus required />
+             </div>
+-            <div style={{ marginBottom: 12 }}>
+-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>PIN (optional)</div>
+-              <input type="password" inputMode="numeric" autoComplete="new-password" value={newPin} onChange={e => setNewPin(e.target.value)} style={S.input} placeholder="4-6 digits" />
++            <div>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
++              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" autoComplete="email" required />
++            </div>
++            <div>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
++              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="Min 8 characters" autoComplete="new-password" required />
+             </div>
+             <div>
+               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Color</div>
+               <div style={{ display: "flex", gap: 8 }}>
+                 {USER_COLORS.map(c => (
+-                  <div key={c} onClick={() => setNewColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: newColor === c ? "3px solid #fff" : "3px solid transparent" }} />
++                  <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid #fff" : "3px solid transparent" }} />
+                 ))}
+               </div>
+             </div>
+           </div>
+           {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
+-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+-            <button onClick={() => setMode("select")} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+-            <button onClick={createUser} style={{ ...S.btn("primary"), flex: 1 }}>Create</button>
++          <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
++            {loading ? "Creating..." : "Create Account"}
++          </button>
++          <button type="button" onClick={() => { resetForm(); setMode("login"); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 8, fontSize: 12 }}>Back to Sign In</button>
++        </form>
++      )}
++
++      {/* ── CLAIM: Select Legacy User ── */}
++      {mode === "claim-select" && (
++        <div style={{ width: "100%", maxWidth: 320 }} className="fade-in">
++          <div style={S.label}>Claim Existing Account</div>
++          <div style={{ color: "#737373", fontSize: 12, marginBottom: 16 }}>
++            Select your old profile to link it with a new email & password.
+           </div>
++          {legacyUsers.length === 0 ? (
++            <div style={{ ...S.card, margin: "8px 0", textAlign: "center", color: "#737373", fontSize: 13 }}>
++              No unclaimed accounts found.
++            </div>
++          ) : (
++            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
++              {legacyUsers.map(u => (
++                <div
++                  key={u.id}
++                  onClick={() => {
++                    setSelectedLegacy(u);
++                    setName(u.name);
++                    setColor(u.color);
++                    setMode("claim-verify");
++                    if (u.has_pin) setTimeout(() => pinRef.current?.focus(), 100);
++                  }}
++                  style={{ ...S.card, margin: 0, cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}
++                >
++                  <div style={S.avatar(u.color)}>{u.name[0].toUpperCase()}</div>
++                  <div style={{ flex: 1 }}>
++                    <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{u.name}</div>
++                    <div style={{ fontSize: 11, color: "#737373" }}>{u.has_pin ? "PIN protected" : "No PIN"}</div>
++                  </div>
++                  <span style={{ color: "#525252" }}>→</span>
++                </div>
++              ))}
++            </div>
++          )}
++          <button type="button" onClick={() => { resetForm(); setMode("login"); }} style={{ ...S.btn("ghost"), width: "100%", fontSize: 12 }}>Back to Sign In</button>
+         </div>
+       )}
++
++      {/* ── CLAIM: Verify + Set Credentials ── */}
++      {mode === "claim-verify" && selectedLegacy && (
++        <form onSubmit={handleClaim} style={{ width: "100%", maxWidth: 320 }} className="fade-in">
++          <div style={S.label}>Claim: {selectedLegacy.name}</div>
++          <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
++            {selectedLegacy.has_pin && (
++              <div>
++                <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Current PIN</div>
++                <input ref={pinRef} type="password" inputMode="numeric" value={pin} onChange={e => setPin(e.target.value)} style={inputStyle} placeholder="Enter your old PIN" autoComplete="off" required />
++              </div>
++            )}
++            <div>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
++              <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" autoComplete="email" required />
++            </div>
++            <div>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>New Password</div>
++              <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="Min 8 characters" autoComplete="new-password" required />
++            </div>
++          </div>
++          {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
++          <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
++            {loading ? "Claiming..." : "Claim Account"}
++          </button>
++          <button type="button" onClick={() => { setError(""); setPin(""); setMode("claim-select"); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 8, fontSize: 12 }}>Back</button>
++        </form>
++      )}
+     </div>
+   );
+ }
+diff --git a/src/components/SessionSummary.jsx b/src/components/SessionSummary.jsx
+index ad12154..fd85444 100644
+--- a/src/components/SessionSummary.jsx
++++ b/src/components/SessionSummary.jsx
+@@ -151,7 +151,6 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
+         workout,
+         context,
+         workout_id: workout.id,
+-        user_id: user.id,
+       });
+ 
+       const analysis = res.analysis;
+diff --git a/src/components/SettingsModal.jsx b/src/components/SettingsModal.jsx
+index 7ef7472..8a5031a 100644
+--- a/src/components/SettingsModal.jsx
++++ b/src/components/SettingsModal.jsx
+@@ -1,22 +1,33 @@
+ // ═══════════════════════ SETTINGS MODAL ═══════════════════════
+-// Extracted from App.jsx — SettingsModal function
++// Account settings, AI config (admin only), password change, admin panel.
+ 
+ import { useState, useEffect } from "react";
+ import { useTalos } from "../context/TalosContext";
+ import { USER_COLORS } from "../lib/helpers";
+ import api from "../lib/api";
+ import S from "../lib/styles";
++import AdminPanel from "./AdminPanel";
+ 
+ export default function SettingsModal({ onClose, onLogout }) {
+   const { user } = useTalos();
+   const [name, setName] = useState(user.name);
+-  const [newPin, setNewPin] = useState("");
+   const [color, setColor] = useState(user.color);
+   const [showAI, setShowAI] = useState(false);
+   const [aiForm, setAiForm] = useState({ provider: "", model: "", apiKey: "", baseUrl: "", supportsTools: true });
+   const [aiStatus, setAiStatus] = useState("");
+   const [aiLoaded, setAiLoaded] = useState(false);
+ 
++  // Password change state
++  const [showPassword, setShowPassword] = useState(false);
++  const [currentPassword, setCurrentPassword] = useState("");
++  const [newPassword, setNewPassword] = useState("");
++  const [passwordMsg, setPasswordMsg] = useState("");
++
++  // Admin panel state
++  const [showAdmin, setShowAdmin] = useState(false);
++
++  const isAdmin = user.role === "admin";
++
+   useEffect(() => {
+     if (showAI && !aiLoaded) {
+       api.get("/ai/config").then(cfg => {
+@@ -34,11 +45,25 @@ export default function SettingsModal({ onClose, onLogout }) {
+   }, [showAI]);
+ 
+   async function save() {
+-    const payload = { name, color };
+-    if (newPin) payload.pin = newPin;
+-    await api.put(`/users/${user.id}`, payload);
+-    onClose();
+-    window.location.reload();
++    try {
++      await api.put("/auth/account", { name, color });
++      onClose();
++      window.location.reload();
++    } catch (e) {
++      alert("Save failed: " + e.message);
++    }
++  }
++
++  async function changePassword() {
++    setPasswordMsg("");
++    if (newPassword.length < 8) { setPasswordMsg("Min 8 characters"); return; }
++    try {
++      await api.post("/auth/change-password", { currentPassword, newPassword });
++      setPasswordMsg("Password updated!");
++      setCurrentPassword(""); setNewPassword("");
++    } catch (e) {
++      setPasswordMsg(e.message);
++    }
+   }
+ 
+   async function saveAI() {
+@@ -73,6 +98,11 @@ export default function SettingsModal({ onClose, onLogout }) {
+     { id: "openai-compatible", label: "Custom (Ollama, LM Studio, etc.)", models: [] },
+   ];
+ 
++  // ── Admin Panel overlay ──
++  if (showAdmin) {
++    return <AdminPanel onBack={() => setShowAdmin(false)} />;
++  }
++
+   return (
+     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+       <div style={{ ...S.card, margin: 0, maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
+@@ -80,14 +110,16 @@ export default function SettingsModal({ onClose, onLogout }) {
+           <div style={S.label}>Settings</div>
+           <button onClick={onClose} style={S.sm()}>✕</button>
+         </div>
++
++        {/* Account info */}
++        <div style={{ fontSize: 11, color: "#737373", marginBottom: 12 }}>
++          {user.email}{isAdmin && <span style={{ ...S.tag("#c9952d"), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
++        </div>
++
+         <div style={{ marginBottom: 12 }}>
+           <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Name</div>
+           <input value={name} onChange={e => setName(e.target.value)} style={S.input} />
+         </div>
+-        <div style={{ marginBottom: 12 }}>
+-          <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>New PIN (leave blank to keep current)</div>
+-          <input type="password" inputMode="numeric" autoComplete="new-password" value={newPin} onChange={e => setNewPin(e.target.value)} style={S.input} placeholder="••••" />
+-        </div>
+         <div style={{ marginBottom: 16 }}>
+           <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Color</div>
+           <div style={{ display: "flex", gap: 8 }}>
+@@ -95,77 +127,112 @@ export default function SettingsModal({ onClose, onLogout }) {
+           </div>
+         </div>
+ 
+-        {/* AI Provider Config */}
++        {/* Change Password */}
+         <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
+-          <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+-            <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>AI Coach Provider</div>
+-            <span style={{ color: "#525252", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
++          <div onClick={() => setShowPassword(!showPassword)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
++            <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>Change Password</div>
++            <span style={{ color: "#525252", fontSize: 12, transform: showPassword ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+           </div>
+-          {aiStatus && <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{aiStatus}</div>}
+         </div>
+-
+-        {showAI && (
++        {showPassword && (
+           <div style={{ marginBottom: 16 }}>
+             <div style={{ marginBottom: 8 }}>
+-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
+-              <select value={aiForm.provider} onChange={e => {
+-                const newProvider = e.target.value;
+-                const models = PROVIDERS.find(p => p.id === newProvider)?.models || [];
+-                setAiForm(f => ({ ...f, provider: newProvider, model: models[0]?.id || "" }));
+-              }} style={{ ...S.input, fontSize: 12 }}>
+-                {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+-              </select>
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Current Password</div>
++              <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="current-password" />
+             </div>
+             <div style={{ marginBottom: 8 }}>
+-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
+-              {(() => {
+-                const providerModels = PROVIDERS.find(p => p.id === aiForm.provider)?.models || [];
+-                const isKnownModel = providerModels.some(m => m.id === aiForm.model);
+-                const isCustom = providerModels.length === 0 || (!isKnownModel && aiForm.model !== "");
+-                return (
+-                  <>
+-                    {providerModels.length > 0 && (
+-                      <select value={isKnownModel ? aiForm.model : "__custom__"} onChange={e => {
+-                        if (e.target.value === "__custom__") setAiForm(f => ({ ...f, model: "" }));
+-                        else setAiForm(f => ({ ...f, model: e.target.value }));
+-                      }} style={{ ...S.input, fontSize: 12 }}>
+-                        {providerModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+-                        <option value="__custom__">Custom model...</option>
+-                      </select>
+-                    )}
+-                    {isCustom && (
+-                      <input value={aiForm.model} onChange={e => setAiForm(f => ({ ...f, model: e.target.value }))}
+-                        style={{ ...S.input, fontSize: 12, marginTop: providerModels.length > 0 ? 4 : 0 }}
+-                        placeholder={providerModels.length > 0 ? "Enter model ID" : "e.g. llama3, mistral, deepseek-coder"} />
+-                    )}
+-                  </>
+-                );
+-              })()}
++              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>New Password</div>
++              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="Min 8 characters" autoComplete="new-password" />
+             </div>
+-            {aiForm.provider !== "openai-compatible" && (
+-              <div style={{ marginBottom: 8 }}>
+-                <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (leave blank to keep current)</div>
+-                <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="sk-..." />
++            {passwordMsg && <div style={{ fontSize: 11, color: passwordMsg === "Password updated!" ? "#22c55e" : "#ef4444", marginBottom: 8 }}>{passwordMsg}</div>}
++            <button onClick={changePassword} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Update Password</button>
++          </div>
++        )}
++
++        {/* AI Provider Config (admin only) */}
++        {isAdmin && (
++          <>
++            <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
++              <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
++                <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>AI Coach Provider</div>
++                <span style={{ color: "#525252", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+               </div>
+-            )}
+-            {aiForm.provider === "openai-compatible" && (
+-              <>
++              {aiStatus && <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{aiStatus}</div>}
++            </div>
++
++            {showAI && (
++              <div style={{ marginBottom: 16 }}>
+                 <div style={{ marginBottom: 8 }}>
+-                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Base URL</div>
+-                  <input value={aiForm.baseUrl} onChange={e => setAiForm(f => ({ ...f, baseUrl: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="http://localhost:11434/v1" />
++                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
++                  <select value={aiForm.provider} onChange={e => {
++                    const newProvider = e.target.value;
++                    const models = PROVIDERS.find(p => p.id === newProvider)?.models || [];
++                    setAiForm(f => ({ ...f, provider: newProvider, model: models[0]?.id || "" }));
++                  }} style={{ ...S.input, fontSize: 12 }}>
++                    {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
++                  </select>
+                 </div>
+                 <div style={{ marginBottom: 8 }}>
+-                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (optional for local)</div>
+-                  <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="Leave blank for Ollama" />
++                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
++                  {(() => {
++                    const providerModels = PROVIDERS.find(p => p.id === aiForm.provider)?.models || [];
++                    const isKnownModel = providerModels.some(m => m.id === aiForm.model);
++                    const isCustom = providerModels.length === 0 || (!isKnownModel && aiForm.model !== "");
++                    return (
++                      <>
++                        {providerModels.length > 0 && (
++                          <select value={isKnownModel ? aiForm.model : "__custom__"} onChange={e => {
++                            if (e.target.value === "__custom__") setAiForm(f => ({ ...f, model: "" }));
++                            else setAiForm(f => ({ ...f, model: e.target.value }));
++                          }} style={{ ...S.input, fontSize: 12 }}>
++                            {providerModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
++                            <option value="__custom__">Custom model...</option>
++                          </select>
++                        )}
++                        {isCustom && (
++                          <input value={aiForm.model} onChange={e => setAiForm(f => ({ ...f, model: e.target.value }))}
++                            style={{ ...S.input, fontSize: 12, marginTop: providerModels.length > 0 ? 4 : 0 }}
++                            placeholder={providerModels.length > 0 ? "Enter model ID" : "e.g. llama3, mistral, deepseek-coder"} />
++                        )}
++                      </>
++                    );
++                  })()}
+                 </div>
+-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#737373", cursor: "pointer", marginBottom: 8 }}>
+-                  <input type="checkbox" checked={aiForm.supportsTools} onChange={e => setAiForm(f => ({ ...f, supportsTools: e.target.checked }))} />
+-                  Supports tool/function calling
+-                </label>
+-              </>
++                {aiForm.provider !== "openai-compatible" && (
++                  <div style={{ marginBottom: 8 }}>
++                    <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (leave blank to keep current)</div>
++                    <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="sk-..." />
++                  </div>
++                )}
++                {aiForm.provider === "openai-compatible" && (
++                  <>
++                    <div style={{ marginBottom: 8 }}>
++                      <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Base URL</div>
++                      <input value={aiForm.baseUrl} onChange={e => setAiForm(f => ({ ...f, baseUrl: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="http://localhost:11434/v1" />
++                    </div>
++                    <div style={{ marginBottom: 8 }}>
++                      <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>API Key (optional for local)</div>
++                      <input type="password" value={aiForm.apiKey} onChange={e => setAiForm(f => ({ ...f, apiKey: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="Leave blank for Ollama" />
++                    </div>
++                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#737373", cursor: "pointer", marginBottom: 8 }}>
++                      <input type="checkbox" checked={aiForm.supportsTools} onChange={e => setAiForm(f => ({ ...f, supportsTools: e.target.checked }))} />
++                      Supports tool/function calling
++                    </label>
++                  </>
++                )}
++                <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save AI Config</button>
++                <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "center" }}>Key stored in local database. Server-level .env takes priority if set.</div>
++              </div>
+             )}
+-            <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save AI Config</button>
+-            <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "center" }}>Key stored in local database. Server-level .env takes priority if set.</div>
++          </>
++        )}
++
++        {/* Admin Panel link */}
++        {isAdmin && (
++          <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
++            <button onClick={() => setShowAdmin(true)} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11, color: "#c9952d" }}>
++              Admin Panel — Manage Users
++            </button>
+           </div>
+         )}
+ 
+diff --git a/src/lib/api.js b/src/lib/api.js
+index 9cb9e7e..45981bb 100644
+--- a/src/lib/api.js
++++ b/src/lib/api.js
+@@ -1,35 +1,87 @@
+ // ═══════════════════════ API HELPERS ═══════════════════════
+-// Extracted from App.jsx — the api object used by all components
++// HTTP helpers with JWT token management.
++// Token stored in localStorage, attached to every request.
++// 401 responses trigger automatic logout.
++
++const TOKEN_KEY = "talos_token";
++
++let onAuthError = null; // Set by App.jsx to handle forced logout
+ 
+ const api = {
++  // Called by App.jsx to register the logout callback
++  setAuthErrorHandler(handler) {
++    onAuthError = handler;
++  },
++
++  getToken() {
++    return localStorage.getItem(TOKEN_KEY);
++  },
++
++  setToken(token) {
++    if (token) localStorage.setItem(TOKEN_KEY, token);
++    else localStorage.removeItem(TOKEN_KEY);
++  },
++
++  clearToken() {
++    localStorage.removeItem(TOKEN_KEY);
++  },
++
++  _headers() {
++    const h = { "Content-Type": "application/json" };
++    const token = this.getToken();
++    if (token) h["Authorization"] = `Bearer ${token}`;
++    return h;
++  },
++
++  _handleAuthError(r) {
++    if (r.status === 401) {
++      this.clearToken();
++      if (onAuthError) onAuthError();
++      throw new Error("Session expired. Please log in again.");
++    }
++  },
++
+   async get(path) {
+-    const r = await fetch(`/api${path}`);
++    const r = await fetch(`/api${path}`, { headers: this._headers() });
++    this._handleAuthError(r);
+     if (!r.ok) throw new Error(r.statusText);
+     return r.json();
+   },
++
+   async post(path, body) {
+     const r = await fetch(`/api${path}`, {
+       method: "POST",
+-      headers: { "Content-Type": "application/json" },
++      headers: this._headers(),
+       body: JSON.stringify(body),
+     });
++    this._handleAuthError(r);
+     if (!r.ok) {
+       const e = await r.json().catch(() => ({}));
+       throw new Error(e.error || r.statusText);
+     }
+     return r.json();
+   },
++
+   async put(path, body) {
+     const r = await fetch(`/api${path}`, {
+       method: "PUT",
+-      headers: { "Content-Type": "application/json" },
++      headers: this._headers(),
+       body: JSON.stringify(body),
+     });
+-    if (!r.ok) throw new Error(r.statusText);
++    this._handleAuthError(r);
++    if (!r.ok) {
++      const e = await r.json().catch(() => ({}));
++      throw new Error(e.error || r.statusText);
++    }
+     return r.json();
+   },
++
+   async del(path) {
+-    const r = await fetch(`/api${path}`, { method: "DELETE" });
++    const r = await fetch(`/api${path}`, {
++      method: "DELETE",
++      headers: this._headers(),
++    });
++    this._handleAuthError(r);
+     if (!r.ok) throw new Error(r.statusText);
+     return r.json();
+   },
+diff --git a/src/pages/CoachPage.jsx b/src/pages/CoachPage.jsx
+index 29eb9a4..d7ede9a 100644
+--- a/src/pages/CoachPage.jsx
++++ b/src/pages/CoachPage.jsx
+@@ -96,7 +96,6 @@ export default function CoachPage() {
+     try {
+       await api.post("/coach/messages", {
+         id: msg.id,
+-        user_id: user.id,
+         type: msg.type,
+         prompt: msg.prompt,
+         response: msg.response,
+@@ -178,7 +177,6 @@ export default function CoachPage() {
+         description: programPreview.program.description || "",
+         days: programPreview.program.days,
+         shared: false,
+-        user_id: user.id,
+       });
+       setProgramPreview(null);
+     } catch (e) {
+@@ -222,7 +220,7 @@ export default function CoachPage() {
+   // ── Clear history ──
+   async function clearHistory() {
+     try {
+-      await api.del(`/coach/messages?user_id=${user.id}`);
++      await api.del("/coach/messages");
+     } catch (e) {
+       console.error("Failed to clear history:", e.message);
+     }
+diff --git a/src/pages/LogPastWorkout.jsx b/src/pages/LogPastWorkout.jsx
+index ed6fae4..83decea 100644
+--- a/src/pages/LogPastWorkout.jsx
++++ b/src/pages/LogPastWorkout.jsx
+@@ -187,7 +187,6 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
+       try {
+         const workout = {
+           id: isEditing ? editingWorkout.id : genId(),
+-          user_id: user.id,
+           date,
+           program_id: selectedProgram?.id || null,
+           day_id: selectedDay?.id || null,
+diff --git a/src/pages/ProgramsPage.jsx b/src/pages/ProgramsPage.jsx
+index 4f6bc1e..5047d60 100644
+--- a/src/pages/ProgramsPage.jsx
++++ b/src/pages/ProgramsPage.jsx
+@@ -39,7 +39,7 @@ export default function ProgramsPage() {
+   }
+ 
+   function startNew() {
+-    setEditing({ id: null, name: "", description: "", days: [], shared: false, user_id: user.id });
++    setEditing({ id: null, name: "", description: "", days: [], shared: false });
+   }
+ 
+   function editProgram(p) {
+@@ -110,7 +110,6 @@ export default function ProgramsPage() {
+     const program = {
+       name: template.name,
+       description: template.description,
+-      user_id: user.id,
+       days: template.days.map(d => ({
+         id: genId(),
+         label: d.label,
+diff --git a/src/pages/StatsPage.jsx b/src/pages/StatsPage.jsx
+index 4ccc030..1057e72 100644
+--- a/src/pages/StatsPage.jsx
++++ b/src/pages/StatsPage.jsx
+@@ -522,7 +522,8 @@ export default function StatsPage() {
+       <div style={{ padding: "8px 16px" }}>
+         <button onClick={async () => {
+           try {
+-            const res = await fetch(`/api/export?user_id=${user.id}`);
++            const token = localStorage.getItem("talos_token");
++            const res = await fetch("/api/export", { headers: { "Authorization": `Bearer ${token}` } });
+             const blob = await res.blob();
+             const url = URL.createObjectURL(blob);
+             const a = document.createElement("a");

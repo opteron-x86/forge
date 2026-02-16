@@ -96,7 +96,6 @@ export default function CoachPage() {
     try {
       await api.post("/coach/messages", {
         id: msg.id,
-        user_id: user.id,
         type: msg.type,
         prompt: msg.prompt,
         response: msg.response,
@@ -178,7 +177,6 @@ export default function CoachPage() {
         description: programPreview.program.description || "",
         days: programPreview.program.days,
         shared: false,
-        user_id: user.id,
       });
       setProgramPreview(null);
     } catch (e) {
@@ -222,7 +220,7 @@ export default function CoachPage() {
   // ── Clear history ──
   async function clearHistory() {
     try {
-      await api.del(`/coach/messages?user_id=${user.id}`);
+      await api.del("/coach/messages");
     } catch (e) {
       console.error("Failed to clear history:", e.message);
     }

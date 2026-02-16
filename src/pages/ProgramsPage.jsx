@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useTalos } from "../context/TalosContext";
 import { MUSCLE_GROUPS, EQUIPMENT } from "../lib/exercises";
 import { genId } from "../lib/helpers";
+import { STARTER_TEMPLATES } from "../lib/starterTemplates";
 import ExercisePicker from "../components/ExercisePicker";
 import S from "../lib/styles";
 
@@ -17,6 +18,8 @@ export default function ProgramsPage() {
   const [newExName, setNewExName] = useState("");
   const [newExMuscle, setNewExMuscle] = useState("chest");
   const [newExEquip, setNewExEquip] = useState("barbell");
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState(null);
 
   function toggleDayCollapse(dayId) {
     setCollapsedDays(prev => {
@@ -103,6 +106,24 @@ export default function ProgramsPage() {
     });
   }
 
+  async function adoptTemplate(template) {
+    const program = {
+      name: template.name,
+      description: template.description,
+      user_id: user.id,
+      days: template.days.map(d => ({
+        id: genId(),
+        label: d.label,
+        subtitle: d.subtitle || "",
+        exercises: d.exercises.map(e => ({ ...e })),
+      })),
+      shared: false,
+    };
+    await saveProgram(program);
+    setPreviewTemplate(null);
+    setShowTemplates(false);
+  }
+
   async function save() {
     if (!editing.name.trim()) return alert("Program needs a name");
     if (editing.days.length === 0) return alert("Add at least one day");
@@ -114,6 +135,50 @@ export default function ProgramsPage() {
     if (!newExName.trim()) return;
     await addCustomExercise({ name: newExName, muscle: newExMuscle, equipment: newExEquip });
     setNewExName("");
+  }
+
+  if (previewTemplate) {
+    const t = previewTemplate;
+    const totalExercises = t.days.reduce((a, d) => a + d.exercises.length, 0);
+    return (
+      <div className="fade-in">
+        <div style={S.card}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa" }}>{t.name}</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+            <span style={S.tag("#c9952d")}>{t.tags.goal}</span>
+            <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x/week</span>
+            <span style={S.tag("#525252")}>{t.tags.level}</span>
+          </div>
+          <div style={{ fontSize: 12, color: "#737373", marginTop: 8, lineHeight: 1.5 }}>{t.description}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12, textAlign: "center" }}>
+            <div><div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{t.days.length}</div><div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Days</div></div>
+            <div><div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{totalExercises}</div><div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Exercises</div></div>
+            <div><div style={{ fontSize: 18, fontWeight: 800, color: "#c9952d" }}>{t.tags.level}</div><div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Level</div></div>
+          </div>
+        </div>
+        {t.days.map((day, di) => (
+          <div key={di} style={S.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
+                {day.subtitle && <div style={{ fontSize: 10, color: "#737373", marginTop: 1 }}>{day.subtitle}</div>}
+              </div>
+              <span style={{ fontSize: 10, color: "#525252" }}>{day.exercises.length} exercises</span>
+            </div>
+            {day.exercises.map((ex, ei) => (
+              <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+                <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
+                <span style={{ fontSize: 11, color: "#525252" }}>{ex.defaultSets}×{ex.targetReps}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+        <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
+          <button onClick={() => setPreviewTemplate(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+          <button onClick={() => adoptTemplate(t)} style={{ ...S.btn("primary"), flex: 2 }}>Add to My Programs</button>
+        </div>
+      </div>
+    );
   }
 
   if (editing) {
@@ -250,9 +315,37 @@ export default function ProgramsPage() {
           ))}
         </>
       )}
-      <div style={{ padding: "8px 16px" }}>
-        <button onClick={startNew} style={{ ...S.btn("primary"), width: "100%" }}>+ New Program</button>
+      <div style={{ padding: "8px 16px", display: "flex", gap: 8 }}>
+        <button onClick={startNew} style={{ ...S.btn("primary"), flex: 1 }}>+ New Program</button>
+        <button onClick={() => setShowTemplates(!showTemplates)} style={{ ...S.btn("ghost"), flex: 1 }}>
+          {showTemplates ? "Hide" : "Browse"} Templates
+        </button>
       </div>
+
+      {/* Starter Templates */}
+      {showTemplates && (
+        <>
+          <div style={{ padding: "8px 16px 4px" }}><div style={S.label}>Starter Templates</div></div>
+          {STARTER_TEMPLATES.map((t, i) => {
+            const goalColors = { strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" };
+            return (
+              <div key={i} onClick={() => setPreviewTemplate(t)} style={{ ...S.card, cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{t.name}</div>
+                    <div style={{ display: "flex", gap: 4, marginTop: 3 }}>
+                      <span style={S.tag(goalColors[t.tags.goal] || "#737373")}>{t.tags.goal}</span>
+                      <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x</span>
+                      <span style={S.tag("#525252")}>{t.tags.level}</span>
+                    </div>
+                  </div>
+                  <span style={{ color: "#525252", fontSize: 14 }}>→</span>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {/* Custom exercise creator */}
       <div style={S.card}>

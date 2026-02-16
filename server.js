@@ -124,6 +124,7 @@ const profileMigrations = [
   "ALTER TABLE profiles ADD COLUMN calories_target INTEGER",
   "ALTER TABLE profiles ADD COLUMN protein_target INTEGER",
   "ALTER TABLE profiles ADD COLUMN active_program_id TEXT",
+  "ALTER TABLE profiles ADD COLUMN onboarding_complete INTEGER DEFAULT 0",
 ];
 for (const sql of profileMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
@@ -327,6 +328,7 @@ app.get("/api/profile", (req, res) => {
     caloriesTarget: profile?.calories_target || null,
     proteinTarget: profile?.protein_target || null,
     activeProgramId: profile?.active_program_id || null,
+    onboardingComplete: !!profile?.onboarding_complete,
     bioHistory,
   });
 });
@@ -334,18 +336,19 @@ app.get("/api/profile", (req, res) => {
 app.put("/api/profile", (req, res) => {
   const { user_id, height, weight, bodyFat, restTimerCompound, restTimerIsolation,
     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
-    targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId } = req.body;
+    targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId, onboardingComplete } = req.body;
   if (!user_id) return res.status(400).json({ error: "user_id required" });
   db.prepare(
     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
      target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?, active_program_id = ?,
+     onboarding_complete = ?,
      updated_at = datetime('now') WHERE user_id = ?`
   ).run(
     height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90,
     sex || null, dateOfBirth || null, goal || null, targetWeight || null, experienceLevel || null, trainingIntensity || null,
     targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
-    activeProgramId || null,
+    activeProgramId || null, onboardingComplete ? 1 : 0,
     user_id
   );
   if (weight) {

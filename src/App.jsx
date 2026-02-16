@@ -25,6 +25,7 @@ import CoachPage from "./pages/CoachPage";
 
 // Components
 import Login from "./components/Login";
+import Onboarding from "./components/Onboarding";
 import SettingsModal from "./components/SettingsModal";
 import SessionSummary from "./components/SessionSummary";
 
@@ -286,6 +287,41 @@ export default function App() {
     return (
       <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ color: "#c9952d", fontSize: 14 }}>Loading...</div>
+      </div>
+    );
+  }
+
+  // ── Onboarding for new users ──
+  const needsOnboarding = loaded && programs.length === 0 && workouts.length === 0 && !profile.onboardingComplete;
+
+  async function completeOnboarding(program, level) {
+    // Save the selected program
+    if (program) {
+      await saveProgram({ ...program, user_id: user.id });
+      // Refresh programs to get the saved one with its ID
+      const updated = await api.get(`/programs?user_id=${user.id}`);
+      setPrograms(updated);
+      // Set as active program
+      if (updated.length > 0) {
+        await updateProfile({ ...profile, activeProgramId: updated[0].id, experienceLevel: level || profile.experienceLevel, onboardingComplete: true });
+      }
+    } else {
+      await updateProfile({ ...profile, onboardingComplete: true });
+    }
+  }
+
+  async function skipOnboarding() {
+    await updateProfile({ ...profile, onboardingComplete: true });
+  }
+
+  if (needsOnboarding) {
+    return (
+      <div style={S.app}>
+        <Onboarding
+          userName={user.name}
+          onComplete={completeOnboarding}
+          onSkip={skipOnboarding}
+        />
       </div>
     );
   }

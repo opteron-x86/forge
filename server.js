@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "./ai-provider.js";
 import { EXERCISES } from "./src/lib/exercises.js";
 
@@ -14,8 +16,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// --- JWT Config ---
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
+const JWT_EXPIRES_IN = "7d";
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️  No JWT_SECRET set — using random secret (tokens won't survive restarts)");
+}
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || null;
+const BCRYPT_ROUNDS = 12;
+
 // --- Database ---
-const db = new Database(join(__dirname, "talos.db"));
+const DB_PATH = process.env.DATABASE_PATH || join(__dirname, "talos.db");
+const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 
 db.exec(`
@@ -130,6 +142,25 @@ for (const sql of profileMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
 }
 
+// --- Migrate users table for proper auth ---
+const userMigrations = [
+  "ALTER TABLE users ADD COLUMN email TEXT UNIQUE",
+  "ALTER TABLE users ADD COLUMN password_hash TEXT",
+  "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
+  "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
+];
+for (const sql of userMigrations) {
+  try { db.exec(sql); } catch (e) { /* column already exists */ }
+}
+
+// --- Set admin role for ADMIN_EMAIL if configured ---
+if (ADMIN_EMAIL) {
+  const adminUser = db.prepare("SELECT id FROM users WHERE email = ?").get(ADMIN_EMAIL);
+  if (adminUser) {
+    db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(adminUser.id);
+  }
+}
+
 function hashPin(pin) {
   return crypto.createHash("sha256").update(pin).digest("hex");
 }
@@ -137,6 +168,67 @@ function hashPin(pin) {
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
 }
+
+// --- JWT Helpers ---
+function signToken(user) {
+  return jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+}
+
+function verifyToken(token) {
+  return jwt.verify(token, JWT_SECRET);
+}
+
+// --- Auth Middleware ---
+function requireAuth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  try {
+    const payload = verifyToken(header.slice(7));
+    const user = db.prepare("SELECT id, name, email, role, color, is_active FROM users WHERE id = ?").get(payload.id);
+    if (!user) return res.status(401).json({ error: "User not found" });
+    if (!user.is_active) return res.status(403).json({ error: "Account deactivated" });
+    req.user = user;
+    next();
+  } catch (e) {
+    if (e.name === "TokenExpiredError") return res.status(401).json({ error: "Token expired" });
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+}
+
+// --- Rate Limiting (in-memory, per-IP) ---
+const rateLimitMap = new Map();
+function rateLimit(maxAttempts, windowMs) {
+  return (req, res, next) => {
+    const key = req.ip || req.connection.remoteAddress;
+    const now = Date.now();
+    const entry = rateLimitMap.get(key);
+    if (entry && now - entry.start < windowMs) {
+      if (entry.count >= maxAttempts) {
+        return res.status(429).json({ error: "Too many attempts. Try again later." });
+      }
+      entry.count++;
+    } else {
+      rateLimitMap.set(key, { count: 1, start: now });
+    }
+    next();
+  };
+}
+// Clean up rate limit entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now - entry.start > 900000) rateLimitMap.delete(key);
+  }
+}, 600000);
 
 // --- AI Provider ---
 function loadAIConfig() {
@@ -180,49 +272,176 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(join(__dirname, "dist")));
 }
 
-// ===================== AUTH =====================
+// ===================== AUTH (PUBLIC ROUTES) =====================
 
-app.get("/api/users", (req, res) => {
-  const users = db.prepare("SELECT id, name, color, pin_hash IS NOT NULL as has_pin, created_at FROM users ORDER BY created_at ASC").all();
+// Rate limit: 10 attempts per 15 minutes on auth endpoints
+const authRateLimit = rateLimit(10, 15 * 60 * 1000);
+
+// Register — email + password + display name
+app.post("/api/auth/register", authRateLimit, (req, res) => {
+  const { email, password, name, color } = req.body;
+  if (!email?.trim()) return res.status(400).json({ error: "Email required" });
+  if (!password || password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+  if (!name?.trim()) return res.status(400).json({ error: "Name required" });
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Check if email is already taken
+  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
+  if (existing) return res.status(409).json({ error: "Email already registered" });
+
+  const id = genId();
+  const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+  const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
+
+  db.prepare(
+    "INSERT INTO users (id, name, email, password_hash, role, color) VALUES (?, ?, ?, ?, ?, ?)"
+  ).run(id, name.trim(), normalizedEmail, passwordHash, role, color || "#f97316");
+  db.prepare("INSERT INTO profiles (user_id) VALUES (?)").run(id);
+
+  const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316" };
+  const token = signToken(user);
+  res.json({ token, user });
+});
+
+// Login — email + password
+app.post("/api/auth/login", authRateLimit, (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "Email and password required" });
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = db.prepare("SELECT id, name, email, password_hash, role, color, is_active FROM users WHERE email = ?").get(normalizedEmail);
+  if (!user) return res.status(401).json({ error: "Invalid email or password" });
+  if (!user.is_active) return res.status(403).json({ error: "Account deactivated. Contact support." });
+  if (!user.password_hash) return res.status(401).json({ error: "Account not set up. Use 'Claim Account' to set a password." });
+
+  if (!bcrypt.compareSync(password, user.password_hash)) {
+    return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  const token = signToken(user);
+  res.json({
+    token,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color },
+  });
+});
+
+// Claim account — existing PIN-based user sets email + password
+app.post("/api/auth/claim", authRateLimit, (req, res) => {
+  const { userId, pin, email, password, name } = req.body;
+  if (!userId || !email?.trim() || !password) return res.status(400).json({ error: "userId, email, and password required" });
+  if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // Verify the old user exists and doesn't already have email auth
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  if (user.email) return res.status(400).json({ error: "Account already claimed" });
+
+  // Verify PIN if the user had one
+  if (user.pin_hash) {
+    if (!pin) return res.status(401).json({ error: "PIN required to claim this account" });
+    if (hashPin(pin) !== user.pin_hash) return res.status(401).json({ error: "Wrong PIN" });
+  }
+
+  // Check email isn't taken by someone else
+  const emailTaken = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
+  if (emailTaken) return res.status(409).json({ error: "Email already registered" });
+
+  const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
+  const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
+
+  const updates = { email: normalizedEmail, password_hash: passwordHash, role };
+  if (name?.trim()) updates.name = name.trim();
+
+  db.prepare(
+    "UPDATE users SET email = ?, password_hash = ?, role = ?" + (name?.trim() ? ", name = ?" : "") + " WHERE id = ?"
+  ).run(...(name?.trim()
+    ? [normalizedEmail, passwordHash, role, name.trim(), userId]
+    : [normalizedEmail, passwordHash, role, userId]
+  ));
+
+  const updated = db.prepare("SELECT id, name, email, role, color FROM users WHERE id = ?").get(userId);
+  const token = signToken(updated);
+  res.json({ token, user: updated });
+});
+
+// Get legacy (unclaimed) users — for the claim flow UI
+app.get("/api/auth/legacy-users", (req, res) => {
+  const users = db.prepare(
+    "SELECT id, name, color, pin_hash IS NOT NULL as has_pin FROM users WHERE email IS NULL ORDER BY created_at ASC"
+  ).all();
   res.json(users);
 });
 
-app.post("/api/users", (req, res) => {
-  const { name, pin, color } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: "Name required" });
-  const id = genId();
-  const pinHash = pin ? hashPin(pin) : null;
-  db.prepare("INSERT INTO users (id, name, pin_hash, color) VALUES (?, ?, ?, ?)").run(id, name.trim(), pinHash, color || "#f97316");
-  db.prepare("INSERT INTO profiles (user_id) VALUES (?)").run(id);
-  res.json({ id, name: name.trim(), color: color || "#f97316", has_pin: !!pin });
+// Get current user from token
+app.get("/api/auth/me", requireAuth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    color: req.user.color,
+  });
 });
 
-app.post("/api/users/:id/verify", (req, res) => {
-  const { pin } = req.body;
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-  if (!user) return res.status(404).json({ error: "User not found" });
-  if (!user.pin_hash) return res.json({ ok: true });
-  if (!pin) return res.status(401).json({ error: "PIN required" });
-  if (hashPin(pin) === user.pin_hash) return res.json({ ok: true });
-  return res.status(401).json({ error: "Wrong PIN" });
+// Change password
+app.post("/api/auth/change-password", requireAuth, (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: "Current and new password required" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "New password must be at least 8 characters" });
+
+  const user = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(req.user.id);
+  if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
+    return res.status(401).json({ error: "Current password is wrong" });
+  }
+
+  const newHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
+  db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(newHash, req.user.id);
+  res.json({ ok: true });
 });
 
-app.put("/api/users/:id", (req, res) => {
-  const { name, pin, color, removePin } = req.body;
+// Update own account (name, color)
+app.put("/api/auth/account", requireAuth, (req, res) => {
+  const { name, color } = req.body;
   const sets = [];
   const vals = [];
   if (name !== undefined) { sets.push("name = ?"); vals.push(name.trim()); }
   if (color !== undefined) { sets.push("color = ?"); vals.push(color); }
-  if (removePin) { sets.push("pin_hash = NULL"); }
-  else if (pin !== undefined) { sets.push("pin_hash = ?"); vals.push(hashPin(pin)); }
   if (sets.length === 0) return res.json({ ok: true });
-  vals.push(req.params.id);
+  vals.push(req.user.id);
   db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
   res.json({ ok: true });
 });
 
-app.delete("/api/users/:id", (req, res) => {
+// ===================== ADMIN ROUTES =====================
+
+// List all users (admin only)
+app.get("/api/admin/users", requireAuth, requireAdmin, (req, res) => {
+  const users = db.prepare(
+    "SELECT id, name, email, role, color, is_active, created_at FROM users ORDER BY created_at ASC"
+  ).all();
+  // Add workout count for each user
+  const enriched = users.map(u => {
+    const stats = db.prepare("SELECT COUNT(*) as workouts FROM workouts WHERE user_id = ?").get(u.id);
+    return { ...u, workoutCount: stats.workouts };
+  });
+  res.json(enriched);
+});
+
+// Deactivate / reactivate user (admin only)
+app.put("/api/admin/users/:id/status", requireAuth, requireAdmin, (req, res) => {
+  const { is_active } = req.body;
+  if (req.params.id === req.user.id) return res.status(400).json({ error: "Cannot deactivate yourself" });
+  db.prepare("UPDATE users SET is_active = ? WHERE id = ?").run(is_active ? 1 : 0, req.params.id);
+  res.json({ ok: true });
+});
+
+// Delete user and all data (admin only)
+app.delete("/api/admin/users/:id", requireAuth, requireAdmin, (req, res) => {
   const id = req.params.id;
+  if (id === req.user.id) return res.status(400).json({ error: "Cannot delete yourself" });
   db.prepare("DELETE FROM workouts WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM workout_reviews WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM bio_history WHERE user_id = ?").run(id);
@@ -235,82 +454,73 @@ app.delete("/api/users/:id", (req, res) => {
 
 // ===================== WORKOUTS =====================
 
-app.get("/api/workouts", (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
-  const rows = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC, created_at ASC").all(user_id);
+app.get("/api/workouts", requireAuth, (req, res) => {
+  const rows = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC, created_at ASC").all(req.user.id);
   res.json(rows.map(r => ({ ...r, exercises: JSON.parse(r.exercises) })));
 });
 
-app.post("/api/workouts", (req, res) => {
-  const { id, user_id, date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+app.post("/api/workouts", requireAuth, (req, res) => {
+  const { id, date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
   db.prepare(
     `INSERT INTO workouts (id, user_id, date, program_id, day_id, day_label, feel, sleep_hours, duration, notes, exercises)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(id || genId(), user_id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
+  ).run(id || genId(), req.user.id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
   res.json({ ok: true });
 });
 
-app.put("/api/workouts/:id", (req, res) => {
+app.put("/api/workouts/:id", requireAuth, (req, res) => {
   const { date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
-  const existing = db.prepare("SELECT id FROM workouts WHERE id = ?").get(req.params.id);
+  const existing = db.prepare("SELECT id FROM workouts WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
   if (!existing) return res.status(404).json({ error: "Workout not found" });
   db.prepare(
     `UPDATE workouts SET date = ?, program_id = ?, day_id = ?, day_label = ?,
      feel = ?, sleep_hours = ?, duration = ?, notes = ?, exercises = ?
-     WHERE id = ?`
+     WHERE id = ? AND user_id = ?`
   ).run(
     date, program_id || null, day_id || null, day_label || null,
     feel || 3, sleepHours || null, duration || null, notes || "",
-    JSON.stringify(exercises), req.params.id
+    JSON.stringify(exercises), req.params.id, req.user.id
   );
   res.json({ ok: true });
 });
 
-app.delete("/api/workouts/:id", (req, res) => {
-  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ?").run(req.params.id);
-  db.prepare("DELETE FROM workouts WHERE id = ?").run(req.params.id);
+app.delete("/api/workouts/:id", requireAuth, (req, res) => {
+  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.id, req.user.id);
+  db.prepare("DELETE FROM workouts WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
   res.json({ ok: true });
 });
 
 // ===================== WORKOUT REVIEWS =====================
 
-app.get("/api/workout-reviews", (req, res) => {
-  const { user_id, workout_id } = req.query;
+app.get("/api/workout-reviews", requireAuth, (req, res) => {
+  const { workout_id } = req.query;
   if (workout_id) {
-    const review = db.prepare("SELECT * FROM workout_reviews WHERE workout_id = ?").get(workout_id);
+    const review = db.prepare("SELECT * FROM workout_reviews WHERE workout_id = ? AND user_id = ?").get(workout_id, req.user.id);
     return res.json(review || null);
   }
-  if (user_id) {
-    // Return map of workout_id -> review for efficient lookup
-    const reviews = db.prepare("SELECT * FROM workout_reviews WHERE user_id = ?").all(user_id);
-    return res.json(reviews);
-  }
-  res.status(400).json({ error: "user_id or workout_id required" });
+  const reviews = db.prepare("SELECT * FROM workout_reviews WHERE user_id = ?").all(req.user.id);
+  return res.json(reviews);
 });
 
-app.post("/api/workout-reviews", (req, res) => {
-  const { id, workout_id, user_id, review } = req.body;
-  if (!workout_id || !user_id || !review) return res.status(400).json({ error: "workout_id, user_id, and review required" });
+app.post("/api/workout-reviews", requireAuth, (req, res) => {
+  const { id, workout_id, review } = req.body;
+  if (!workout_id || !review) return res.status(400).json({ error: "workout_id and review required" });
   db.prepare(
     "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
-  ).run(id || genId(), workout_id, user_id, review);
+  ).run(id || genId(), workout_id, req.user.id, review);
   res.json({ ok: true });
 });
 
-app.delete("/api/workout-reviews/:workout_id", (req, res) => {
-  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ?").run(req.params.workout_id);
+app.delete("/api/workout-reviews/:workout_id", requireAuth, (req, res) => {
+  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.workout_id, req.user.id);
   res.json({ ok: true });
 });
 
 // ===================== PROFILE =====================
 
-app.get("/api/profile", (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
-  const profile = db.prepare("SELECT * FROM profiles WHERE user_id = ?").get(user_id);
-  const bioHistory = db.prepare("SELECT * FROM bio_history WHERE user_id = ? ORDER BY date ASC").all(user_id);
+app.get("/api/profile", requireAuth, (req, res) => {
+  const profile = db.prepare("SELECT * FROM profiles WHERE user_id = ?").get(req.user.id);
+  const bioHistory = db.prepare("SELECT * FROM bio_history WHERE user_id = ? ORDER BY date ASC").all(req.user.id);
   res.json({
     height: profile?.height || "",
     weight: profile?.weight || null,
@@ -333,11 +543,10 @@ app.get("/api/profile", (req, res) => {
   });
 });
 
-app.put("/api/profile", (req, res) => {
-  const { user_id, height, weight, bodyFat, restTimerCompound, restTimerIsolation,
+app.put("/api/profile", requireAuth, (req, res) => {
+  const { height, weight, bodyFat, restTimerCompound, restTimerIsolation,
     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
     targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId, onboardingComplete } = req.body;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
   db.prepare(
     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
@@ -349,71 +558,68 @@ app.put("/api/profile", (req, res) => {
     sex || null, dateOfBirth || null, goal || null, targetWeight || null, experienceLevel || null, trainingIntensity || null,
     targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
     activeProgramId || null, onboardingComplete ? 1 : 0,
-    user_id
+    req.user.id
   );
   if (weight) {
     db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
-      user_id, new Date().toISOString().split("T")[0], weight, bodyFat || null
+      req.user.id, new Date().toISOString().split("T")[0], weight, bodyFat || null
     );
   }
   res.json({ ok: true });
 });
 
 // Set active program (lightweight — no bio_history side effect)
-app.put("/api/profile/active-program", (req, res) => {
-  const { user_id, activeProgramId } = req.body;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+app.put("/api/profile/active-program", requireAuth, (req, res) => {
+  const { activeProgramId } = req.body;
   db.prepare("UPDATE profiles SET active_program_id = ?, updated_at = datetime('now') WHERE user_id = ?")
-    .run(activeProgramId || null, user_id);
+    .run(activeProgramId || null, req.user.id);
   res.json({ ok: true });
 });
 
 // ===================== PROGRAMS =====================
 
-app.get("/api/programs", (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
-  const rows = db.prepare("SELECT * FROM programs WHERE user_id = ? OR shared = 1 ORDER BY created_at ASC").all(user_id);
+app.get("/api/programs", requireAuth, (req, res) => {
+  const rows = db.prepare("SELECT * FROM programs WHERE user_id = ? OR shared = 1 ORDER BY created_at ASC").all(req.user.id);
   res.json(rows.map(r => ({ ...r, days: JSON.parse(r.days) })));
 });
 
-app.post("/api/programs", (req, res) => {
-  const { user_id, name, description, days, shared } = req.body;
-  if (!user_id || !name) return res.status(400).json({ error: "user_id and name required" });
+app.post("/api/programs", requireAuth, (req, res) => {
+  const { name, description, days, shared } = req.body;
+  if (!name) return res.status(400).json({ error: "name required" });
   const id = genId();
   db.prepare("INSERT INTO programs (id, user_id, name, description, days, shared) VALUES (?, ?, ?, ?, ?, ?)").run(
-    id, user_id, name, description || "", JSON.stringify(days || []), shared ? 1 : 0
+    id, req.user.id, name, description || "", JSON.stringify(days || []), shared ? 1 : 0
   );
   res.json({ ok: true, id });
 });
 
-app.put("/api/programs/:id", (req, res) => {
+app.put("/api/programs/:id", requireAuth, (req, res) => {
   const { name, description, days, shared } = req.body;
-  db.prepare("UPDATE programs SET name = ?, description = ?, days = ?, shared = ? WHERE id = ?").run(
-    name, description || "", JSON.stringify(days || []), shared ? 1 : 0, req.params.id
+  db.prepare("UPDATE programs SET name = ?, description = ?, days = ?, shared = ? WHERE id = ? AND user_id = ?").run(
+    name, description || "", JSON.stringify(days || []), shared ? 1 : 0, req.params.id, req.user.id
   );
   res.json({ ok: true });
 });
 
-app.delete("/api/programs/:id", (req, res) => {
-  db.prepare("DELETE FROM programs WHERE id = ?").run(req.params.id);
+app.delete("/api/programs/:id", requireAuth, (req, res) => {
+  db.prepare("DELETE FROM programs WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
   res.json({ ok: true });
 });
 
 // ===================== EXERCISES =====================
 
-app.get("/api/exercises", (req, res) => {
+app.get("/api/exercises", requireAuth, (req, res) => {
   const rows = db.prepare("SELECT * FROM custom_exercises ORDER BY name ASC").all();
   res.json(rows);
 });
 
-app.post("/api/exercises", (req, res) => {
-  const { name, muscle, equipment, type, created_by } = req.body;
+app.post("/api/exercises", requireAuth, (req, res) => {
+  const { name, muscle, equipment, type } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: "Name required" });
   const id = genId();
   try {
     db.prepare("INSERT INTO custom_exercises (id, name, muscle, equipment, type, created_by) VALUES (?, ?, ?, ?, ?, ?)").run(
-      id, name.trim(), muscle || "other", equipment || "other", type || "isolation", created_by || null
+      id, name.trim(), muscle || "other", equipment || "other", type || "isolation", req.user.id
     );
     res.json({ ok: true, id });
   } catch (e) {
@@ -422,14 +628,14 @@ app.post("/api/exercises", (req, res) => {
   }
 });
 
-app.delete("/api/exercises/:id", (req, res) => {
+app.delete("/api/exercises/:id", requireAuth, (req, res) => {
   db.prepare("DELETE FROM custom_exercises WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });
 
 // ===================== AI CONFIG =====================
 
-app.get("/api/ai/config", (req, res) => {
+app.get("/api/ai/config", requireAuth, (req, res) => {
   const dbSettings = loadAIConfig();
   const config = resolveConfig(dbSettings, process.env);
   res.json({
@@ -444,7 +650,7 @@ app.get("/api/ai/config", (req, res) => {
   });
 });
 
-app.put("/api/ai/config", (req, res) => {
+app.put("/api/ai/config", requireAuth, requireAdmin, (req, res) => {
   const { provider, model, apiKey, baseUrl, supportsTools } = req.body;
   const upsert = db.prepare("INSERT INTO ai_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
   if (provider !== undefined) upsert.run("provider", provider);
@@ -462,7 +668,7 @@ app.put("/api/ai/config", (req, res) => {
 
 const COACH_SYSTEM = `You are a knowledgeable strength training coach analyzing real workout data. The user's profile includes biometric data, training goals, experience level, injury notes, and nutrition targets — use all available context to personalize your advice. Give specific, evidence-based advice with exact numbers (weights, reps, sets). Be concise and actionable. Consider any injuries mentioned. Format with clear sections but keep it tight. No fluff.`;
 
-app.post("/api/coach", async (req, res) => {
+app.post("/api/coach", requireAuth, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context, history } = req.body;
   try {
@@ -492,33 +698,29 @@ app.post("/api/coach", async (req, res) => {
 
 // ── Coach Message History ──
 
-app.get("/api/coach/messages", (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+app.get("/api/coach/messages", requireAuth, (req, res) => {
   const messages = db.prepare(
     "SELECT * FROM coach_messages WHERE user_id = ? ORDER BY created_at ASC"
-  ).all(user_id);
+  ).all(req.user.id);
   res.json(messages);
 });
 
-app.post("/api/coach/messages", (req, res) => {
-  const { id, user_id, type, prompt, response } = req.body;
-  if (!user_id || !id) return res.status(400).json({ error: "id and user_id required" });
+app.post("/api/coach/messages", requireAuth, (req, res) => {
+  const { id, type, prompt, response } = req.body;
+  if (!id) return res.status(400).json({ error: "id required" });
   db.prepare(
     "INSERT OR REPLACE INTO coach_messages (id, user_id, type, prompt, response) VALUES (?, ?, ?, ?, ?)"
-  ).run(id, user_id, type || "chat", prompt || null, response || null);
+  ).run(id, req.user.id, type || "chat", prompt || null, response || null);
   res.json({ ok: true });
 });
 
-app.delete("/api/coach/messages/:id", (req, res) => {
-  db.prepare("DELETE FROM coach_messages WHERE id = ?").run(req.params.id);
+app.delete("/api/coach/messages/:id", requireAuth, (req, res) => {
+  db.prepare("DELETE FROM coach_messages WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
   res.json({ ok: true });
 });
 
-app.delete("/api/coach/messages", (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
-  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(user_id);
+app.delete("/api/coach/messages", requireAuth, (req, res) => {
+  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(req.user.id);
   res.json({ ok: true });
 });
 
@@ -562,7 +764,7 @@ const PROGRAM_TOOL = {
   },
 };
 
-app.post("/api/coach/program", async (req, res) => {
+app.post("/api/coach/program", requireAuth, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context } = req.body;
 
@@ -629,9 +831,9 @@ PROGRAM DESIGN PRINCIPLES:
 
 // ===================== AI SESSION ANALYSIS =====================
 
-app.post("/api/coach/analyze", async (req, res) => {
+app.post("/api/coach/analyze", requireAuth, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
-  const { workout, context, workout_id, user_id } = req.body;
+  const { workout, context, workout_id } = req.body;
 
   const system = `You are a concise strength training coach providing a post-workout session analysis. Analyze the just-completed workout and give brief, specific feedback.
 
@@ -649,10 +851,10 @@ Keep it tight — max 150 words total. Be encouraging but honest. Use the user's
     ], { maxTokens: 800 });
 
     // Persist the review if workout_id provided
-    if (workout_id && user_id && result.text) {
+    if (workout_id && result.text) {
       db.prepare(
         "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
-      ).run(genId(), workout_id, user_id, result.text);
+      ).run(genId(), workout_id, req.user.id, result.text);
     }
 
     res.json({ analysis: result.text });
@@ -688,7 +890,7 @@ const SUBSTITUTE_TOOL = {
   },
 };
 
-app.post("/api/coach/substitute", async (req, res) => {
+app.post("/api/coach/substitute", requireAuth, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { exercise, reason, context } = req.body;
 
@@ -744,7 +946,7 @@ ${exerciseLib}${customLib}`;
 
 // ===================== AI WEEKLY REPORT =====================
 
-app.post("/api/coach/weekly", async (req, res) => {
+app.post("/api/coach/weekly", requireAuth, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { context } = req.body;
 
@@ -773,10 +975,8 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
 
 // ===================== EXPORT =====================
 
-app.get("/api/export", (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
-  const workouts = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC").all(user_id);
+app.get("/api/export", requireAuth, (req, res) => {
+  const workouts = db.prepare("SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC").all(req.user.id);
   const lines = ["date,day_label,exercise,set_num,weight,reps,rpe,feel,duration,notes"];
   workouts.forEach(w => {
     const exs = JSON.parse(w.exercises);
@@ -787,7 +987,7 @@ app.get("/api/export", (req, res) => {
     });
   });
   res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", `attachment; filename=talos-export-${user_id}.csv`);
+  res.setHeader("Content-Disposition", `attachment; filename=talos-export.csv`);
   res.send(lines.join("\n"));
 });
 
@@ -809,15 +1009,17 @@ if (process.env.NODE_ENV === "production") {
 
 app.listen(PORT, "0.0.0.0", () => {
   const aiStatus = aiProvider ? `✅ ${aiProvider.providerName} (${aiProvider.modelName})` : "❌ Not configured";
+  const authStatus = ADMIN_EMAIL ? `Admin: ${ADMIN_EMAIL}` : "No admin email set";
   console.log(`
 ┌────────────────────────────────────────┐
 │                                        │
 │   Δ TALOS                             │
-│   Gym Tracker v2.2                     │
+│   Gym Tracker v3.0 (JWT Auth)          │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│
 │   AI: ${aiStatus.padEnd(33)}│
 │   Users: ${String(db.prepare("SELECT COUNT(*) as c FROM users").get().c).padEnd(29)}│
+│   Auth: ${authStatus.padEnd(30)}│
 │                                        │
 └────────────────────────────────────────┘`);
 });

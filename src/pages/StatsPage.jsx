@@ -522,7 +522,8 @@ export default function StatsPage() {
       <div style={{ padding: "8px 16px" }}>
         <button onClick={async () => {
           try {
-            const res = await fetch(`/api/export?user_id=${user.id}`);
+            const token = localStorage.getItem("talos_token");
+            const res = await fetch("/api/export", { headers: { "Authorization": `Bearer ${token}` } });
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");

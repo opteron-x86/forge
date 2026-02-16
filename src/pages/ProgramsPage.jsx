@@ -39,7 +39,7 @@ export default function ProgramsPage() {
   }
 
   function startNew() {
-    setEditing({ id: null, name: "", description: "", days: [], shared: false, user_id: user.id });
+    setEditing({ id: null, name: "", description: "", days: [], shared: false });
   }
 
   function editProgram(p) {
@@ -110,7 +110,6 @@ export default function ProgramsPage() {
     const program = {
       name: template.name,
       description: template.description,
-      user_id: user.id,
       days: template.days.map(d => ({
         id: genId(),
         label: d.label,

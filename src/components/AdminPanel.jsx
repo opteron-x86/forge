@@ -52,14 +52,14 @@ export default function AdminPanel({ onBack }) {
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div style={{ position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ ...S.card, margin: 0, maxWidth: 420, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={S.label}>Admin — Users</div>
           <button onClick={onBack} style={S.sm()}>← Back</button>
         </div>
 
-        {loading && <div style={{ color: "#737373", fontSize: 13, textAlign: "center", padding: 20 }}>Loading...</div>}
+        {loading && <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>Loading...</div>}
         {error && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 12 }}>{error}</div>}
         {actionMsg && <div style={{ fontSize: 11, color: actionMsg.startsWith("Error") ? "#ef4444" : "#22c55e", marginBottom: 12 }}>{actionMsg}</div>}
 
@@ -68,14 +68,14 @@ export default function AdminPanel({ onBack }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
               <div style={{ ...S.avatar(u.color), width: 28, height: 28, fontSize: 12 }}>{u.name?.[0]?.toUpperCase()}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: u.is_active ? "#fafafa" : "#525252" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: u.is_active ? "var(--text-bright)" : "var(--text-dim)" }}>
                   {u.name}
-                  {u.role === "admin" && <span style={{ ...S.tag("#c9952d"), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
+                  {u.role === "admin" && <span style={{ ...S.tag(), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
                   {!u.is_active && <span style={{ ...S.tag("#ef4444"), marginLeft: 6, fontSize: 9 }}>INACTIVE</span>}
                 </div>
-                <div style={{ fontSize: 10, color: "#525252" }}>{u.email || "No email (legacy)"}</div>
+                <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{u.email || "No email (legacy)"}</div>
               </div>
-              <div style={{ fontSize: 11, color: "#737373", textAlign: "right" }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "right" }}>
                 {u.workoutCount} workout{u.workoutCount !== 1 ? "s" : ""}
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function AdminPanel({ onBack }) {
         ))}
 
         {!loading && users.length === 0 && (
-          <div style={{ color: "#737373", fontSize: 13, textAlign: "center", padding: 20 }}>No users found.</div>
+          <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>No users found.</div>
         )}
       </div>
     </div>

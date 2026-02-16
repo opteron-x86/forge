@@ -229,10 +229,10 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
       <div style={{ ...S.card, paddingBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#e5e5e5" }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
               {isEditing ? "Edit Workout" : "Log Past Workout"}
             </div>
-            <div style={{ fontSize: 11, color: "#525252", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
               Add a workout from a previous date
             </div>
           </div>
@@ -286,7 +286,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
         )}
 
         {/* Quick stats */}
-        <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid #1a1a1a" }}>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--surface2)" }}>
           <div style={S.stat}>
             <div style={{ ...S.statV, fontSize: 18 }}>{fmtDate(date)}</div>
             <div style={S.statL}>Date</div>
@@ -317,9 +317,9 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
             {/* Exercise header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{ex.name}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}</div>
                 {exMeta && (
-                  <div style={{ fontSize: 10, color: "#525252", marginTop: 1 }}>
+                  <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 1 }}>
                     {exMeta.muscle} · {exMeta.equipment}
                   </div>
                 )}
@@ -333,7 +333,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
 
             {/* Last performance reference */}
             {last && (
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 8, padding: "4px 8px", background: "#0a0a0a", borderRadius: 4 }}>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 8, padding: "4px 8px", background: "var(--bg)", borderRadius: 4 }}>
                 Last ({fmtDate(last.date)}): {last.sets.map((s) => `${s.weight}×${s.reps}`).join(", ")}
               </div>
             )}
@@ -341,10 +341,10 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
             {/* Sets table */}
             <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 1fr 1fr", gap: "4px 6px", alignItems: "center", marginBottom: 8 }}>
               {/* Header row */}
-              <div style={{ fontSize: 9, color: "#525252", textAlign: "center" }}>#</div>
-              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase", letterSpacing: "0.5px" }}>Weight</div>
-              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase", letterSpacing: "0.5px" }}>Reps</div>
-              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase", letterSpacing: "0.5px" }}>RPE</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textAlign: "center" }}>#</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Weight</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Reps</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>RPE</div>
 
               {ex.sets.map((s, si) => (
                 <SetRow key={si} set={s} setIndex={si} exIndex={ei} updateSet={updateSet} />
@@ -374,7 +374,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
       <div style={{ margin: "8px 16px" }}>
         <button
           onClick={() => setShowPicker(true)}
-          style={{ ...S.btn("ghost"), width: "100%", border: "1px dashed #333", color: "#737373" }}
+          style={{ ...S.btn("ghost"), width: "100%", border: "1px dashed #333", color: "var(--text-muted)" }}
         >
           + Add Exercise
         </button>
@@ -386,7 +386,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
 
         {/* Feel rating */}
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: "#737373", marginBottom: 4 }}>How did it feel?</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>How did it feel?</div>
           <div style={{ display: "flex", gap: 4 }}>
             {FEEL.map((f) => (
               <button
@@ -396,8 +396,8 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
                   ...S.sm(feel === f.v ? "primary" : "ghost"),
                   flex: 1,
                   background: feel === f.v ? f.c + "30" : undefined,
-                  color: feel === f.v ? f.c : "#525252",
-                  border: feel === f.v ? `1px solid ${f.c}50` : "1px solid #333",
+                  color: feel === f.v ? f.c : "var(--text-dim)",
+                  border: feel === f.v ? `1px solid ${f.c}50` : "1px solid var(--border2)",
                 }}
               >
                 {f.l}
@@ -409,7 +409,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
         {/* Duration and Sleep */}
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: "#737373", marginBottom: 4 }}>Duration (min)</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Duration (min)</div>
             <input
               type="number"
               value={duration}
@@ -421,7 +421,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
             />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: "#737373", marginBottom: 4 }}>Sleep (hours)</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Sleep (hours)</div>
             <input
               type="number"
               value={sleepHours}
@@ -437,7 +437,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
 
         {/* Notes */}
         <div>
-          <div style={{ fontSize: 11, color: "#737373", marginBottom: 4 }}>Workout notes</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Workout notes</div>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -473,7 +473,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
 function SetRow({ set, setIndex, exIndex, updateSet }) {
   return (
     <>
-      <div style={{ fontSize: 11, color: "#525252", textAlign: "center", fontWeight: 700 }}>
+      <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", fontWeight: 700 }}>
         {setIndex + 1}
       </div>
       <input

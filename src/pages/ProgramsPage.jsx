@@ -99,30 +99,30 @@ function BrowsePrograms({ onAdopt, onClose }) {
         <div style={S.card}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             {p.source === "template" ? (
-              <span style={S.tag("#c9952d")}>✦ TALOS Template</span>
+              <span style={S.tag()}>✦ TALOS Template</span>
             ) : p.source === "own" ? (
               <span style={S.tag("#22c55e")}>Your Program</span>
             ) : (
               <span style={S.tag("#6366f1")}>⊕ {p.creator_name}</span>
             )}
           </div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa" }}>{p.name}</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-bright)" }}>{p.name}</div>
           {p.tags && (
             <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-              <span style={S.tag({ strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" }[p.tags.goal] || "#737373")}>{p.tags.goal}</span>
+              <span style={S.tag({ strength: "#ef4444", hypertrophy: "var(--accent)", general: "#22c55e" }[p.tags.goal] || "var(--text-muted)")}>{p.tags.goal}</span>
               <span style={S.tag("#525252")}>{p.tags.daysPerWeek}x/week</span>
               <span style={S.tag("#525252")}>{p.tags.level}</span>
             </div>
           )}
-          {p.description && <div style={{ fontSize: 12, color: "#737373", marginTop: 8, lineHeight: 1.5 }}>{p.description}</div>}
+          {p.description && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>{p.description}</div>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12, textAlign: "center" }}>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{(p.days || []).length}</div>
-              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Days</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-bright)" }}>{(p.days || []).length}</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase" }}>Days</div>
             </div>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{totalExercises}</div>
-              <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Exercises</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-bright)" }}>{totalExercises}</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase" }}>Exercises</div>
             </div>
           </div>
         </div>
@@ -131,15 +131,15 @@ function BrowsePrograms({ onAdopt, onClose }) {
           <div key={di} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
-                {day.subtitle && <div style={{ fontSize: 10, color: "#737373", marginTop: 1 }}>{day.subtitle}</div>}
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{day.label}</div>
+                {day.subtitle && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{day.subtitle}</div>}
               </div>
-              <span style={{ fontSize: 10, color: "#525252" }}>{(day.exercises || []).length} exercises</span>
+              <span style={{ fontSize: 10, color: "var(--text-dim)" }}>{(day.exercises || []).length} exercises</span>
             </div>
             {(day.exercises || []).map((ex, ei) => (
               <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-                <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
-                <span style={{ fontSize: 11, color: "#525252" }}>{ex.defaultSets}×{ex.targetReps}</span>
+                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{ex.defaultSets}×{ex.targetReps}</span>
               </div>
             ))}
           </div>
@@ -148,7 +148,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
         <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
           <button onClick={() => setPreview(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
           {p.source === "own" ? (
-            <div style={{ flex: 2, textAlign: "center", fontSize: 11, color: "#525252", padding: "10px 0" }}>
+            <div style={{ flex: 2, textAlign: "center", fontSize: 11, color: "var(--text-dim)", padding: "10px 0" }}>
               This is your program — edit it from Your Programs
             </div>
           ) : (
@@ -169,9 +169,9 @@ function BrowsePrograms({ onAdopt, onClose }) {
   const filterBtn = (id) => ({
     padding: "6px 12px",
     borderRadius: 6,
-    border: filter === id ? "1px solid #c9952d" : "1px solid #333",
-    background: filter === id ? "#c9952d15" : "transparent",
-    color: filter === id ? "#c9952d" : "#737373",
+    border: filter === id ? "1px solid var(--accent)" : "1px solid var(--border2)",
+    background: filter === id ? "var(--accent-bg2)" : "transparent",
+    color: filter === id ? "var(--accent)" : "var(--text-muted)",
     fontSize: 11,
     fontWeight: 700,
     fontFamily: "inherit",
@@ -206,14 +206,14 @@ function BrowsePrograms({ onAdopt, onClose }) {
 
       {/* Results */}
       {loading ? (
-        <div style={{ color: "#525252", fontSize: 12, textAlign: "center", padding: 32 }}>Loading...</div>
+        <div style={{ color: "var(--text-dim)", fontSize: 12, textAlign: "center", padding: 32 }}>Loading...</div>
       ) : filtered.length === 0 ? (
-        <div style={{ color: "#525252", fontSize: 12, textAlign: "center", padding: 32 }}>
+        <div style={{ color: "var(--text-dim)", fontSize: 12, textAlign: "center", padding: 32 }}>
           {search ? "No programs match your search" : "No programs available"}
         </div>
       ) : (
         filtered.map(p => {
-          const goalColors = { strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" };
+          const goalColors = { strength: "#ef4444", hypertrophy: "var(--accent)", general: "#22c55e" };
           const alreadyAdded = isAlreadyAdded(p);
           return (
             <div key={p._browseId} onClick={() => setPreview(p)} style={{ ...S.card, cursor: "pointer", opacity: alreadyAdded ? 0.6 : 1 }}>
@@ -221,7 +221,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                     {p.source === "template" ? (
-                      <span style={{ ...S.tag("#c9952d"), fontSize: 8, padding: "2px 6px" }}>✦ TALOS</span>
+                      <span style={{ ...S.tag(), fontSize: 8, padding: "2px 6px" }}>✦ TALOS</span>
                     ) : p.source === "own" ? (
                       <span style={{ ...S.tag("#22c55e"), fontSize: 8, padding: "2px 6px" }}>✓ Yours</span>
                     ) : (
@@ -229,12 +229,12 @@ function BrowsePrograms({ onAdopt, onClose }) {
                     )}
                     {alreadyAdded && <span style={{ fontSize: 9, color: "#22c55e" }}>✓ Added</span>}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{p.name}</div>
-                  {p.description && <div style={{ fontSize: 10, color: "#737373", marginTop: 2, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.description}</div>}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{p.name}</div>
+                  {p.description && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.description}</div>}
                   <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                     {p.tags && (
                       <>
-                        <span style={S.tag(goalColors[p.tags.goal] || "#737373")}>{p.tags.goal}</span>
+                        <span style={S.tag(goalColors[p.tags.goal] || "var(--text-muted)")}>{p.tags.goal}</span>
                         <span style={S.tag("#525252")}>{p.tags.daysPerWeek}x</span>
                         <span style={S.tag("#525252")}>{p.tags.level}</span>
                       </>
@@ -244,7 +244,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
                     )}
                   </div>
                 </div>
-                <span style={{ color: "#525252", fontSize: 14, flexShrink: 0, marginLeft: 8, marginTop: 4 }}>→</span>
+                <span style={{ color: "var(--text-dim)", fontSize: 14, flexShrink: 0, marginLeft: 8, marginTop: 4 }}>→</span>
               </div>
             </div>
           );
@@ -387,7 +387,7 @@ export default function ProgramsPage() {
       <div style={S.label}>{editing.id ? "Edit Program" : "New Program"}</div>
       <input value={editing.name} onChange={e => setEditing(p => ({ ...p, name: e.target.value }))} style={{ ...S.input, marginBottom: 8 }} placeholder="Program name" />
       <input value={editing.description} onChange={e => setEditing(p => ({ ...p, description: e.target.value }))} style={{ ...S.input, marginBottom: 8, fontSize: 12 }} placeholder="Description (optional)" />
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#737373", cursor: "pointer" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-muted)", cursor: "pointer" }}>
       <input type="checkbox" checked={editing.shared} onChange={e => setEditing(p => ({ ...p, shared: e.target.checked }))} />
       Publish to community
       </label>
@@ -406,10 +406,10 @@ export default function ProgramsPage() {
           <div key={day.id} style={S.card}>
           <div onClick={() => toggleDayCollapse(day.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", marginBottom: isCollapsed ? 0 : 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#525252", fontSize: 12, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>▼</span>
+          <span style={{ color: "var(--text-dim)", fontSize: 12, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}>▼</span>
           <div>
           <div style={S.label}>Day {di + 1}{day.label ? ` — ${day.label}` : ""}</div>
-          {isCollapsed && <div style={{ fontSize: 10, color: "#525252" }}>{day.exercises?.length || 0} exercises</div>}
+          {isCollapsed && <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{day.exercises?.length || 0} exercises</div>}
           </div>
           </div>
           <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
@@ -425,8 +425,8 @@ export default function ProgramsPage() {
             <input value={day.subtitle} onChange={e => updateDay(di, "subtitle", e.target.value)} style={{ ...S.input, marginBottom: 8, fontSize: 11 }} placeholder="Subtitle (e.g. Chest / Triceps)" />
 
             {day.exercises.map((ex, ei) => (
-              <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid #1a1a1a" }}>
-              <span onClick={() => { setPickerDayIdx(di); setReplacingExIdx(ei); setShowPicker(true); }} style={{ fontSize: 12, color: "#d4d4d4", flex: 1, cursor: "pointer", textDecoration: "underline", textDecorationColor: "#333", textUnderlineOffset: 2 }}>{ex.name}</span>
+              <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid var(--surface2)" }}>
+              <span onClick={() => { setPickerDayIdx(di); setReplacingExIdx(ei); setShowPicker(true); }} style={{ fontSize: 12, color: "var(--text-secondary)", flex: 1, cursor: "pointer", textDecoration: "underline", textDecorationColor: "var(--border2)", textUnderlineOffset: 2 }}>{ex.name}</span>
               <select value={ex.defaultSets} onChange={e => {
                 setEditing(p => {
                   const n = { ...p, days: [...p.days] };
@@ -438,7 +438,7 @@ export default function ProgramsPage() {
               }} style={{ ...S.smInput, width: 48, textAlign: "center" }} title="Sets">
               {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-              <span style={{ fontSize: 9, color: "#525252" }}>×</span>
+              <span style={{ fontSize: 9, color: "var(--text-dim)" }}>×</span>
               <input value={ex.targetReps || ""} onChange={e => {
                 setEditing(p => {
                   const n = { ...p, days: [...p.days] };
@@ -483,7 +483,7 @@ export default function ProgramsPage() {
 
     {programs.length === 0 && (
       <div style={{ ...S.card, textAlign: "center" }}>
-        <div style={{ fontSize: 12, color: "#525252", padding: "8px 0" }}>
+        <div style={{ fontSize: 12, color: "var(--text-dim)", padding: "8px 0" }}>
           No programs yet. Create one or browse templates and community programs.
         </div>
       </div>
@@ -493,13 +493,13 @@ export default function ProgramsPage() {
         <div key={p.id} onClick={() => editProgram(p)} style={{ ...S.card, cursor: "pointer" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{p.name}</div>
-              {p.description && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{p.description}</div>}
-            <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{p.name}</div>
+              {p.description && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{p.description}</div>}
+            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>
               {p.days?.length || 0} days · {p.shared ? "Published" : "Private"}
             </div>
           </div>
-          <span style={{ color: "#525252", fontSize: 18 }}>→</span>
+          <span style={{ color: "var(--text-dim)", fontSize: 18 }}>→</span>
         </div>
       </div>
     ))}

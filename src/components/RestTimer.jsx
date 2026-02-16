@@ -78,7 +78,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
       {/* Progress bar (top) */}
       <div style={{
         height: 4,
-        background: "#1a1a1a",
+        background: "var(--surface2)",
         borderRadius: 2,
         overflow: "hidden",
         marginBottom: 8,
@@ -114,7 +114,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
           }}
         >
           {done ? "✓ Go" : "Rest"}
-          {!done && <span style={{ fontSize: 8, color: "#525252", marginLeft: 4 }}>−15</span>}
+          {!done && <span style={{ fontSize: 8, color: "var(--text-dim)", marginLeft: 4 }}>−15</span>}
         </div>
 
         {/* Countdown — tap to add 15s */}
@@ -123,7 +123,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
           style={{
             fontSize: 28,
             fontWeight: 800,
-            color: done ? "#22c55e" : "#fafafa",
+            color: done ? "#22c55e" : "var(--text-bright)",
             fontVariantNumeric: "tabular-nums",
             fontFamily: "'JetBrains Mono','SF Mono',monospace",
             cursor: done ? "default" : "pointer",
@@ -134,7 +134,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
           }}
         >
           {done ? "0:00" : `${min}:${sec.toString().padStart(2, "0")}`}
-          {!done && <div style={{ fontSize: 8, color: "#525252", marginTop: 2, fontWeight: 400 }}>tap +15s</div>}
+          {!done && <div style={{ fontSize: 8, color: "var(--text-dim)", marginTop: 2, fontWeight: 400 }}>tap +15s</div>}
         </div>
 
         {/* Skip / Dismiss */}
@@ -143,9 +143,9 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
           style={{
             padding: "6px 12px",
             borderRadius: 5,
-            border: "1px solid #333",
+            border: "1px solid var(--border2)",
             background: "transparent",
-            color: done ? "#22c55e" : "#737373",
+            color: done ? "#22c55e" : "var(--text-muted)",
             fontSize: 11,
             fontWeight: 700,
             fontFamily: "inherit",

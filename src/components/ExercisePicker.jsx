@@ -90,7 +90,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
         onClick={() => selectExercise(ex)}
         style={{
           padding: "10px 12px",
-          borderBottom: "1px solid #1a1a1a",
+          borderBottom: "1px solid var(--surface2)",
           cursor: "pointer",
           display: "flex",
           justifyContent: "space-between",
@@ -98,12 +98,12 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 13, color: "#e5e5e5", fontWeight: 500 }}>{ex.name}</div>
-          <div style={{ fontSize: 10, color: "#525252" }}>
+          <div style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>{ex.name}</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)" }}>
             {ex.muscle} · {ex.equipment} · {ex.type}
           </div>
         </div>
-        <span style={{ color: "#525252" }}>+</span>
+        <span style={{ color: "var(--text-dim)" }}>+</span>
       </div>
     );
   }
@@ -113,16 +113,16 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.85)",
+        background: "var(--overlay)",
         zIndex: 300,
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Header with search + filters */}
-      <div style={{ padding: "16px 16px 8px", background: "#0a0a0a", borderBottom: "1px solid #262626" }}>
+      <div style={{ padding: "16px 16px 8px", background: "var(--bg)", borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>Exercise Library</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>Exercise Library</div>
           <button onClick={onClose} style={S.sm()}>✕ Close</button>
         </div>
         <input
@@ -161,7 +161,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
         </div>
 
         {/* Result count */}
-        <div style={{ fontSize: 10, color: "#525252", marginTop: 6, textAlign: "right" }}>
+        <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 6, textAlign: "right" }}>
           {hasFilters
             ? `${filtered.length} result${filtered.length !== 1 ? "s" : ""}`
             : `${allExercises.length} exercises`
@@ -176,7 +176,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
           <>
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase",
-              color: "#c9952d", padding: "12px 0 4px",
+              color: "var(--accent)", padding: "12px 0 4px",
             }}>
               Recently Used
             </div>
@@ -185,7 +185,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
             ))}
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase",
-              color: "#737373", padding: "14px 0 4px", borderTop: "1px solid #262626", marginTop: 4,
+              color: "var(--text-muted)", padding: "14px 0 4px", borderTop: "1px solid var(--border)", marginTop: 4,
             }}>
               All Exercises
             </div>
@@ -197,7 +197,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
           <>
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase",
-              color: "#c9952d", padding: "12px 0 4px",
+              color: "var(--accent)", padding: "12px 0 4px",
             }}>
               Recent Matches
             </div>
@@ -205,7 +205,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
               <ExerciseRow key={`frecent-${i}`} ex={ex} />
             ))}
             <div style={{
-              height: 1, background: "#262626", margin: "8px 0",
+              height: 1, background: "var(--border)", margin: "8px 0",
             }} />
           </>
         )}
@@ -215,7 +215,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
           <ExerciseRow key={i} ex={ex} />
         ))}
         {filtered.length === 0 && (
-          <div style={{ padding: 20, textAlign: "center", color: "#525252", fontSize: 12 }}>
+          <div style={{ padding: 20, textAlign: "center", color: "var(--text-dim)", fontSize: 12 }}>
             No exercises found
           </div>
         )}

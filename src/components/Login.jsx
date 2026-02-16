@@ -57,7 +57,7 @@ export default function Login({ onLogin }) {
         <img src="/talos-icon.svg" alt="" style={{ width: 32, height: 32, verticalAlign: "middle", marginRight: 8 }} />
         TALOS
       </div>
-      <div style={{ color: "#525252", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Unyielding</div>
+      <div style={{ color: "var(--text-dim)", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Unyielding</div>
 
       {/* ── LOGIN ── */}
       {mode === "login" && (
@@ -65,11 +65,11 @@ export default function Login({ onLogin }) {
           <div style={S.label}>Sign In</div>
           <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" autoFocus autoComplete="email" required />
             </div>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="current-password" required />
             </div>
           </div>
@@ -87,26 +87,26 @@ export default function Login({ onLogin }) {
           <div style={S.label}>Create Account</div>
           <div style={{ ...S.card, margin: "8px 0", display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Name</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Name</div>
               <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} placeholder="Your name" autoFocus required />
             </div>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Email</div>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inputStyle} placeholder="you@example.com" autoComplete="email" required />
             </div>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} autoComplete="new-password" required />
             </div>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</div>
               <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle} autoComplete="new-password" required />
             </div>
             <div>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Color</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase" }}>Avatar Color</div>
               <div style={{ display: "flex", gap: 8 }}>
                 {USER_COLORS.map(c => (
-                  <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid #fff" : "3px solid transparent" }} />
+                  <div key={c} onClick={() => setColor(c)} style={{ width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid var(--text-bright)" : "3px solid transparent" }} />
                 ))}
               </div>
             </div>

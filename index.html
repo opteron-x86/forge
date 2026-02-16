@@ -12,29 +12,63 @@
     <link rel="icon" type="image/svg+xml" href="/talos-icon.svg" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <style>
+      /* Default theme variables (talos) — overridden by JS on load */
+      :root {
+        --bg: #0a0a0a;
+        --surface: #141414;
+        --surface2: #1a1a1a;
+        --border: #262626;
+        --border2: #333333;
+        --text-dim: #525252;
+        --text-muted: #737373;
+        --text-light: #a3a3a3;
+        --text: #e5e5e5;
+        --text-secondary: #d4d4d4;
+        --text-bright: #fafafa;
+        --accent: #c9952d;
+        --accent-text: #000000;
+        --accent-bg: rgba(201,149,45,0.12);
+        --accent-bg2: rgba(201,149,45,0.15);
+        --accent-muted: #b8862a;
+        --scrollbar: #333333;
+        --shadow: rgba(0,0,0,0.6);
+        --overlay: rgba(0,0,0,0.85);
+        --font: 'JetBrains Mono','SF Mono',monospace;
+      }
       * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-      body { background: #0a0a0a; overflow-x: hidden; }
+      body { background: var(--bg); overflow-x: hidden; }
       input[type="number"]::-webkit-inner-spin-button,
       input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
       input[type="number"] { -moz-appearance: textfield; }
       ::-webkit-scrollbar { width: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+      ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       .fade-in { animation: fadeIn 0.2s ease-out; }
       /* AI Coach Markdown */
-      .md-response { font-size: 13px; line-height: 1.7; color: #d4d4d4; }
-      .md-response strong { color: #fafafa; font-weight: 700; }
-      .md-response em { color: #d4d4d4; font-style: italic; }
-      .md-h2 { font-size: 16px; font-weight: 800; color: #fafafa; margin: 16px 0 8px; }
-      .md-h3 { font-size: 14px; font-weight: 700; color: #c9952d; margin: 14px 0 6px; }
-      .md-h4 { font-size: 13px; font-weight: 700; color: #e5e5e5; margin: 12px 0 4px; }
+      .md-response { font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
+      .md-response strong { color: var(--text-bright); font-weight: 700; }
+      .md-response em { color: var(--text-secondary); font-style: italic; }
+      .md-h2 { font-size: 16px; font-weight: 800; color: var(--text-bright); margin: 16px 0 8px; }
+      .md-h3 { font-size: 14px; font-weight: 700; color: var(--accent); margin: 14px 0 6px; }
+      .md-h4 { font-size: 13px; font-weight: 700; color: var(--text); margin: 12px 0 4px; }
       .md-ul, .md-ol { margin: 6px 0; padding-left: 20px; }
-      .md-li { margin: 3px 0; color: #d4d4d4; }
-      .md-code { background: #1a1a1a; border: 1px solid #333; border-radius: 3px; padding: 1px 5px; font-family: inherit; font-size: 12px; color: #c9952d; }
-      .md-hr { border: none; border-top: 1px solid #262626; margin: 12px 0; }
+      .md-li { margin: 3px 0; color: var(--text-secondary); }
+      .md-code { background: var(--surface2); border: 1px solid var(--border2); border-radius: 3px; padding: 1px 5px; font-family: inherit; font-size: 12px; color: var(--accent); }
+      .md-hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
       .md-break { height: 10px; }
     </style>
+    <!-- Restore saved theme before first paint to prevent flash -->
+    <script>
+      try {
+        const t = localStorage.getItem('talos-theme');
+        if (t && t !== 'talos') {
+          const themes = {"breeze":{"--bg":"#f5f7fa","--surface":"#ffffff","--surface2":"#eef1f6","--border":"#d1d5db","--border2":"#c0c6d0","--text-dim":"#9ca3af","--text-muted":"#6b7280","--text-light":"#4b5563","--text":"#1f2937","--text-secondary":"#374151","--text-bright":"#111827","--accent":"#2563eb","--accent-text":"#ffffff","--accent-bg":"rgba(37,99,235,0.10)","--accent-bg2":"rgba(37,99,235,0.14)","--accent-muted":"#1d4ed8","--scrollbar":"#c0c6d0","--shadow":"rgba(0,0,0,0.08)","--overlay":"rgba(0,0,0,0.5)","--font":"'JetBrains Mono','SF Mono',monospace"},"breeze-dark":{"--bg":"#0f172a","--surface":"#1e293b","--surface2":"#253349","--border":"#334155","--border2":"#475569","--text-dim":"#64748b","--text-muted":"#94a3b8","--text-light":"#cbd5e1","--text":"#e2e8f0","--text-secondary":"#cbd5e1","--text-bright":"#f8fafc","--accent":"#3b82f6","--accent-text":"#ffffff","--accent-bg":"rgba(59,130,246,0.12)","--accent-bg2":"rgba(59,130,246,0.16)","--accent-muted":"#2563eb","--scrollbar":"#475569","--shadow":"rgba(0,0,0,0.5)","--overlay":"rgba(0,0,0,0.8)","--font":"'JetBrains Mono','SF Mono',monospace"},"monokai":{"--bg":"#272822","--surface":"#2e2f2a","--surface2":"#383930","--border":"#49483e","--border2":"#5b5a50","--text-dim":"#75715e","--text-muted":"#908d82","--text-light":"#a6a39c","--text":"#f8f8f2","--text-secondary":"#e6e6da","--text-bright":"#ffffff","--accent":"#a6e22e","--accent-text":"#272822","--accent-bg":"rgba(166,226,46,0.10)","--accent-bg2":"rgba(166,226,46,0.14)","--accent-muted":"#8ec420","--scrollbar":"#5b5a50","--shadow":"rgba(0,0,0,0.5)","--overlay":"rgba(0,0,0,0.8)","--font":"'JetBrains Mono','SF Mono',monospace"},"paper":{"--bg":"#faf8f5","--surface":"#ffffff","--surface2":"#f3f0eb","--border":"#e2ddd5","--border2":"#d4cec4","--text-dim":"#a39e93","--text-muted":"#7c7770","--text-light":"#5c574f","--text":"#2d2a26","--text-secondary":"#44403a","--text-bright":"#1a1815","--accent":"#c05621","--accent-text":"#ffffff","--accent-bg":"rgba(192,86,33,0.10)","--accent-bg2":"rgba(192,86,33,0.14)","--accent-muted":"#a8491b","--scrollbar":"#d4cec4","--shadow":"rgba(0,0,0,0.06)","--overlay":"rgba(0,0,0,0.45)","--font":"'JetBrains Mono','SF Mono',monospace"},"cyberpunk":{"--bg":"#0d0d12","--surface":"#14141f","--surface2":"#1c1c2b","--border":"#2a2a3d","--border2":"#3a3a52","--text-dim":"#555570","--text-muted":"#7a7a99","--text-light":"#a0a0bf","--text":"#e0e0f0","--text-secondary":"#c8c8e0","--text-bright":"#f5f5ff","--accent":"#ff2d8a","--accent-text":"#ffffff","--accent-bg":"rgba(255,45,138,0.12)","--accent-bg2":"rgba(255,45,138,0.16)","--accent-muted":"#e0267a","--scrollbar":"#3a3a52","--shadow":"rgba(0,0,0,0.6)","--overlay":"rgba(0,0,0,0.85)","--font":"'JetBrains Mono','SF Mono',monospace"},"evergreen":{"--bg":"#0a120e","--surface":"#111f18","--surface2":"#182b21","--border":"#1f3a2b","--border2":"#2d5240","--text-dim":"#4a7a64","--text-muted":"#6b9e84","--text-light":"#93bda8","--text":"#d1e8dc","--text-secondary":"#b5d6c4","--text-bright":"#ecfdf5","--accent":"#34d399","--accent-text":"#0a120e","--accent-bg":"rgba(52,211,153,0.10)","--accent-bg2":"rgba(52,211,153,0.14)","--accent-muted":"#2ab882","--scrollbar":"#2d5240","--shadow":"rgba(0,0,0,0.5)","--overlay":"rgba(0,0,0,0.8)","--font":"'JetBrains Mono','SF Mono',monospace"}};
+          const v = themes[t];
+          if (v) { const r = document.documentElement; for (const [k, val] of Object.entries(v)) r.style.setProperty(k, val); document.querySelector('meta[name="theme-color"]')?.setAttribute('content', v['--bg']); }
+        }
+      } catch(e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

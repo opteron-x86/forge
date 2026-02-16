@@ -122,9 +122,9 @@ export default function TrainPage({ onStartWorkout }) {
         <div style={S.stat}>
           <div style={{
             ...S.statV,
-            color: stats.daysSince === null ? "#525252"
+            color: stats.daysSince === null ? "var(--text-dim)"
               : stats.daysSince === 0 ? "#22c55e"
-              : stats.daysSince <= 2 ? "#fafafa"
+              : stats.daysSince <= 2 ? "var(--text-bright)"
               : stats.daysSince <= 4 ? "#eab308"
               : "#ef4444",
           }}>
@@ -143,29 +143,29 @@ export default function TrainPage({ onStartWorkout }) {
           >
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#a3a3a3" }}>Last Session</span>
-                <span style={S.tag(FEEL[(lastWorkout.feel || 3) - 1]?.c || "#737373")}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-light)" }}>Last Session</span>
+                <span style={S.tag(FEEL[(lastWorkout.feel || 3) - 1]?.c || "var(--text-muted)")}>
                   {FEEL[(lastWorkout.feel || 3) - 1]?.l || "—"}
                 </span>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", marginTop: 3 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)", marginTop: 3 }}>
                 {lastWorkout.day_label || "Workout"}
               </div>
-              <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
                 {daysAgoText(lastWorkout.date)}
                 {lastWorkout.duration ? ` · ${lastWorkout.duration}min` : ""}
                 {lastWorkout.exercises ? ` · ${lastWorkout.exercises.length} exercise${lastWorkout.exercises.length !== 1 ? "s" : ""}` : ""}
               </div>
             </div>
-            <span style={{ color: "#525252", fontSize: 10, transform: showLastSession ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+            <span style={{ color: "var(--text-dim)", fontSize: 10, transform: showLastSession ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
           </div>
 
           {showLastSession && (
-            <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #262626" }}>
+            <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
               {lastWorkout.exercises?.map((ex, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-                  <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
-                  <span style={{ fontSize: 11, color: "#525252" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
                     {ex.sets?.map(s => `${s.weight}×${s.reps}`).join(", ")}
                   </span>
                 </div>
@@ -185,8 +185,8 @@ export default function TrainPage({ onStartWorkout }) {
       {programs.length === 0 && (
         <div style={{ ...S.card, textAlign: "center" }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}><img src="/talos-icon.svg" alt="" style={{ width: 28, height: 28 }} /></div>
-          <div style={{ color: "#fafafa", fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Welcome to TALOS</div>
-          <div style={{ color: "#525252", fontSize: 12, lineHeight: 1.5 }}>Create a program in the <span style={{ color: "#c9952d" }}>Prog</span> tab to get started, or hit Blank Workout below to jump right in.</div>
+          <div style={{ color: "var(--text-bright)", fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Welcome to TALOS</div>
+          <div style={{ color: "var(--text-dim)", fontSize: 12, lineHeight: 1.5 }}>Create a program in the <span style={{ color: "var(--accent)" }}>Prog</span> tab to get started, or hit Blank Workout below to jump right in.</div>
         </div>
       )}
 
@@ -197,10 +197,10 @@ export default function TrainPage({ onStartWorkout }) {
             style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: programs.length > 1 ? "pointer" : "default" }}>
             <div>
               <div style={S.label}>Active Program</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#fafafa", marginTop: 2 }}>{activeProg.name}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text-bright)", marginTop: 2 }}>{activeProg.name}</div>
             </div>
             {programs.length > 1 && (
-              <span style={{ color: "#737373", fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", padding: "4px 8px", border: "1px solid #333", borderRadius: 4 }}>
+              <span style={{ color: "var(--text-muted)", fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase", padding: "4px 8px", border: "1px solid var(--border2)", borderRadius: 4 }}>
                 Switch {showProgramPicker ? "▲" : "▼"}
               </span>
             )}
@@ -208,15 +208,15 @@ export default function TrainPage({ onStartWorkout }) {
 
           {/* Program picker dropdown */}
           {showProgramPicker && (
-            <div style={{ marginTop: 8, background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, overflow: "hidden" }}>
+            <div style={{ marginTop: 8, background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 8, overflow: "hidden" }}>
               {programs.filter(p => p.id !== activeProg.id).map(p => (
                 <div key={p.id} onClick={() => switchProgram(p.id)}
-                  style={{ padding: "10px 12px", cursor: "pointer", borderBottom: "1px solid #262626", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  style={{ padding: "10px 12px", cursor: "pointer", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#d4d4d4" }}>{p.name}</div>
-                    <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>{p.days?.length || 0} days</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>{p.name}</div>
+                    <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>{p.days?.length || 0} days</div>
                   </div>
-                  <span style={{ color: "#525252", fontSize: 14 }}>→</span>
+                  <span style={{ color: "var(--text-dim)", fontSize: 14 }}>→</span>
                 </div>
               ))}
             </div>
@@ -237,31 +237,31 @@ export default function TrainPage({ onStartWorkout }) {
           <div key={day.id} onClick={() => onStartWorkout(activeProg, day)}
             style={{
               ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
-              borderColor: isNext ? "#c9952d" : "#262626",
+              borderColor: isNext ? "var(--accent)" : "var(--border)",
             }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{day.label}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{day.label}</span>
                 {isNext && <span style={S.tag()}>NEXT</span>}
               </div>
-              {day.subtitle && <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{day.subtitle}</div>}
+              {day.subtitle && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{day.subtitle}</div>}
 
               {/* Exercise preview */}
               {exercisePreview.length > 0 && (
-                <div style={{ fontSize: 10, color: "#525252", marginTop: 4, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, lineHeight: 1.4 }}>
                   {exercisePreview.join(" · ")}{moreCount > 0 ? ` +${moreCount}` : ""}
                 </div>
               )}
 
               {/* Last performed + template indicator */}
               {lastDate && (
-                <div style={{ fontSize: 10, color: "#404040", marginTop: 3 }}>
+                <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3 }}>
                   Last: {daysAgoText(lastDate)}
-                  {hasTemplate && <span style={{ color: "#525252", marginLeft: 4 }}>· weights loaded</span>}
+                  {hasTemplate && <span style={{ color: "var(--text-dim)", marginLeft: 4 }}>· weights loaded</span>}
                 </div>
               )}
             </div>
-            <span style={{ color: "#525252", fontSize: 18, flexShrink: 0, marginLeft: 8 }}>→</span>
+            <span style={{ color: "var(--text-dim)", fontSize: 18, flexShrink: 0, marginLeft: 8 }}>→</span>
           </div>
         );
       })}
@@ -278,19 +278,19 @@ export default function TrainPage({ onStartWorkout }) {
               <div key={w.id} onClick={() => repeatWorkout(w)}
                 style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>
                     {w.day_label || "Workout"}
                   </div>
-                  <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
+                  <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
                     {daysAgoText(w.date)}
                     {` · ${w.exercises?.length || 0} exercises`}
                     {vol > 0 ? ` · ${vol >= 1000 ? `${Math.round(vol / 1000)}k` : vol} lbs` : ""}
                   </div>
-                  {progName && <div style={{ fontSize: 9, color: "#404040", marginTop: 1 }}>{progName}</div>}
+                  {progName && <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 1 }}>{progName}</div>}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Repeat</span>
-                  <span style={{ color: "#525252", fontSize: 14 }}>→</span>
+                  <span style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase" }}>Repeat</span>
+                  <span style={{ color: "var(--text-dim)", fontSize: 14 }}>→</span>
                 </div>
               </div>
             );
@@ -302,10 +302,10 @@ export default function TrainPage({ onStartWorkout }) {
       <div style={{ padding: "12px 16px 4px" }}><div style={S.label}>Quick Start</div></div>
       <div onClick={() => onStartWorkout(null, null)} style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>Blank Workout</div>
-          <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>Build as you go</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>Blank Workout</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>Build as you go</div>
         </div>
-        <span style={{ color: "#525252", fontSize: 18 }}>→</span>
+        <span style={{ color: "var(--text-dim)", fontSize: 18 }}>→</span>
       </div>
     </div>
   );

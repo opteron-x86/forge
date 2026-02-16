@@ -1,9 +1,10 @@
 // ═══════════════════════ SETTINGS MODAL ═══════════════════════
-// Account settings, AI config (admin only), password change, admin panel.
+// Account settings, theme, AI config (admin only), password change, admin panel.
 
 import { useState, useEffect } from "react";
 import { useTalos } from "../context/TalosContext";
 import { USER_COLORS } from "../lib/helpers";
+import { THEME_LIST, THEMES, applyTheme } from "../lib/themes";
 import api from "../lib/api";
 import S from "../lib/styles";
 import AdminPanel from "./AdminPanel";
@@ -12,6 +13,8 @@ export default function SettingsModal({ onClose, onLogout }) {
   const { user, updateUser } = useTalos();
   const [name, setName] = useState(user.name);
   const [color, setColor] = useState(user.color);
+  const [theme, setTheme] = useState(user.theme || "talos");
+  const [originalTheme] = useState(user.theme || "talos");
   const [showAI, setShowAI] = useState(false);
   const [aiForm, setAiForm] = useState({ provider: "", model: "", baseUrl: "", supportsTools: true });
   const [aiProviders, setAiProviders] = useState([]);
@@ -46,14 +49,28 @@ export default function SettingsModal({ onClose, onLogout }) {
     }
   }, [showAI]);
 
+  // Live preview: apply theme immediately on selection
+  function selectTheme(id) {
+    setTheme(id);
+    applyTheme(id);
+  }
+
   async function save() {
     try {
-      await api.put("/auth/account", { name, color });
-      updateUser({ name, color });
+      await api.put("/auth/account", { name, color, theme });
+      updateUser({ name, color, theme });
       onClose();
     } catch (e) {
       alert("Save failed: " + e.message);
     }
+  }
+
+  function handleClose() {
+    // Revert theme if not saved
+    if (theme !== originalTheme) {
+      applyTheme(originalTheme);
+    }
+    onClose();
   }
 
   async function changePassword() {
@@ -86,48 +103,83 @@ export default function SettingsModal({ onClose, onLogout }) {
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div style={{ position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ ...S.card, margin: 0, maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div style={S.label}>Settings</div>
-          <button onClick={onClose} style={S.sm()}>✕</button>
+          <button onClick={handleClose} style={S.sm()}>✕</button>
         </div>
 
         {/* Account info */}
-        <div style={{ fontSize: 11, color: "#737373", marginBottom: 12 }}>
-          {user.email}{isAdmin && <span style={{ ...S.tag("#c9952d"), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
+        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
+          {user.email}{isAdmin && <span style={{ ...S.tag(), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Name</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Name</div>
           <input value={name} onChange={e => setName(e.target.value)} style={S.input} />
         </div>
+
+        {/* Theme selector */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 6, textTransform: "uppercase" }}>Theme</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {THEME_LIST.map(t => {
+              const active = theme === t.id;
+              return (
+                <div
+                  key={t.id}
+                  onClick={() => selectTheme(t.id)}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: active ? "2px solid var(--accent)" : "1px solid var(--border2)",
+                    background: active ? "var(--accent-bg)" : "transparent",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {/* Color preview dots */}
+                  <div style={{ display: "flex", gap: 4, marginBottom: 5 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.bg, border: "1px solid rgba(128,128,128,0.3)" }} />
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.surface, border: "1px solid rgba(128,128,128,0.3)" }} />
+                    <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.accent }} />
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: active ? "var(--accent)" : "var(--text)" }}>{t.name}</div>
+                  <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1 }}>{t.description}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Avatar color */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Color</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Avatar Color</div>
           <div style={{ display: "flex", gap: 8 }}>
-            {USER_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 24, height: 24, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid #fff" : "3px solid transparent" }} />)}
+            {USER_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 24, height: 24, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid var(--text-bright)" : "3px solid transparent" }} />)}
           </div>
         </div>
 
         {/* Change Password */}
-        <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
           <div onClick={() => setShowPassword(!showPassword)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-            <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>Change Password</div>
-            <span style={{ color: "#525252", fontSize: 12, transform: showPassword ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+            <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Change Password</div>
+            <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showPassword ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
           </div>
         </div>
         {showPassword && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Current Password</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Current Password</div>
               <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="current-password" />
             </div>
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>New Password</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>New Password</div>
               <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="new-password" />
             </div>
             <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Confirm New Password</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Confirm New Password</div>
               <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="new-password" />
             </div>
             {passwordMsg && <div style={{ fontSize: 11, color: passwordMsg === "Password updated!" ? "#22c55e" : "#ef4444", marginBottom: 8 }}>{passwordMsg}</div>}
@@ -138,18 +190,18 @@ export default function SettingsModal({ onClose, onLogout }) {
         {/* AI Provider Config (admin only) */}
         {isAdmin && (
           <>
-            <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
               <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-                <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>AI Coach Provider</div>
-                <span style={{ color: "#525252", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+                <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>AI Coach Provider</div>
+                <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
               </div>
-              {aiStatus && <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{aiStatus}</div>}
+              {aiStatus && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{aiStatus}</div>}
             </div>
 
             {showAI && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
+                  <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
                   <select value={aiForm.provider} onChange={e => {
                     const newProvider = e.target.value;
                     const models = PROVIDERS.find(p => p.id === newProvider)?.models || [];
@@ -159,7 +211,7 @@ export default function SettingsModal({ onClose, onLogout }) {
                   </select>
                 </div>
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
+                  <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Model</div>
                   {(() => {
                     const providerModels = PROVIDERS.find(p => p.id === aiForm.provider)?.models || [];
                     const isKnownModel = providerModels.some(m => m.id === aiForm.model);
@@ -187,17 +239,17 @@ export default function SettingsModal({ onClose, onLogout }) {
                 {aiForm.provider === "openai-compatible" && (
                   <>
                     <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Base URL</div>
+                      <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Base URL</div>
                       <input value={aiForm.baseUrl} onChange={e => setAiForm(f => ({ ...f, baseUrl: e.target.value }))} style={{ ...S.input, fontSize: 12 }} placeholder="http://localhost:11434/v1" />
                     </div>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#737373", cursor: "pointer", marginBottom: 8 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "var(--text-muted)", cursor: "pointer", marginBottom: 8 }}>
                       <input type="checkbox" checked={aiForm.supportsTools} onChange={e => setAiForm(f => ({ ...f, supportsTools: e.target.checked }))} />
                       Supports tool/function calling
                     </label>
                   </>
                 )}
                 <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save AI Config</button>
-                <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "center" }}>API keys are set via environment variables (AI_API_KEY or ANTHROPIC_API_KEY).</div>
+                <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "center" }}>API keys are set via environment variables (AI_API_KEY or ANTHROPIC_API_KEY).</div>
               </div>
             )}
           </>
@@ -205,8 +257,8 @@ export default function SettingsModal({ onClose, onLogout }) {
 
         {/* Admin Panel link */}
         {isAdmin && (
-          <div style={{ borderTop: "1px solid #262626", paddingTop: 12, marginBottom: 12 }}>
-            <button onClick={() => setShowAdmin(true)} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11, color: "#c9952d" }}>
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
+            <button onClick={() => setShowAdmin(true)} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11, color: "var(--accent)" }}>
               Admin Panel — Manage Users
             </button>
           </div>

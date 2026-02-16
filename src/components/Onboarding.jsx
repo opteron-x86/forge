@@ -63,16 +63,16 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
   // ── Shared styles ──
   const container = { minHeight: "100dvh", display: "flex", flexDirection: "column", padding: "0 16px 32px" };
   const center = { flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" };
-  const heading = { fontSize: 22, fontWeight: 800, color: "#fafafa", marginBottom: 6, letterSpacing: "-0.5px" };
-  const subtext = { fontSize: 13, color: "#737373", lineHeight: 1.5, marginBottom: 24 };
+  const heading = { fontSize: 22, fontWeight: 800, color: "var(--text-bright)", marginBottom: 6, letterSpacing: "-0.5px" };
+  const subtext = { fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5, marginBottom: 24 };
   const card = (active) => ({
     ...S.card,
     cursor: "pointer",
-    borderColor: active ? "#c9952d" : "#262626",
-    background: active ? "#c9952d10" : "#141414",
+    borderColor: active ? "var(--accent)" : "var(--border)",
+    background: active ? "var(--accent-bg)" : "var(--surface)",
     transition: "border-color 0.15s, background 0.15s",
   });
-  const skipBtn = { background: "none", border: "none", color: "#525252", fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: "8px 0" };
+  const skipBtn = { background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: "8px 0" };
 
   // ══════════════ STEP 0: Welcome ══════════════
   if (step === 0) {
@@ -81,10 +81,10 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
         <div style={center}>
           <div style={{ textAlign: "center", marginBottom: 32 }}>
             <img src="/talos-icon.svg" alt="" style={{ width: 56, height: 56, marginBottom: 16 }} />
-            <div style={{ fontSize: 28, fontWeight: 900, color: "#fafafa", letterSpacing: "-1px" }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: "var(--text-bright)", letterSpacing: "-1px" }}>
               Welcome to TALOS{userName ? `, ${userName}` : ""}
             </div>
-            <div style={{ fontSize: 14, color: "#737373", marginTop: 8, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.6 }}>
               Your training, tracked and analyzed.<br />
               Let's set up your first program.
             </div>
@@ -113,8 +113,8 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 24 }}>{l.icon}</span>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: level === l.id ? "#fafafa" : "#d4d4d4" }}>{l.label}</div>
-                  <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{l.desc}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: level === l.id ? "var(--text-bright)" : "var(--text-secondary)" }}>{l.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{l.desc}</div>
                 </div>
               </div>
             </div>
@@ -147,8 +147,8 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
                 textAlign: "center",
                 padding: "16px 12px",
               }}>
-                <div style={{ fontSize: 24, fontWeight: 900, color: days === d.n ? "#c9952d" : "#fafafa" }}>{d.n}</div>
-                <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{d.desc}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: days === d.n ? "var(--accent)" : "var(--text-bright)" }}>{d.n}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{d.desc}</div>
               </div>
             ))}
           </div>
@@ -178,20 +178,20 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
           </div>
 
           {displayTemplates.map((t, i) => {
-            const goalColors = { strength: "#ef4444", hypertrophy: "#c9952d", general: "#22c55e" };
+            const goalColors = { strength: "#ef4444", hypertrophy: "var(--accent)", general: "#22c55e" };
             return (
               <div key={i} onClick={() => { setSelectedTemplate(t); setStep(4); }} style={{ ...S.card, cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>{t.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{t.name}</div>
                     <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                      <span style={S.tag(goalColors[t.tags.goal] || "#737373")}>{t.tags.goal}</span>
+                      <span style={S.tag(goalColors[t.tags.goal] || "var(--text-muted)")}>{t.tags.goal}</span>
                       <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x/week</span>
                       <span style={S.tag("#525252")}>{t.tags.level}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: "#737373", marginTop: 6, lineHeight: 1.4 }}>{t.description}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.4 }}>{t.description}</div>
                   </div>
-                  <span style={{ color: "#525252", fontSize: 18, flexShrink: 0, marginLeft: 8 }}>→</span>
+                  <span style={{ color: "var(--text-dim)", fontSize: 18, flexShrink: 0, marginLeft: 8 }}>→</span>
                 </div>
               </div>
             );
@@ -228,16 +228,16 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
           {/* Quick stats */}
           <div style={{ ...S.card, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, textAlign: "center" }}>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#fafafa" }}>{t.days.length}</div>
-              <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>Days</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-bright)" }}>{t.days.length}</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Days</div>
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#fafafa" }}>{totalExercises}</div>
-              <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>Exercises</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-bright)" }}>{totalExercises}</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Exercises</div>
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#c9952d" }}>{t.tags.level}</div>
-              <div style={{ fontSize: 10, color: "#525252", textTransform: "uppercase" }}>Level</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--accent)" }}>{t.tags.level}</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Level</div>
             </div>
           </div>
 
@@ -246,15 +246,15 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
             <div key={di} style={S.card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{day.label}</div>
-                  {day.subtitle && <div style={{ fontSize: 10, color: "#737373", marginTop: 1 }}>{day.subtitle}</div>}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{day.label}</div>
+                  {day.subtitle && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{day.subtitle}</div>}
                 </div>
-                <span style={{ fontSize: 10, color: "#525252" }}>{day.exercises.length} exercises</span>
+                <span style={{ fontSize: 10, color: "var(--text-dim)" }}>{day.exercises.length} exercises</span>
               </div>
               {day.exercises.map((ex, ei) => (
-                <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderTop: ei === 0 ? "1px solid #1a1a1a" : "none" }}>
-                  <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
-                  <span style={{ fontSize: 11, color: "#525252", flexShrink: 0, marginLeft: 8 }}>
+                <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderTop: ei === 0 ? "1px solid var(--surface2)" : "none" }}>
+                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, marginLeft: 8 }}>
                     {ex.defaultSets}×{ex.targetReps}
                   </span>
                 </div>

@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import TalosContext from "./context/TalosContext";
 import api from "./lib/api";
 import { DEFAULT_PROFILE, genId } from "./lib/helpers";
+import { applyTheme } from "./lib/themes";
 import S from "./lib/styles";
 
 // Pages
@@ -69,7 +70,7 @@ export default function App() {
       return;
     }
     api.get("/auth/me")
-      .then((u) => { setUser(u); setAuthChecked(true); })
+      .then((u) => { setUser(u); if (u.theme) applyTheme(u.theme); setAuthChecked(true); })
       .catch(() => { api.clearToken(); setAuthChecked(true); });
   }, []);
 
@@ -80,10 +81,17 @@ export default function App() {
     setTab("train");
     setCurrent(null);
     setLoaded(false);
+    applyTheme("talos"); // Reset to default
+  }
+
+  function handleLogin(u) {
+    setUser(u);
+    if (u.theme) applyTheme(u.theme);
   }
 
   function updateUser(updates) {
     setUser(prev => prev ? { ...prev, ...updates } : prev);
+    if (updates.theme) applyTheme(updates.theme);
   }
 
   // ── Load user data on login ──
@@ -328,19 +336,19 @@ export default function App() {
   if (!authChecked) {
     return (
       <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#c9952d", fontSize: 14 }}>Loading...</div>
+        <div style={{ color: "var(--accent)", fontSize: 14 }}>Loading...</div>
       </div>
     );
   }
 
   if (!user) {
-    return <Login onLogin={setUser} />;
+    return <Login onLogin={handleLogin} />;
   }
 
   if (!loaded) {
     return (
       <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#c9952d", fontSize: 14 }}>Loading...</div>
+        <div style={{ color: "var(--accent)", fontSize: 14 }}>Loading...</div>
       </div>
     );
   }
@@ -441,9 +449,9 @@ export default function App() {
                 width: 32,
                 height: 32,
                 borderRadius: "50%",
-                border: activeTab === "coach" ? "1px solid #c9952d" : "1px solid #333",
-                background: activeTab === "coach" ? "#c9952d20" : "transparent",
-                color: activeTab === "coach" ? "#c9952d" : "#737373",
+                border: activeTab === "coach" ? "1px solid var(--accent)" : "1px solid var(--border2)",
+                background: activeTab === "coach" ? "var(--accent-bg)" : "transparent",
+                color: activeTab === "coach" ? "var(--accent)" : "var(--text-muted)",
                 fontSize: 15,
                 cursor: "pointer",
                 display: "flex",

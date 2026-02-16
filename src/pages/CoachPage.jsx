@@ -275,10 +275,10 @@ export default function CoachPage() {
   // ── Type badge for messages ──
   function TypeBadge({ type }) {
     const cfg = {
-      chat: { icon: "⚡", color: "#c9952d" },
+      chat: { icon: "⚡", color: "var(--accent)" },
       program: { icon: "📋", color: "#3b82f6" },
       weekly: { icon: "📊", color: "#22c55e" },
-    }[type] || { icon: "⚡", color: "#c9952d" };
+    }[type] || { icon: "⚡", color: "var(--accent)" };
     return (
       <span style={{
         fontSize: 9, fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase",
@@ -297,8 +297,8 @@ export default function CoachPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>⚡</span>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#fafafa" }}>AI Coach</div>
-              <div style={{ fontSize: 10, color: "#525252" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>AI Coach</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)" }}>
                 {coachMode === "weekly"
                   ? "7-day training analysis"
                   : `Analyzes your last ${Math.min(workouts.length, 10)} workouts`}
@@ -308,7 +308,7 @@ export default function CoachPage() {
           {coachHistory.length > 0 && (
             <button
               onClick={() => setShowClearConfirm(true)}
-              style={{ ...S.sm("ghost"), fontSize: 9, color: "#525252", padding: "3px 6px" }}
+              style={{ ...S.sm("ghost"), fontSize: 9, color: "var(--text-dim)", padding: "3px 6px" }}
               title="Clear conversation history"
             >
               Clear
@@ -328,7 +328,7 @@ export default function CoachPage() {
       {showClearConfirm && (
         <div style={{ ...S.card, border: "1px solid #92400e", background: "#1c1207" }}>
           <div style={{ fontSize: 12, color: "#fbbf24", marginBottom: 8 }}>Clear all conversation history?</div>
-          <div style={{ fontSize: 11, color: "#737373", marginBottom: 10 }}>This removes all saved messages across Chat, Program, and Weekly modes.</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>This removes all saved messages across Chat, Program, and Weekly modes.</div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setShowClearConfirm(false)} style={{ ...S.btn("ghost"), flex: 1 }}>Cancel</button>
             <button onClick={clearHistory} style={{ ...S.btn("danger"), flex: 1 }}>Clear All</button>
@@ -353,7 +353,7 @@ export default function CoachPage() {
       {/* ── Weekly description (only when empty) ── */}
       {coachMode === "weekly" && filteredHistory.length === 0 && !loading && (
         <div style={S.card}>
-          <div style={{ fontSize: 11, color: "#a3a3a3", lineHeight: 1.5 }}>
+          <div style={{ fontSize: 11, color: "var(--text-light)", lineHeight: 1.5 }}>
             Generate an AI analysis of your past 7 days — volume by muscle group, progression trends, recovery signals, and action items for next week.
           </div>
         </div>
@@ -371,8 +371,8 @@ export default function CoachPage() {
                     background: "#1e1b13", border: "1px solid #3d3520", borderRadius: "12px 12px 4px 12px",
                     padding: "10px 14px", maxWidth: "85%",
                   }}>
-                    <div style={{ fontSize: 13, color: "#e5e5e5", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{msg.prompt}</div>
-                    <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "right" }}>
+                    <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{msg.prompt}</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "right" }}>
                       {timeAgo(msg.created_at)}
                     </div>
                   </div>
@@ -387,7 +387,7 @@ export default function CoachPage() {
                     padding: "10px 14px",
                   }}>
                     <div style={{ fontSize: 12, color: "#4ade80", fontWeight: 700 }}>📊 Weekly Report</div>
-                    <div style={{ fontSize: 9, color: "#525252", marginTop: 4, textAlign: "right" }}>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "right" }}>
                       {timeAgo(msg.created_at)}
                     </div>
                   </div>
@@ -398,7 +398,7 @@ export default function CoachPage() {
               {msg.response ? (
                 <div style={{ padding: "4px 16px", display: "flex", justifyContent: "flex-start" }}>
                   <div style={{
-                    background: "#141414", border: "1px solid #262626", borderRadius: "12px 12px 12px 4px",
+                    background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px 12px 12px 4px",
                     padding: "10px 14px", maxWidth: "92%", width: "100%",
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -406,13 +406,13 @@ export default function CoachPage() {
                       <div style={{ display: "flex", gap: 4 }}>
                         <button
                           onClick={() => copyResponse(msg.id, msg.response)}
-                          style={{ ...S.sm("ghost"), fontSize: 9, padding: "2px 6px", color: copiedId === msg.id ? "#4ade80" : "#525252", border: "none" }}
+                          style={{ ...S.sm("ghost"), fontSize: 9, padding: "2px 6px", color: copiedId === msg.id ? "#4ade80" : "var(--text-dim)", border: "none" }}
                         >
                           {copiedId === msg.id ? "Copied" : "Copy"}
                         </button>
                         <button
                           onClick={() => deleteMessage(msg.id)}
-                          style={{ ...S.sm("ghost"), fontSize: 9, padding: "2px 6px", color: "#525252", border: "none" }}
+                          style={{ ...S.sm("ghost"), fontSize: 9, padding: "2px 6px", color: "var(--text-dim)", border: "none" }}
                         >
                           ×
                         </button>
@@ -424,13 +424,13 @@ export default function CoachPage() {
               ) : msg.id === filteredHistory[filteredHistory.length - 1]?.id && loading ? (
                 <div style={{ padding: "4px 16px" }}>
                   <div style={{
-                    background: "#141414", border: "1px solid #262626", borderRadius: "12px 12px 12px 4px",
+                    background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px 12px 12px 4px",
                     padding: "16px", textAlign: "center",
                   }}>
-                    <div style={{ color: "#c9952d", fontSize: 12 }}>
+                    <div style={{ color: "var(--accent)", fontSize: 12 }}>
                       <span style={{
                         display: "inline-block", width: 6, height: 6, borderRadius: "50%",
-                        background: "#c9952d", marginRight: 8, animation: "pulse 1.2s infinite",
+                        background: "var(--accent)", marginRight: 8, animation: "pulse 1.2s infinite",
                       }} />
                       {coachMode === "program" ? "Building program..." : coachMode === "weekly" ? "Analyzing 7-day data..." : "Thinking..."}
                     </div>
@@ -446,10 +446,10 @@ export default function CoachPage() {
       {/* ── Loading (when thread is empty) ── */}
       {loading && filteredHistory.length === 0 && (
         <div style={{ ...S.card, textAlign: "center" }}>
-          <div style={{ color: "#c9952d", fontSize: 12, padding: 8 }}>
+          <div style={{ color: "var(--accent)", fontSize: 12, padding: 8 }}>
             <span style={{
               display: "inline-block", width: 6, height: 6, borderRadius: "50%",
-              background: "#c9952d", marginRight: 8, animation: "pulse 1.2s infinite",
+              background: "var(--accent)", marginRight: 8, animation: "pulse 1.2s infinite",
             }} />
             Analyzing training data...
           </div>
@@ -463,8 +463,8 @@ export default function CoachPage() {
             <span style={{ fontSize: 14 }}>📋</span>
             <div style={S.label}>Generated Program</div>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#fafafa", marginBottom: 2 }}>{programPreview.program.name}</div>
-          {programPreview.program.description && <div style={{ fontSize: 11, color: "#737373", marginBottom: 8 }}>{programPreview.program.description}</div>}
+          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-bright)", marginBottom: 2 }}>{programPreview.program.name}</div>
+          {programPreview.program.description && <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>{programPreview.program.description}</div>}
 
           {programPreview.unknownExercises?.length > 0 && (
             <div style={{ background: "#451a03", border: "1px solid #92400e", borderRadius: 6, padding: 8, marginBottom: 8, fontSize: 11, color: "#fbbf24" }}>
@@ -474,14 +474,14 @@ export default function CoachPage() {
 
           {programPreview.program.days?.map((day, di) => (
             <div key={di} style={{ background: "#171717", borderRadius: 6, padding: 10, marginBottom: 6 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#fafafa", marginBottom: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 2 }}>
                 Day {di + 1} — {day.label}
-                {day.subtitle && <span style={{ fontWeight: 400, color: "#737373" }}> ({day.subtitle})</span>}
+                {day.subtitle && <span style={{ fontWeight: 400, color: "var(--text-muted)" }}> ({day.subtitle})</span>}
               </div>
               {day.exercises?.map((ex, ei) => (
-                <div key={ei} style={{ fontSize: 11, color: "#a3a3a3", paddingLeft: 8, marginTop: 3, display: "flex", justifyContent: "space-between" }}>
+                <div key={ei} style={{ fontSize: 11, color: "var(--text-light)", paddingLeft: 8, marginTop: 3, display: "flex", justifyContent: "space-between" }}>
                   <span>{ex.name}</span>
-                  <span style={{ color: "#525252" }}>{ex.defaultSets}×{ex.targetReps}{ex.notes ? ` · ${ex.notes}` : ""}</span>
+                  <span style={{ color: "var(--text-dim)" }}>{ex.defaultSets}×{ex.targetReps}{ex.notes ? ` · ${ex.notes}` : ""}</span>
                 </div>
               ))}
             </div>

@@ -160,8 +160,8 @@ export default function StatsPage() {
 
   // Tooltip styling
   const tooltipStyle = {
-    contentStyle: { background: "#1a1a1a", border: "1px solid #333", borderRadius: 6, fontSize: 11, fontFamily: "inherit" },
-    itemStyle: { color: "#e5e5e5" },
+    contentStyle: { background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 6, fontSize: 11, fontFamily: "inherit" },
+    itemStyle: { color: "var(--text)" },
   };
 
   return (
@@ -198,14 +198,14 @@ export default function StatsPage() {
         <div style={S.card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={S.label}>Weekly Volume (last 12 weeks)</div>
-            <div style={{ fontSize: 10, color: "#525252" }}>×1,000 lbs</div>
+            <div style={{ fontSize: 10, color: "var(--text-dim)" }}>×1,000 lbs</div>
           </div>
           <ResponsiveContainer width="100%" height={120}>
             <BarChart data={weeklyVolume}>
-              <XAxis dataKey="label" tick={{ fill: "#525252", fontSize: 9 }} axisLine={{ stroke: "#262626" }} tickLine={false} interval={1} />
-              <YAxis tick={{ fill: "#525252", fontSize: 9 }} axisLine={{ stroke: "#262626" }} tickLine={false} width={28} />
+              <XAxis dataKey="label" tick={{ fill: "var(--text-dim)", fontSize: 9 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} interval={1} />
+              <YAxis tick={{ fill: "var(--text-dim)", fontSize: 9 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} width={28} />
               <Tooltip {...tooltipStyle} formatter={(val, name) => [name === "volume" ? `${val}k lbs` : val, name === "volume" ? "Volume" : "Sessions"]} />
-              <Bar dataKey="volume" fill="#c9952d" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="volume" fill="var(--accent)" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -227,16 +227,16 @@ export default function StatsPage() {
               const primary = prMode === "e1rm" ? (lift.e1rm || "—") : lift.weight;
               const secondary = prMode === "e1rm" ? `${lift.weight}×${lift.reps}` : `~${lift.e1rm || "?"} e1RM`;
               return (
-                <div key={lift.name} style={{ background: "#1a1a1a", borderRadius: 8, padding: 10, border: "1px solid #262626" }}>
-                  <div style={{ fontSize: 10, color: "#737373", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
+                <div key={lift.name} style={{ background: "var(--surface2)", borderRadius: 8, padding: 10, border: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "#fafafa" }}>{primary}</span>
-                    {prMode === "actual" && <span style={{ fontSize: 12, color: "#525252" }}>×{lift.reps}</span>}
+                    <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-bright)" }}>{primary}</span>
+                    {prMode === "actual" && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>×{lift.reps}</span>}
                     {isRecent && (
                       <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: "0.5px" }}>New</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: "#525252" }}>{secondary}</div>
+                  <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{secondary}</div>
                 </div>
               );
             })}
@@ -251,22 +251,22 @@ export default function StatsPage() {
           <select
             value={activeChartExercise}
             onChange={e => setChartExercise(e.target.value)}
-            style={{ ...S.input, fontSize: 12, marginBottom: 10, background: "#1a1a1a" }}
+            style={{ ...S.input, fontSize: 12, marginBottom: 10, background: "var(--surface2)" }}
           >
             {exerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
           </select>
           {chartData.length > 1 ? (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={chartData}>
-                <XAxis dataKey="date" tick={{ fill: "#525252", fontSize: 10 }} axisLine={{ stroke: "#262626" }} tickLine={false} />
-                <YAxis tick={{ fill: "#525252", fontSize: 10 }} axisLine={{ stroke: "#262626" }} tickLine={false} width={35} />
+                <XAxis dataKey="date" tick={{ fill: "var(--text-dim)", fontSize: 10 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+                <YAxis tick={{ fill: "var(--text-dim)", fontSize: 10 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} width={35} />
                 <Tooltip {...tooltipStyle} />
-                <Line type="monotone" dataKey="weight" stroke="#c9952d" strokeWidth={2} dot={{ fill: "#c9952d", r: 3 }} name="Weight" />
-                <Line type="monotone" dataKey="e1rm" stroke="#525252" strokeWidth={1} strokeDasharray="4 4" dot={false} name="Est 1RM" />
+                <Line type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={2} dot={{ fill: "var(--accent)", r: 3 }} name="Weight" />
+                <Line type="monotone" dataKey="e1rm" stroke="var(--text-dim)" strokeWidth={1} strokeDasharray="4 4" dot={false} name="Est 1RM" />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ color: "#525252", fontSize: 12, padding: 20, textAlign: "center" }}>
+            <div style={{ color: "var(--text-dim)", fontSize: 12, padding: 20, textAlign: "center" }}>
               {chartData.length === 1 ? "One session logged — chart shows after 2+" : "No data for this exercise"}
             </div>
           )}
@@ -279,8 +279,8 @@ export default function StatsPage() {
           <div style={S.label}>Body Weight Trend</div>
           <ResponsiveContainer width="100%" height={140}>
             <LineChart data={bwData}>
-              <XAxis dataKey="date" tick={{ fill: "#525252", fontSize: 10 }} axisLine={{ stroke: "#262626" }} tickLine={false} />
-              <YAxis tick={{ fill: "#525252", fontSize: 10 }} axisLine={{ stroke: "#262626" }} tickLine={false} width={35} domain={["dataMin - 5", "dataMax + 5"]} />
+              <XAxis dataKey="date" tick={{ fill: "var(--text-dim)", fontSize: 10 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+              <YAxis tick={{ fill: "var(--text-dim)", fontSize: 10 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} width={35} domain={["dataMin - 5", "dataMax + 5"]} />
               <Tooltip {...tooltipStyle} />
               <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={{ fill: "#3b82f6", r: 3 }} name="Lbs" />
             </LineChart>
@@ -293,7 +293,7 @@ export default function StatsPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={S.label}>
             {prFilter === "recent" ? "Recent PRs" : "All PRs"}
-            {prFilter === "all" && <span style={{ color: "#525252", fontWeight: 400 }}> ({prList.length})</span>}
+            {prFilter === "all" && <span style={{ color: "var(--text-dim)", fontWeight: 400 }}> ({prList.length})</span>}
           </div>
           {recentPrList.length > 0 && (
             <div style={{ display: "flex", gap: 4 }}>
@@ -309,17 +309,17 @@ export default function StatsPage() {
           const primary = prMode === "e1rm" ? (pr.e1rm ? `~${pr.e1rm}` : "—") : `${pr.weight}×${pr.reps}`;
           const secondary = prMode === "e1rm" ? `${pr.weight}×${pr.reps}` : (pr.e1rm ? `~${pr.e1rm}` : "—");
           return (
-            <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
+            <div key={name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid var(--surface2)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ fontSize: 12, color: "#d4d4d4" }}>{name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{name}</div>
                 {isRecent && prFilter !== "recent" && (
                   <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase" }}>New</span>
                 )}
               </div>
               <div style={{ textAlign: "right" }}>
-                <span style={{ fontSize: 12, color: "#a3a3a3", fontWeight: 600 }}>{primary}</span>
-                <span style={{ fontSize: 11, color: "#525252", marginLeft: 6 }}>{secondary}</span>
-                <span style={{ fontSize: 9, color: "#404040", marginLeft: 6 }}>{pr.date.slice(5)}</span>
+                <span style={{ fontSize: 12, color: "var(--text-light)", fontWeight: 600 }}>{primary}</span>
+                <span style={{ fontSize: 11, color: "var(--text-dim)", marginLeft: 6 }}>{secondary}</span>
+                <span style={{ fontSize: 9, color: "var(--text-dim)", marginLeft: 6 }}>{pr.date.slice(5)}</span>
               </div>
             </div>
           );
@@ -334,7 +334,7 @@ export default function StatsPage() {
             Show less
           </button>
         )}
-        {prList.length === 0 && <div style={{ color: "#525252", fontSize: 12, padding: 8 }}>Log workouts to see PRs</div>}
+        {prList.length === 0 && <div style={{ color: "var(--text-dim)", fontSize: 12, padding: 8 }}>Log workouts to see PRs</div>}
       </div>
 
       {/* ── Bio Stats (collapsible) ── */}
@@ -344,17 +344,17 @@ export default function StatsPage() {
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
         >
           <div style={S.label}>Profile & Bio</div>
-          <span style={{ color: "#525252", fontSize: 12, transform: showBio ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+          <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showBio ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
         </div>
 
         {/* Compact summary always visible */}
         {!showBio && (profile.weight || profile.height || profile.goal) && (
           <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-            {profile.height && <span style={{ fontSize: 11, color: "#737373" }}>{profile.height}</span>}
-            {profile.weight && <span style={{ fontSize: 11, color: "#737373" }}>{profile.weight} lbs</span>}
-            {profile.bodyFat && <span style={{ fontSize: 11, color: "#737373" }}>{profile.bodyFat}% BF</span>}
-            {profile.goal && <span style={{ fontSize: 11, color: "#c9952d", textTransform: "capitalize" }}>{profile.goal}</span>}
-            {profile.experienceLevel && <span style={{ fontSize: 11, color: "#737373", textTransform: "capitalize" }}>{profile.experienceLevel}</span>}
+            {profile.height && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{profile.height}</span>}
+            {profile.weight && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{profile.weight} lbs</span>}
+            {profile.bodyFat && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{profile.bodyFat}% BF</span>}
+            {profile.goal && <span style={{ fontSize: 11, color: "var(--accent)", textTransform: "capitalize" }}>{profile.goal}</span>}
+            {profile.experienceLevel && <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "capitalize" }}>{profile.experienceLevel}</span>}
           </div>
         )}
 
@@ -370,7 +370,7 @@ export default function StatsPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
                   {[["Weight", "weight", "number"], ["BF %", "bodyFat", "number"], ["Height", "height", "text"]].map(([l, k, t]) => (
                     <div key={k}>
-                      <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>{l}</div>
+                      <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>{l}</div>
                       <input type={t} inputMode={t === "number" ? "decimal" : undefined} value={tmp[k] || ""} onChange={e => setTmp(p => ({ ...p, [k]: t === "number" ? Number(e.target.value) : e.target.value }))} style={S.smInput} />
                     </div>
                   ))}
@@ -378,7 +378,7 @@ export default function StatsPage() {
                 {/* Row 2: Sex, DOB, Target Weight */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Sex</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Sex</div>
                     <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
                       <option value="">—</option>
                       <option value="male">Male</option>
@@ -386,18 +386,18 @@ export default function StatsPage() {
                     </select>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>DOB</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>DOB</div>
                     <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "4px 4px", fontSize: 11 }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Target Wt</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Target Wt</div>
                     <input type="number" inputMode="decimal" value={tmp.targetWeight || ""} onChange={e => setTmp(p => ({ ...p, targetWeight: Number(e.target.value) }))} style={S.smInput} placeholder="lbs" />
                   </div>
                 </div>
                 {/* Row 3: Goal, Experience, Intensity */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Goal</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Goal</div>
                     <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
                       <option value="">—</option>
                       <option value="bulk">Bulk</option>
@@ -408,7 +408,7 @@ export default function StatsPage() {
                     </select>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Experience</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Experience</div>
                     <select value={tmp.experienceLevel || ""} onChange={e => setTmp(p => ({ ...p, experienceLevel: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
                       <option value="">—</option>
                       <option value="beginner">Beginner</option>
@@ -417,7 +417,7 @@ export default function StatsPage() {
                     </select>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Intensity</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Intensity</div>
                     <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
                       <option value="">—</option>
                       <option value="low">Low</option>
@@ -429,21 +429,21 @@ export default function StatsPage() {
                 {/* Row 4: Nutrition targets */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Calorie Target</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Calorie Target</div>
                     <input type="number" inputMode="numeric" value={tmp.caloriesTarget || ""} onChange={e => setTmp(p => ({ ...p, caloriesTarget: Number(e.target.value) }))} style={S.smInput} placeholder="kcal/day" />
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Protein Target</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Protein Target</div>
                     <input type="number" inputMode="numeric" value={tmp.proteinTarget || ""} onChange={e => setTmp(p => ({ ...p, proteinTarget: Number(e.target.value) }))} style={S.smInput} placeholder="g/day" />
                   </div>
                 </div>
                 {/* Target PRs */}
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Target PRs</div>
+                  <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Target PRs</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
                     {["Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press"].map(lift => (
                       <div key={lift} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <div style={{ fontSize: 9, color: "#737373", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lift.replace("Conventional ", "")}</div>
+                        <div style={{ fontSize: 9, color: "var(--text-muted)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lift.replace("Conventional ", "")}</div>
                         <input type="number" inputMode="numeric" value={tmp.targetPrs?.[lift] || ""} onChange={e => setTmp(p => ({ ...p, targetPrs: { ...(p.targetPrs || {}), [lift]: Number(e.target.value) || undefined } }))} style={{ ...S.smInput, width: 64, flex: "none" }} placeholder="lbs" />
                       </div>
                     ))}
@@ -451,17 +451,17 @@ export default function StatsPage() {
                 </div>
                 {/* Injuries/Notes */}
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Injuries / Limitations</div>
+                  <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Injuries / Limitations</div>
                   <textarea value={tmp.injuriesNotes || ""} onChange={e => setTmp(p => ({ ...p, injuriesNotes: e.target.value }))} style={{ ...S.input, minHeight: 40, resize: "vertical", fontSize: 12 }} placeholder="Hip bursitis, bad shoulder, etc." />
                 </div>
                 {/* Rest timers */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Rest — Compound (sec)</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Rest — Compound (sec)</div>
                     <input type="number" inputMode="numeric" value={tmp.restTimerCompound || 150} onChange={e => setTmp(p => ({ ...p, restTimerCompound: Number(e.target.value) }))} style={S.smInput} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Rest — Isolation (sec)</div>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Rest — Isolation (sec)</div>
                     <input type="number" inputMode="numeric" value={tmp.restTimerIsolation || 90} onChange={e => setTmp(p => ({ ...p, restTimerIsolation: Number(e.target.value) }))} style={S.smInput} />
                   </div>
                 </div>
@@ -475,7 +475,7 @@ export default function StatsPage() {
                   <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.bodyFat || "—"}</div><div style={S.statL}>BF %</div></div>
                 </div>
                 {(profile.sex || profile.goal || profile.experienceLevel || profile.targetWeight || profile.caloriesTarget || profile.proteinTarget) && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, paddingTop: 8, borderTop: "1px solid #262626" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                     {profile.sex && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.sex === "male" ? "M" : "F"}</div><div style={S.statL}>Sex</div></div>}
                     {profile.dateOfBirth && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000)}</div><div style={S.statL}>Age</div></div>}
                     {profile.goal && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.goal}</div><div style={S.statL}>Goal</div></div>}
@@ -487,18 +487,18 @@ export default function StatsPage() {
                   </div>
                 )}
                 {profile.targetPrs && Object.values(profile.targetPrs).some(v => v) && (
-                  <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid #262626" }}>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Target PRs</div>
+                  <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Target PRs</div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
                       {Object.entries(profile.targetPrs).filter(([, v]) => v).map(([lift, target]) => {
                         const current = prs[lift]?.e1rm;
                         const pct = current && target ? Math.round((current / target) * 100) : null;
                         return (
                           <div key={lift} style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-                            <span style={{ color: "#737373" }}>{lift.replace("Conventional ", "")}</span>
+                            <span style={{ color: "var(--text-muted)" }}>{lift.replace("Conventional ", "")}</span>
                             <span>
-                              <span style={{ color: "#fafafa", fontWeight: 700 }}>{target}</span>
-                              {pct && <span style={{ color: pct >= 100 ? "#22c55e" : "#525252", marginLeft: 4, fontSize: 10 }}>{pct}%</span>}
+                              <span style={{ color: "var(--text-bright)", fontWeight: 700 }}>{target}</span>
+                              {pct && <span style={{ color: pct >= 100 ? "#22c55e" : "var(--text-dim)", marginLeft: 4, fontSize: 10 }}>{pct}%</span>}
                             </span>
                           </div>
                         );
@@ -507,9 +507,9 @@ export default function StatsPage() {
                   </div>
                 )}
                 {profile.injuriesNotes && (
-                  <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid #262626" }}>
-                    <div style={{ fontSize: 9, color: "#525252", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Injuries / Limitations</div>
-                    <div style={{ fontSize: 11, color: "#a3a3a3", lineHeight: 1.4 }}>{profile.injuriesNotes}</div>
+                  <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Injuries / Limitations</div>
+                    <div style={{ fontSize: 11, color: "var(--text-light)", lineHeight: 1.4 }}>{profile.injuriesNotes}</div>
                   </div>
                 )}
               </div>

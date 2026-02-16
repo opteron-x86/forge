@@ -158,6 +158,7 @@ const userMigrations = [
   "ALTER TABLE users ADD COLUMN password_hash TEXT",
   "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
   "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
+  "ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'talos'",
 ];
 for (const sql of userMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
@@ -202,7 +203,7 @@ function requireAuth(req, res, next) {
   }
   try {
     const payload = verifyToken(header.slice(7));
-    const user = db.prepare("SELECT id, name, email, role, color, is_active FROM users WHERE id = ?").get(payload.id);
+    const user = db.prepare("SELECT id, name, email, role, color, theme, is_active FROM users WHERE id = ?").get(payload.id);
     if (!user) return res.status(401).json({ error: "User not found" });
     if (!user.is_active) return res.status(403).json({ error: "Account deactivated" });
     req.user = user;
@@ -311,11 +312,11 @@ app.post("/api/auth/register", authRateLimit, (req, res) => {
   const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
 
   db.prepare(
-    "INSERT INTO users (id, name, email, password_hash, role, color) VALUES (?, ?, ?, ?, ?, ?)"
-  ).run(id, name.trim(), normalizedEmail, passwordHash, role, color || "#f97316");
+    "INSERT INTO users (id, name, email, password_hash, role, color, theme) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(id, name.trim(), normalizedEmail, passwordHash, role, color || "#f97316", "talos");
   db.prepare("INSERT INTO profiles (user_id) VALUES (?)").run(id);
 
-  const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316" };
+  const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316", theme: "talos" };
   const token = signToken(user);
   res.json({ token, user });
 });
@@ -326,7 +327,7 @@ app.post("/api/auth/login", authRateLimit, (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "Email and password required" });
 
   const normalizedEmail = email.trim().toLowerCase();
-  const user = db.prepare("SELECT id, name, email, password_hash, role, color, is_active FROM users WHERE email = ?").get(normalizedEmail);
+  const user = db.prepare("SELECT id, name, email, password_hash, role, color, theme, is_active FROM users WHERE email = ?").get(normalizedEmail);
   if (!user) return res.status(401).json({ error: "Invalid email or password" });
   if (!user.is_active) return res.status(403).json({ error: "Account deactivated. Contact support." });
   if (!user.password_hash) return res.status(401).json({ error: "Account not set up. Please contact an admin." });
@@ -338,7 +339,7 @@ app.post("/api/auth/login", authRateLimit, (req, res) => {
   const token = signToken(user);
   res.json({
     token,
-    user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color },
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color, theme: user.theme || "talos" },
   });
 });
 
@@ -350,6 +351,7 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
     email: req.user.email,
     role: req.user.role,
     color: req.user.color,
+    theme: req.user.theme || "talos",
   });
 });
 
@@ -369,13 +371,14 @@ app.post("/api/auth/change-password", requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// Update own account (name, color)
+// Update own account (name, color, theme)
 app.put("/api/auth/account", requireAuth, (req, res) => {
-  const { name, color } = req.body;
+  const { name, color, theme } = req.body;
   const sets = [];
   const vals = [];
   if (name !== undefined) { sets.push("name = ?"); vals.push(name.trim()); }
   if (color !== undefined) { sets.push("color = ?"); vals.push(color); }
+  if (theme !== undefined) { sets.push("theme = ?"); vals.push(theme); }
   if (sets.length === 0) return res.json({ ok: true });
   vals.push(req.user.id);
   db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
@@ -1020,7 +1023,7 @@ app.get("/api/health", (req, res) => {
   }
 });
 
-// TEMPORARY — remove immediately after use
+/* TEMPORARY — remove immediately after use
 app.get("/api/debug-volume", (req, res) => {
   import("fs").then(({ readdirSync, statSync }) => {
     try {
@@ -1058,6 +1061,7 @@ app.post("/api/migrate-cleanup", (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+*/
 
 // SPA fallback
 if (process.env.NODE_ENV === "production") {

@@ -153,35 +153,35 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
 
       {/* AI Substitution Modal */}
       {subModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        <div style={{ position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ ...S.card, margin: 0, maxWidth: 340, width: "100%" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#fafafa" }}>Swap: {subModal.exercise}</div>
-                <div style={{ fontSize: 10, color: "#525252" }}>AI-powered substitutions</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)" }}>Swap: {subModal.exercise}</div>
+                <div style={{ fontSize: 10, color: "var(--text-dim)" }}>AI-powered substitutions</div>
               </div>
               <button onClick={() => setSubModal(null)} style={S.sm()}>✕</button>
             </div>
             {subModal.loading ? (
-              <div style={{ padding: 20, textAlign: "center", color: "#c9952d", fontSize: 12 }}>Finding alternatives...</div>
+              <div style={{ padding: 20, textAlign: "center", color: "var(--accent)", fontSize: 12 }}>Finding alternatives...</div>
             ) : subModal.error ? (
               <div style={{ padding: 12, color: "#ef4444", fontSize: 12 }}>{subModal.error}</div>
             ) : subModal.subs.length === 0 ? (
-              <div style={{ padding: 12, color: "#737373", fontSize: 12 }}>No substitutions found. Try the exercise picker instead.</div>
+              <div style={{ padding: 12, color: "var(--text-muted)", fontSize: 12 }}>No substitutions found. Try the exercise picker instead.</div>
             ) : (
               <div>
                 {subModal.subs.map((sub, i) => {
                   const last = getLastPerformance(sub.name);
                   return (
-                    <div key={i} onClick={() => applySub(sub.name)} style={{ padding: "10px 8px", borderBottom: "1px solid #262626", cursor: "pointer", borderRadius: 6 }}>
+                    <div key={i} onClick={() => applySub(sub.name)} style={{ padding: "10px 8px", borderBottom: "1px solid var(--border)", cursor: "pointer", borderRadius: 6 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{sub.name}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{sub.name}</div>
                         <div style={{ display: "flex", gap: 2 }}>
-                          {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: 8, color: n <= sub.rating ? "#c9952d" : "#333" }}>●</span>)}
+                          {[1,2,3,4,5].map(n => <span key={n} style={{ fontSize: 8, color: n <= sub.rating ? "var(--accent)" : "var(--border2)" }}>●</span>)}
                         </div>
                       </div>
-                      <div style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>{sub.reason}</div>
-                      {last && <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
+                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{sub.reason}</div>
+                      {last && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
                     </div>
                   );
                 })}
@@ -199,11 +199,11 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
       <div style={{ ...S.card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <span style={S.tag()}>{workout.day_label || "Workout"}</span>
-          <div style={{ fontSize: 11, color: "#737373", marginTop: 6 }}>{fmtDate(workout.date)}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>{fmtDate(workout.date)}</div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#fafafa" }}>{elapsed}m</div>
-          <div style={{ fontSize: 10, color: "#525252" }}>{completedSets}/{totalSets} sets · {Math.round(sessionVol / 1000)}k lbs</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-bright)" }}>{elapsed}m</div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{completedSets}/{totalSets} sets · {Math.round(sessionVol / 1000)}k lbs</div>
         </div>
       </div>
 
@@ -213,7 +213,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
         <div style={{ display: "flex", gap: 5 }}>
           {FEEL.map(f => (
             <button key={f.v} onClick={() => setWorkout(p => ({ ...p, feel: f.v }))}
-              style={{ flex: 1, padding: "5px 2px", borderRadius: 6, border: workout.feel === f.v ? `2px solid ${f.c}` : "1px solid #333", background: workout.feel === f.v ? f.c + "20" : "transparent", color: workout.feel === f.v ? f.c : "#525252", fontSize: 9, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", textTransform: "uppercase" }}>
+              style={{ flex: 1, padding: "5px 2px", borderRadius: 6, border: workout.feel === f.v ? `2px solid ${f.c}` : "1px solid var(--border2)", background: workout.feel === f.v ? f.c + "20" : "transparent", color: workout.feel === f.v ? f.c : "var(--text-dim)", fontSize: 9, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", textTransform: "uppercase" }}>
               {f.l}
             </button>
           ))}
@@ -228,9 +228,9 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
           <div key={ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "#737373", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
-                {last && <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
-                {ex.notes && <div style={{ fontSize: 10, color: "#c9952d", marginTop: 2 }}>{ex.notes}</div>}
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
+                {last && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
+                {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 2 }}>{ex.notes}</div>}
               </div>
               <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
                 {ei > 0 && <button onClick={() => moveExercise(ei, -1)} style={S.sm()} title="Move up">↑</button>}
@@ -240,11 +240,11 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "24px 1fr 1fr 1fr 32px", gap: 5, marginBottom: 4 }}>
-              {["Set", "Lbs", "Reps", "RPE", ""].map((h, i) => <div key={i} style={{ fontSize: 9, color: "#525252", textAlign: "center", textTransform: "uppercase" }}>{h}</div>)}
+              {["Set", "Lbs", "Reps", "RPE", ""].map((h, i) => <div key={i} style={{ fontSize: 9, color: "var(--text-dim)", textAlign: "center", textTransform: "uppercase" }}>{h}</div>)}
             </div>
             {ex.sets.map((set, si) => (
               <div key={si} style={S.setRow(set.completed)}>
-                <div style={{ fontSize: 10, color: "#525252", fontWeight: 700, textAlign: "center" }}>{si + 1}</div>
+                <div style={{ fontSize: 10, color: "var(--text-dim)", fontWeight: 700, textAlign: "center" }}>{si + 1}</div>
                 <input type="number" inputMode="decimal" value={set.weight} onChange={e => updateSet(ei, si, "weight", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
                 <input type="number" inputMode="numeric" value={set.reps} onChange={e => updateSet(ei, si, "reps", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
                 <input type="number" inputMode="decimal" value={set.rpe} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />

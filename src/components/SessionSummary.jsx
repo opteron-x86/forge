@@ -171,7 +171,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
         <div style={{ textAlign: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 32, marginBottom: 4 }}>✓</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: "#22c55e" }}>Session Complete</div>
-          <div style={{ fontSize: 11, color: "#737373", marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
             {workout.day_label || "Workout"} · {fmtDate(workout.date)}
           </div>
         </div>
@@ -190,17 +190,17 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
 
         {/* Volume comparison */}
         {volumeComparison && (
-          <div style={{ marginTop: 12, padding: "8px 12px", background: "#1a1a1a", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "#737373" }}>
+          <div style={{ marginTop: 12, padding: "8px 12px", background: "var(--surface2)", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
               vs last {workout.day_label}
             </span>
             <span style={{
               fontSize: 12, fontWeight: 700,
-              color: volumeComparison.delta > 0 ? "#22c55e" : volumeComparison.delta < 0 ? "#ef4444" : "#737373",
+              color: volumeComparison.delta > 0 ? "#22c55e" : volumeComparison.delta < 0 ? "#ef4444" : "var(--text-muted)",
             }}>
               {volumeComparison.delta > 0 ? "▲" : volumeComparison.delta < 0 ? "▼" : "="}{" "}
               {volumeComparison.pct > 0 ? "+" : ""}{volumeComparison.pct}% vol
-              <span style={{ fontSize: 10, color: "#525252", marginLeft: 6 }}>
+              <span style={{ fontSize: 10, color: "var(--text-dim)", marginLeft: 6 }}>
                 ({fmtVol(volumeComparison.prevVol)} → {fmtVol(totalVolume)})
               </span>
             </span>
@@ -210,29 +210,29 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
 
       {/* ── PRs card ── */}
       {sessionPRs.length > 0 && (
-        <div style={{ ...S.card, borderLeft: "3px solid #c9952d" }}>
+        <div style={{ ...S.card, borderLeft: "3px solid var(--accent)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 16 }}>🏆</span>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#c9952d", letterSpacing: "1px", textTransform: "uppercase" }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--accent)", letterSpacing: "1px", textTransform: "uppercase" }}>
               {sessionPRs.length} Personal Record{sessionPRs.length !== 1 ? "s" : ""}
             </div>
           </div>
           {sessionPRs.map((pr, i) => (
             <div key={i} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "6px 0", borderBottom: i < sessionPRs.length - 1 ? "1px solid #1a1a1a" : "none",
+              padding: "6px 0", borderBottom: i < sessionPRs.length - 1 ? "1px solid var(--surface2)" : "none",
             }}>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#e5e5e5" }}>{pr.name}</div>
-                <div style={{ fontSize: 10, color: "#737373", marginTop: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{pr.name}</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>
                   {pr.type === "new" ? "First time logged" :
                    pr.type === "e1rm" ? "New estimated 1RM" : "New weight PR"}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#c9952d" }}>{pr.weight}×{pr.reps}</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>{pr.weight}×{pr.reps}</div>
                 {pr.e1rm && (
-                  <div style={{ fontSize: 10, color: "#737373" }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
                     e1RM ~{pr.e1rm}
                     {pr.delta ? <span style={{ color: "#22c55e" }}> (+{pr.delta})</span> : ""}
                   </div>
@@ -250,33 +250,33 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
         >
           <div style={{ ...S.label, marginBottom: 0 }}>Exercise Breakdown</div>
-          <span style={{ color: "#525252", fontSize: 12, transform: showExercises ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
+          <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showExercises ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
         </div>
         {showExercises && exerciseDetails.map((ex, i) => (
           <div key={i} style={{
-            padding: "10px 0", borderBottom: i < exerciseDetails.length - 1 ? "1px solid #1a1a1a" : "none",
+            padding: "10px 0", borderBottom: i < exerciseDetails.length - 1 ? "1px solid var(--surface2)" : "none",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#d4d4d4" }}>{ex.name}</span>
-                {ex.pr && <span style={{ ...S.tag("#c9952d"), fontSize: 8, padding: "1px 5px" }}>PR</span>}
+                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{ex.name}</span>
+                {ex.pr && <span style={{ ...S.tag(), fontSize: 8, padding: "1px 5px" }}>PR</span>}
               </div>
-              <span style={{ fontSize: 11, color: "#525252" }}>
+              <span style={{ fontSize: 11, color: "var(--text-dim)" }}>
                 {ex.vol > 0 ? `${fmtVol(ex.vol)}` : ""}
               </span>
             </div>
-            <div style={{ fontSize: 11, color: "#737373", marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
               {ex.sets.map((s, si) => {
                 const isBest = ex.bestSet && s.weight === ex.bestSet.weight && s.reps === ex.bestSet.reps;
                 return (
-                  <span key={si} style={{ color: isBest ? "#fafafa" : "#737373", fontWeight: isBest ? 700 : 400 }}>
+                  <span key={si} style={{ color: isBest ? "var(--text-bright)" : "var(--text-muted)", fontWeight: isBest ? 700 : 400 }}>
                     {si > 0 && "  ·  "}{s.weight}×{s.reps}{s.rpe ? ` @${s.rpe}` : ""}
                   </span>
                 );
               })}
             </div>
             {ex.lastPerf && ex.bestE1RM > 0 && (
-              <div style={{ fontSize: 10, color: "#525252", marginTop: 3 }}>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 3 }}>
                 Last: {ex.lastPerf.weight}×{ex.lastPerf.reps} ({fmtDate(ex.lastPerf.date)})
                 {ex.lastPerf.e1rm > 0 && ex.bestE1RM > ex.lastPerf.e1rm && (
                   <span style={{ color: "#22c55e", marginLeft: 4 }}>▲ +{ex.bestE1RM - ex.lastPerf.e1rm} e1RM</span>
@@ -286,7 +286,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
                 )}
               </div>
             )}
-            {ex.notes && <div style={{ fontSize: 10, color: "#c9952d", marginTop: 2 }}>{ex.notes}</div>}
+            {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 2 }}>{ex.notes}</div>}
           </div>
         ))}
       </div>
@@ -303,8 +303,8 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
             <MarkdownText text={reviewText} />
           ) : reviewLoading ? (
             <div style={{ padding: 12, textAlign: "center" }}>
-              <div style={{ color: "#c9952d", fontSize: 12, marginBottom: 4 }}>Analyzing your session...</div>
-              <div style={{ fontSize: 10, color: "#525252" }}>Reviewing sets, volume, and progress</div>
+              <div style={{ color: "var(--accent)", fontSize: 12, marginBottom: 4 }}>Analyzing your session...</div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)" }}>Reviewing sets, volume, and progress</div>
             </div>
           ) : reviewError ? (
             <div style={{ textAlign: "center" }}>
@@ -313,7 +313,7 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
             </div>
           ) : (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#525252", marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 10 }}>
                 Get personalized feedback on your workout
               </div>
               <button onClick={requestReview} style={{ ...S.btn("primary"), width: "100%" }}>
@@ -335,9 +335,9 @@ RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (F
 // ── Small helpers ──
 function StatBlock({ value, label, color }) {
   return (
-    <div style={{ textAlign: "center", padding: "8px 0", background: "#1a1a1a", borderRadius: 8 }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color: color || "#fafafa" }}>{value}</div>
-      <div style={{ fontSize: 9, color: "#525252", textTransform: "uppercase", marginTop: 2 }}>{label}</div>
+    <div style={{ textAlign: "center", padding: "8px 0", background: "var(--surface2)", borderRadius: 8 }}>
+      <div style={{ fontSize: 20, fontWeight: 800, color: color || "var(--text-bright)" }}>{value}</div>
+      <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", marginTop: 2 }}>{label}</div>
     </div>
   );
 }

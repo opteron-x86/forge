@@ -167,8 +167,8 @@ export default function HistoryPage({ onLogPast }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <button onClick={prevMonth} style={{ ...S.sm(), padding: "6px 10px" }}>◀</button>
           <div onClick={goToToday} style={{ cursor: "pointer", textAlign: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#fafafa" }}>{monthLabel}</div>
-            <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-bright)" }}>{monthLabel}</div>
+            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
               {monthWorkouts.length} session{monthWorkouts.length !== 1 ? "s" : ""}
               {monthVol > 0 && ` · ${monthVol >= 1000 ? `${Math.round(monthVol / 1000)}k` : monthVol} lbs`}
               {monthAvgFeel && ` · ${monthAvgFeel} feel`}
@@ -180,7 +180,7 @@ export default function HistoryPage({ onLogPast }) {
         {/* Day-of-week headers */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
           {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-            <div key={i} style={{ textAlign: "center", fontSize: 9, color: "#525252", fontWeight: 700, padding: "2px 0" }}>{d}</div>
+            <div key={i} style={{ textAlign: "center", fontSize: 9, color: "var(--text-dim)", fontWeight: 700, padding: "2px 0" }}>{d}</div>
           ))}
         </div>
 
@@ -203,15 +203,15 @@ export default function HistoryPage({ onLogPast }) {
               }}
                 style={{
                   textAlign: "center", padding: "6px 2px", borderRadius: 6, cursor: hasFuture ? "default" : "pointer",
-                  background: isSelected ? "#262626" : "transparent",
-                  border: isToday ? "1px solid #c9952d" : "1px solid transparent",
+                  background: isSelected ? "var(--border)" : "transparent",
+                  border: isToday ? "1px solid var(--accent)" : "1px solid transparent",
                   opacity: hasFuture ? 0.3 : 1,
                   minHeight: 36, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
                   transition: "background 0.15s",
                 }}>
                 <div style={{
                   fontSize: 11,
-                  color: isToday ? "#c9952d" : dayWorkouts.length > 0 ? "#fafafa" : "#404040",
+                  color: isToday ? "var(--accent)" : dayWorkouts.length > 0 ? "var(--text-bright)" : "var(--text-dim)",
                   fontWeight: isToday || dayWorkouts.length > 0 ? 700 : 400,
                 }}>
                   {dayNum}
@@ -234,7 +234,7 @@ export default function HistoryPage({ onLogPast }) {
             {[...monthLabels.entries()].map(([label, color]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
-                <span style={{ fontSize: 9, color: "#525252" }}>{label}</span>
+                <span style={{ fontSize: 9, color: "var(--text-dim)" }}>{label}</span>
               </div>
             ))}
           </div>
@@ -277,13 +277,13 @@ export default function HistoryPage({ onLogPast }) {
       {showAllHistory && !selectedDate && showFilters && (
         <div style={{ padding: "0 16px 8px", display: "flex", gap: 6, flexWrap: "wrap" }}>
           <select value={filterProgram} onChange={e => { setFilterProgram(e.target.value); setFilterDay("all"); setVisibleCount(LOAD_MORE_COUNT); }}
-            style={{ ...S.sm(), padding: "4px 6px", background: "#1a1a1a", color: "#a3a3a3", border: "1px solid #333", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
+            style={{ ...S.sm(), padding: "4px 6px", background: "var(--surface2)", color: "var(--text-light)", border: "1px solid var(--border2)", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
             <option value="all">All Programs</option>
             {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           {filteredDays.length > 0 && (
             <select value={filterDay} onChange={e => { setFilterDay(e.target.value); setVisibleCount(LOAD_MORE_COUNT); }}
-              style={{ ...S.sm(), padding: "4px 6px", background: "#1a1a1a", color: "#a3a3a3", border: "1px solid #333", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
+              style={{ ...S.sm(), padding: "4px 6px", background: "var(--surface2)", color: "var(--text-light)", border: "1px solid var(--border2)", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
               <option value="all">All Days</option>
               {filteredDays.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
             </select>
@@ -296,7 +296,7 @@ export default function HistoryPage({ onLogPast }) {
 
       {/* ── Workout list ── */}
       {displayWorkouts.length === 0 && (
-        <div style={{ padding: 32, textAlign: "center", color: "#525252", fontSize: 13 }}>
+        <div style={{ padding: 32, textAlign: "center", color: "var(--text-dim)", fontSize: 13 }}>
           {selectedDate ? "No workouts on this day." : "No workouts logged yet."}
         </div>
       )}
@@ -311,38 +311,38 @@ export default function HistoryPage({ onLogPast }) {
             <div onClick={() => setExpanded(isExp ? null : w.id)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{w.day_label || "Workout"}</span>
-                  <span style={S.tag(FEEL[w.feel - 1]?.c || "#737373")}>{FEEL[w.feel - 1]?.l || "—"}</span>
-                  {hasReview && <span style={{ fontSize: 10, color: "#c9952d", title: "AI Review available" }}>⚡</span>}
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{w.day_label || "Workout"}</span>
+                  <span style={S.tag(FEEL[w.feel - 1]?.c || "var(--text-muted)")}>{FEEL[w.feel - 1]?.l || "—"}</span>
+                  {hasReview && <span style={{ fontSize: 10, color: "var(--accent)", title: "AI Review available" }}>⚡</span>}
                 </div>
-                <div style={{ fontSize: 11, color: "#525252", marginTop: 3 }}>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 3 }}>
                   {selectedDate ? "" : fmtDate(w.date)}
                   {w.duration ? `${selectedDate ? "" : " · "}${w.duration}min` : ""}
                   {exerciseCount > 0 && ` · ${exerciseCount} exercise${exerciseCount !== 1 ? "s" : ""}`}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: "#a3a3a3" }}>{sets} sets</div>
-                <div style={{ fontSize: 10, color: "#525252" }}>{vol >= 1000 ? `${Math.round(vol / 1000)}k` : vol.toLocaleString()} lbs</div>
+                <div style={{ fontSize: 11, color: "var(--text-light)" }}>{sets} sets</div>
+                <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{vol >= 1000 ? `${Math.round(vol / 1000)}k` : vol.toLocaleString()} lbs</div>
               </div>
             </div>
             {isExp && (
-              <div style={{ marginTop: 12, borderTop: "1px solid #262626", paddingTop: 12 }}>
+              <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
                 {w.exercises?.map((ex, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#d4d4d4" }}>{ex.name}</div>
-                    <div style={{ fontSize: 11, color: "#737373", marginTop: 2 }}>{ex.sets?.map(s => `${s.weight}×${s.reps}${s.rpe ? ` @${s.rpe}` : ""}`).join("  ·  ")}</div>
-                    {ex.notes && <div style={{ fontSize: 10, color: "#c9952d", marginTop: 1 }}>{ex.notes}</div>}
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{ex.name}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{ex.sets?.map(s => `${s.weight}×${s.reps}${s.rpe ? ` @${s.rpe}` : ""}`).join("  ·  ")}</div>
+                    {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 1 }}>{ex.notes}</div>}
                   </div>
                 ))}
-                {w.notes && <div style={{ fontSize: 11, color: "#737373", marginTop: 8, fontStyle: "italic" }}>{w.notes}</div>}
-                {w.sleep_hours && <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>Sleep: {w.sleep_hours}h</div>}
+                {w.notes && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8, fontStyle: "italic" }}>{w.notes}</div>}
+                {w.sleep_hours && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4 }}>Sleep: {w.sleep_hours}h</div>}
                 {/* AI Review section */}
                 {hasReview && (
                   <ReviewSection review={workoutReviews[w.id]} />
                 )}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button onClick={() => repeatWorkout(w)} style={{ ...S.sm(), flex: 1, color: "#c9952d", borderColor: "#c9952d40" }}>Repeat</button>
+                  <button onClick={() => repeatWorkout(w)} style={{ ...S.sm(), flex: 1, color: "var(--accent)", borderColor: "var(--accent-bg2)" }}>Repeat</button>
                   <button onClick={() => editWorkout(w)} style={{ ...S.sm("ghost"), flex: 1 }}>Edit</button>
                   <button onClick={() => deleteWorkout(w.id)} style={{ ...S.sm("danger"), flex: 1 }}>Delete</button>
                 </div>
@@ -388,16 +388,16 @@ export default function HistoryPage({ onLogPast }) {
 function ReviewSection({ review }) {
   const [show, setShow] = useState(false);
   return (
-    <div style={{ marginTop: 10, borderTop: "1px solid #1a1a1a", paddingTop: 8 }}>
+    <div style={{ marginTop: 10, borderTop: "1px solid var(--surface2)", paddingTop: 8 }}>
       <div
         onClick={() => setShow(!show)}
         style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
       >
-        <span style={{ fontSize: 11, color: "#c9952d" }}>⚡</span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "#c9952d", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+        <span style={{ fontSize: 11, color: "var(--accent)" }}>⚡</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "var(--accent)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
           AI Coach Review
         </span>
-        <span style={{ color: "#525252", fontSize: 10, transform: show ? "rotate(180deg)" : "none", transition: "transform 0.2s", marginLeft: "auto" }}>▼</span>
+        <span style={{ color: "var(--text-dim)", fontSize: 10, transform: show ? "rotate(180deg)" : "none", transition: "transform 0.2s", marginLeft: "auto" }}>▼</span>
       </div>
       {show && (
         <div style={{ marginTop: 8 }}>

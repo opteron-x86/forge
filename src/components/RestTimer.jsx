@@ -62,7 +62,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
   return (
     <div style={{
       position: "fixed",
-      bottom: 56, // just above nav bar
+      bottom: "calc(max(12px, env(safe-area-inset-bottom)) + 50px)",
       left: "50%",
       transform: "translateX(-50%)",
       width: "calc(100% - 32px)",
@@ -71,17 +71,17 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
       background: bgColor,
       border: `1px solid ${borderColor}`,
       borderRadius: 10,
-      padding: "8px 12px",
-      boxShadow: "0 -2px 12px rgba(0,0,0,0.5)",
+      padding: "10px 14px",
+      boxShadow: "0 -2px 16px rgba(0,0,0,0.6)",
       animation: done ? "restDonePulse 0.6s ease-out" : undefined,
     }}>
       {/* Progress bar (top) */}
       <div style={{
-        height: 3,
+        height: 4,
         background: "#1a1a1a",
         borderRadius: 2,
         overflow: "hidden",
-        marginBottom: 6,
+        marginBottom: 8,
       }}>
         <div style={{
           height: "100%",
@@ -103,7 +103,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
         <div
           onClick={subTime}
           style={{
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 700,
             letterSpacing: "1px",
             textTransform: "uppercase",
@@ -121,14 +121,14 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
         <div
           onClick={addTime}
           style={{
-            fontSize: 22,
+            fontSize: 28,
             fontWeight: 800,
             color: done ? "#22c55e" : "#fafafa",
             fontVariantNumeric: "tabular-nums",
             fontFamily: "'JetBrains Mono','SF Mono',monospace",
             cursor: done ? "default" : "pointer",
             userSelect: "none",
-            minWidth: 64,
+            minWidth: 72,
             textAlign: "center",
             lineHeight: 1,
           }}
@@ -141,12 +141,12 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
         <button
           onClick={done ? onDone : onCancel}
           style={{
-            padding: "5px 10px",
-            borderRadius: 4,
+            padding: "6px 12px",
+            borderRadius: 5,
             border: "1px solid #333",
             background: "transparent",
             color: done ? "#22c55e" : "#737373",
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 700,
             fontFamily: "inherit",
             cursor: "pointer",

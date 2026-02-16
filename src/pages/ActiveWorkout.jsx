@@ -6,35 +6,9 @@ import { useTalos } from "../context/TalosContext";
 import { EXERCISES, SUBSTITUTIONS } from "../lib/exercises";
 import { fmtDate, FEEL } from "../lib/helpers";
 import ExercisePicker from "../components/ExercisePicker";
+import RestTimer from "../components/RestTimer";
 import api from "../lib/api";
 import S from "../lib/styles";
-
-// ── Rest Timer (local to this file) ──
-function RestTimer({ seconds, onDone, onCancel }) {
-  const [remaining, setRemaining] = useState(seconds);
-  useEffect(() => {
-    if (remaining <= 0) { try { navigator.vibrate?.([200, 100, 200]); } catch(e) {} onDone(); return; }
-    const t = setTimeout(() => setRemaining(r => r - 1), 1000);
-    return () => clearTimeout(t);
-  }, [remaining, onDone]);
-
-  const pct = ((seconds - remaining) / seconds) * 100;
-  const min = Math.floor(remaining / 60);
-  const sec = remaining % 60;
-
-  return (
-    <div style={{ ...S.card, margin: "8px 16px", background: "#0f1612", borderColor: "#1a3a25", textAlign: "center" }}>
-      <div style={{ fontSize: 10, color: "#4ade80", fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 8 }}>Rest Timer</div>
-      <div style={{ fontSize: 36, fontWeight: 800, color: "#fafafa", fontVariantNumeric: "tabular-nums" }}>
-        {min}:{sec.toString().padStart(2, "0")}
-      </div>
-      <div style={{ height: 4, background: "#1a1a1a", borderRadius: 2, margin: "10px 0", overflow: "hidden" }}>
-        <div style={{ height: "100%", background: "#4ade80", borderRadius: 2, width: `${pct}%`, transition: "width 1s linear" }} />
-      </div>
-      <button onClick={onCancel} style={S.sm()}>Skip</button>
-    </div>
-  );
-}
 
 export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
   const { workouts, profile, customExercises, aiConfig } = useTalos();
@@ -246,9 +220,6 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
         </div>
       </div>
 
-      {/* Rest timer */}
-      {restTimer && <RestTimer seconds={restTimer} onDone={() => setRestTimer(null)} onCancel={() => setRestTimer(null)} />}
-
       {/* Exercises */}
       {workout.exercises.map((ex, ei) => {
         const last = getLastPerformance(ex.name);
@@ -301,6 +272,18 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
         <button onClick={onDiscard} style={{ ...S.btn("ghost"), flex: 1 }}>Discard</button>
         <button onClick={onFinish} style={{ ...S.btn("primary"), flex: 2 }}>Finish Workout</button>
       </div>
+
+      {/* Extra bottom padding when rest timer is visible so content isn't hidden */}
+      {restTimer && <div style={{ height: 64 }} />}
+
+      {/* Floating rest timer bar (fixed position, above nav) */}
+      {restTimer && (
+        <RestTimer
+          seconds={restTimer}
+          onDone={() => setRestTimer(null)}
+          onCancel={() => setRestTimer(null)}
+        />
+      )}
     </div>
   );
 }

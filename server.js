@@ -144,7 +144,7 @@ for (const sql of profileMigrations) {
 
 // --- Migrate users table for proper auth ---
 const userMigrations = [
-  "ALTER TABLE users ADD COLUMN email TEXT UNIQUE",
+  "ALTER TABLE users ADD COLUMN email TEXT",
   "ALTER TABLE users ADD COLUMN password_hash TEXT",
   "ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'",
   "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
@@ -152,6 +152,8 @@ const userMigrations = [
 for (const sql of userMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
 }
+// Unique index on email (separate from ALTER TABLE — SQLite doesn't support ADD COLUMN ... UNIQUE)
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)"); } catch (e) { /* already exists */ }
 
 // --- Set admin role for ADMIN_EMAIL if configured ---
 if (ADMIN_EMAIL) {
@@ -159,10 +161,6 @@ if (ADMIN_EMAIL) {
   if (adminUser) {
     db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(adminUser.id);
   }
-}
-
-function hashPin(pin) {
-  return crypto.createHash("sha256").update(pin).digest("hex");
 }
 
 function genId() {
@@ -313,7 +311,7 @@ app.post("/api/auth/login", authRateLimit, (req, res) => {
   const user = db.prepare("SELECT id, name, email, password_hash, role, color, is_active FROM users WHERE email = ?").get(normalizedEmail);
   if (!user) return res.status(401).json({ error: "Invalid email or password" });
   if (!user.is_active) return res.status(403).json({ error: "Account deactivated. Contact support." });
-  if (!user.password_hash) return res.status(401).json({ error: "Account not set up. Use 'Claim Account' to set a password." });
+  if (!user.password_hash) return res.status(401).json({ error: "Account not set up. Please contact an admin." });
 
   if (!bcrypt.compareSync(password, user.password_hash)) {
     return res.status(401).json({ error: "Invalid email or password" });
@@ -324,55 +322,6 @@ app.post("/api/auth/login", authRateLimit, (req, res) => {
     token,
     user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color },
   });
-});
-
-// Claim account — existing PIN-based user sets email + password
-app.post("/api/auth/claim", authRateLimit, (req, res) => {
-  const { userId, pin, email, password, name } = req.body;
-  if (!userId || !email?.trim() || !password) return res.status(400).json({ error: "userId, email, and password required" });
-  if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
-
-  const normalizedEmail = email.trim().toLowerCase();
-
-  // Verify the old user exists and doesn't already have email auth
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
-  if (user.email) return res.status(400).json({ error: "Account already claimed" });
-
-  // Verify PIN if the user had one
-  if (user.pin_hash) {
-    if (!pin) return res.status(401).json({ error: "PIN required to claim this account" });
-    if (hashPin(pin) !== user.pin_hash) return res.status(401).json({ error: "Wrong PIN" });
-  }
-
-  // Check email isn't taken by someone else
-  const emailTaken = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
-  if (emailTaken) return res.status(409).json({ error: "Email already registered" });
-
-  const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
-  const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
-
-  const updates = { email: normalizedEmail, password_hash: passwordHash, role };
-  if (name?.trim()) updates.name = name.trim();
-
-  db.prepare(
-    "UPDATE users SET email = ?, password_hash = ?, role = ?" + (name?.trim() ? ", name = ?" : "") + " WHERE id = ?"
-  ).run(...(name?.trim()
-    ? [normalizedEmail, passwordHash, role, name.trim(), userId]
-    : [normalizedEmail, passwordHash, role, userId]
-  ));
-
-  const updated = db.prepare("SELECT id, name, email, role, color FROM users WHERE id = ?").get(userId);
-  const token = signToken(updated);
-  res.json({ token, user: updated });
-});
-
-// Get legacy (unclaimed) users — for the claim flow UI
-app.get("/api/auth/legacy-users", (req, res) => {
-  const users = db.prepare(
-    "SELECT id, name, color, pin_hash IS NOT NULL as has_pin FROM users WHERE email IS NULL ORDER BY created_at ASC"
-  ).all();
-  res.json(users);
 });
 
 // Get current user from token

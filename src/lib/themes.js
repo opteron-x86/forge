@@ -205,7 +205,37 @@ export const THEMES = {
       "--font": "'JetBrains Mono','SF Mono',monospace",
     },
   },
+
+  cobalt: {
+    id: "cobalt",
+    name: "Cobalt",
+    description: "Deep blue dark theme",
+    preview: { bg: "#0b1120", accent: "#4a9eff", surface: "#111d35" },
+    vars: {
+      "--bg": "#0b1120",
+      "--surface": "#111d35",
+      "--surface2": "#162544",
+      "--border": "#1e3154",
+      "--border2": "#2a4270",
+      "--text-dim": "#4a6a9b",
+      "--text-muted": "#6b8ec2",
+      "--text-light": "#93b4e0",
+      "--text": "#d4e4f7",
+      "--text-secondary": "#b0cef0",
+      "--text-bright": "#f0f6ff",
+      "--accent": "#4a9eff",
+      "--accent-text": "#0b1120",
+      "--accent-bg": "rgba(74,158,255,0.10)",
+      "--accent-bg2": "rgba(74,158,255,0.14)",
+      "--accent-muted": "#3a86db",
+      "--scrollbar": "#1e3154",
+      "--shadow": "rgba(0,0,0,0.5)",
+      "--overlay": "rgba(0,0,0,0.8)",
+      "--font": "'JetBrains Mono','SF Mono',monospace",
+    },
+  },
 };
+
 
 export const THEME_LIST = Object.values(THEMES);
 export const DEFAULT_THEME = "talos";

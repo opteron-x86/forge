@@ -1021,13 +1021,28 @@ app.get("/api/health", (req, res) => {
 });
 
 // TEMPORARY — remove immediately after use
+app.get("/api/debug-volume", (req, res) => {
+  import("fs").then(({ readdirSync, statSync }) => {
+    try {
+      const files = readdirSync("/data").map(f => ({
+        name: f,
+        size: statSync("/data/" + f).size,
+      }));
+      res.json({ DB_PATH, files });
+    } catch (e) {
+      res.json({ DB_PATH, error: e.message });
+    }
+  });
+});
+
 app.post("/api/migrate-db", async (req, res) => {
   try {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const buf = Buffer.concat(chunks);
+    db.close();
     writeFileSync(DB_PATH, buf);
-    res.json({ ok: true, bytes: buf.length });
+    res.json({ ok: true, bytes: buf.length, path: DB_PATH });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

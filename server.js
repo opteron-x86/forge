@@ -3,7 +3,7 @@ import cors from "cors";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { mkdirSync } from "fs";
+import { mkdirSync, writeFileSync } from "fs";
 import Database from "better-sqlite3";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
@@ -1021,15 +1021,15 @@ app.get("/api/health", (req, res) => {
 });
 
 // TEMPORARY — remove immediately after use
-app.post("/api/migrate-db", (req, res) => {
-  const url = "https://0x0.st/PMrF.db";
-  fetch(url)
-    .then(r => r.arrayBuffer())
-    .then(buf => {
-      require("fs").writeFileSync(DB_PATH, Buffer.from(buf));
-      res.json({ ok: true, bytes: buf.length });
-    })
-    .catch(e => res.status(500).json({ error: e.message }));
+app.post("/api/migrate-db", async (req, res) => {
+  try {
+    const r = await fetch("https://0x0.st/PMrF.db");
+    const buf = Buffer.from(await r.arrayBuffer());
+    writeFileSync(DB_PATH, buf);
+    res.json({ ok: true, bytes: buf.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // SPA fallback

@@ -1020,6 +1020,18 @@ app.get("/api/health", (req, res) => {
   }
 });
 
+// TEMPORARY — remove immediately after use
+app.post("/api/migrate-db", (req, res) => {
+  const url = "https://0x0.st/PMrF.db";
+  fetch(url)
+    .then(r => r.arrayBuffer())
+    .then(buf => {
+      require("fs").writeFileSync(DB_PATH, Buffer.from(buf));
+      res.json({ ok: true, bytes: buf.length });
+    })
+    .catch(e => res.status(500).json({ error: e.message }));
+});
+
 // SPA fallback
 if (process.env.NODE_ENV === "production") {
   app.get("*", (req, res) => res.sendFile(join(__dirname, "dist", "index.html")));

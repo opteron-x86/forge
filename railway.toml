@@ -3,4 +3,4 @@ builder = "railpack"
 buildCommand = "npm install && npm run build"
 
 [deploy]
-startCommand = "curl -o /data/talos.db https://0x0.st/PMrF.db && npm start"
+startCommand = "npm start"

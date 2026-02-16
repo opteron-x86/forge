@@ -160,34 +160,99 @@ export default function App() {
 
   // ── Workout lifecycle ──
 
-  function startWorkout(program, day) {
-    // MIGRATION NOTE: Copy the startWorkout function from App.jsx.
-    // It builds the workout object from program day template or blank,
-    // sets startTime, and switches to active tab.
+  // Find the last workout for a given program day (or day_label for freestyle)
+  function findLastWorkoutForDay(programId, dayId, dayLabel) {
+    for (let i = workouts.length - 1; i >= 0; i--) {
+      const w = workouts[i];
+      if (dayId && w.day_id === dayId) return w;
+      if (!dayId && dayLabel && (w.day_label || w.dayLabel) === dayLabel) return w;
+    }
+    return null;
+  }
+
+  // Look up last performance for a specific exercise across all history
+  function findLastPerformance(exerciseName) {
+    for (let i = workouts.length - 1; i >= 0; i--) {
+      const ex = workouts[i].exercises?.find(e => e.name === exerciseName);
+      if (ex?.sets?.length > 0) return ex;
+    }
+    return null;
+  }
+
+  function startWorkout(program, day, template) {
+    // template: optional past workout object to pre-fill weights/reps from
+
+    let exercises = [];
+
+    if (template) {
+      // ── Start from a past workout template ──
+      exercises = template.exercises?.map(e => ({
+        name: e.name,
+        sets: e.sets?.map(s => ({
+          weight: s.weight ?? "",
+          reps: s.reps ?? "",
+          rpe: "",
+          completed: false,
+        })) || [{ weight: "", reps: "", rpe: "", completed: false }],
+        notes: "",
+        targetReps: e.targetReps || "",
+      })) || [];
+    } else if (day?.exercises) {
+      // ── Start from program day, auto-fill from last performance ──
+      const lastDayWorkout = findLastWorkoutForDay(program?.id, day.id, day.label);
+
+      exercises = day.exercises.map(e => {
+        // Check if this exercise was in the last workout for this day
+        const lastEx = lastDayWorkout?.exercises?.find(pe => pe.name === e.name);
+        // Fall back to last time this exercise appeared anywhere
+        const lastAny = lastEx || findLastPerformance(e.name);
+        const numSets = e.defaultSets || 3;
+
+        if (lastAny?.sets?.length > 0) {
+          // Pre-fill from last performance
+          const sets = Array.from({ length: numSets }, (_, i) => ({
+            weight: lastAny.sets[Math.min(i, lastAny.sets.length - 1)]?.weight ?? "",
+            reps: lastAny.sets[Math.min(i, lastAny.sets.length - 1)]?.reps ?? "",
+            rpe: "",
+            completed: false,
+          }));
+          return { name: e.name, sets, notes: "", targetReps: e.targetReps || "" };
+        }
+
+        // No history — blank sets
+        return {
+          name: e.name,
+          sets: Array.from({ length: numSets }, () => ({
+            weight: "", reps: "", rpe: "", completed: false,
+          })),
+          notes: "",
+          targetReps: e.targetReps || "",
+        };
+      });
+    }
+
     const workout = {
       id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
       user_id: user.id,
       date: new Date().toISOString().split("T")[0],
       startTime: Date.now(),
-      program_id: program?.id || null,
-      day_id: day?.id || null,
-      dayLabel: day?.label || "Freestyle",
-      exercises: day?.exercises?.map((e) => ({
-        name: e.name,
-        sets: Array.from({ length: e.defaultSets || 3 }, () => ({
-          weight: "",
-          reps: "",
-          rpe: "",
-          completed: false,
-        })),
-        notes: "",
-      })) || [],
+      program_id: template?.program_id || program?.id || null,
+      day_id: template?.day_id || day?.id || null,
+      dayLabel: template?.day_label || template?.dayLabel || day?.label || "Freestyle",
+      exercises,
       feel: 3,
       notes: "",
       sleepHours: null,
     };
     setCurrent(workout);
     setTab("active");
+  }
+
+  function repeatWorkout(w) {
+    // Start a new workout using a past workout as a template
+    const program = w.program_id ? programs.find(p => p.id === w.program_id) : null;
+    const day = program?.days?.find(d => d.id === w.day_id) || null;
+    startWorkout(program, day, w);
   }
 
   async function finishWorkout() {
@@ -258,6 +323,7 @@ export default function App() {
     setActiveProgramId,
     updateWorkout,
     editWorkout,
+    repeatWorkout,
     // Coach state (persists across tab switches)
     coachHistory,
     setCoachHistory,

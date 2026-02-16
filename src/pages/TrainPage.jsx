@@ -1,6 +1,7 @@
 // ═══════════════════════ TRAIN PAGE ═══════════════════════
-// Dashboard + workout launcher. Focused on one thing: getting
-// the user into their next workout as fast as possible.
+// Dashboard + workout launcher. Gets the user into their next
+// workout as fast as possible. Program days auto-fill from last
+// performance. Quick Repeat section for recent session types.
 
 import { useState, useMemo } from "react";
 import { useTalos } from "../context/TalosContext";
@@ -17,8 +18,8 @@ function daysAgoText(dateStr) {
   return fmtDate(dateStr);
 }
 
-export default function TrainPage({ onStartWorkout, onLogPast }) {
-  const { workouts, programs, profile, setActiveProgramId } = useTalos();
+export default function TrainPage({ onStartWorkout }) {
+  const { workouts, programs, profile, setActiveProgramId, repeatWorkout } = useTalos();
   const [showProgramPicker, setShowProgramPicker] = useState(false);
   const [showLastSession, setShowLastSession] = useState(false);
 
@@ -68,14 +69,38 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
     if (idx >= 0) nextDayIdx = (idx + 1) % activeProg.days.length;
   }
 
-  // Last workout date for each day
-  const dayLastDate = {};
-  if (activeProg) {
+  // Last workout date + data for each day
+  const dayLastWorkout = useMemo(() => {
+    const map = {};
+    if (!activeProg) return map;
     activeProg.days.forEach(d => {
       const last = [...workouts].reverse().find(w => w.day_id === d.id);
-      if (last) dayLastDate[d.id] = last.date;
+      if (last) map[d.id] = last;
     });
-  }
+    return map;
+  }, [workouts, activeProg]);
+
+  // ── Quick Repeat: recent unique sessions not in active program ──
+  const quickRepeatOptions = useMemo(() => {
+    const seen = new Set();
+    const activeDayIds = new Set(activeProg?.days?.map(d => d.id) || []);
+    const options = [];
+
+    // Walk backwards through recent workouts
+    for (let i = workouts.length - 1; i >= 0 && options.length < 5; i--) {
+      const w = workouts[i];
+      // Skip if it's from the active program (those are in the day cards already)
+      if (activeDayIds.has(w.day_id)) continue;
+      // Deduplicate by day_label + program_id combo
+      const key = `${w.day_label || w.dayLabel || ""}|${w.program_id || ""}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      // Must have exercises to be useful as a template
+      if (!w.exercises?.length) continue;
+      options.push(w);
+    }
+    return options;
+  }, [workouts, activeProg]);
 
   function switchProgram(progId) {
     setActiveProgramId(progId);
@@ -111,11 +136,11 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
 
       {/* ── Last Session ── */}
       {lastWorkout && (
-        <div
-          style={{ ...S.card, cursor: "pointer" }}
-          onClick={() => setShowLastSession(!showLastSession)}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={S.card}>
+          <div
+            style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            onClick={() => setShowLastSession(!showLastSession)}
+          >
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "#a3a3a3" }}>Last Session</span>
@@ -124,7 +149,7 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
                 </span>
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa", marginTop: 3 }}>
-                {lastWorkout.day_label || "Workout"}
+                {lastWorkout.day_label || lastWorkout.dayLabel || "Workout"}
               </div>
               <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
                 {daysAgoText(lastWorkout.date)}
@@ -135,9 +160,9 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
             <span style={{ color: "#525252", fontSize: 10, transform: showLastSession ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
           </div>
 
-          {showLastSession && lastWorkout.exercises?.length > 0 && (
+          {showLastSession && (
             <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #262626" }}>
-              {lastWorkout.exercises.map((ex, i) => (
+              {lastWorkout.exercises?.map((ex, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
                   <span style={{ fontSize: 11, color: "#d4d4d4" }}>{ex.name}</span>
                   <span style={{ fontSize: 11, color: "#525252" }}>
@@ -145,6 +170,12 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
                   </span>
                 </div>
               ))}
+              <button
+                onClick={(e) => { e.stopPropagation(); repeatWorkout(lastWorkout); }}
+                style={{ ...S.btn("primary"), width: "100%", marginTop: 10 }}
+              >
+                Repeat This Session
+              </button>
             </div>
           )}
         </div>
@@ -196,7 +227,9 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
       {/* ── Program Days ── */}
       {activeProg?.days?.map((day, i) => {
         const isNext = i === nextDayIdx;
-        const lastDate = dayLastDate[day.id];
+        const lastWk = dayLastWorkout[day.id];
+        const lastDate = lastWk?.date;
+        const hasTemplate = !!lastWk?.exercises?.length;
         const exercisePreview = day.exercises?.slice(0, 4).map(e => e.name) || [];
         const moreCount = (day.exercises?.length || 0) - exercisePreview.length;
 
@@ -220,10 +253,11 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
                 </div>
               )}
 
-              {/* Last performed */}
+              {/* Last performed + template indicator */}
               {lastDate && (
                 <div style={{ fontSize: 10, color: "#404040", marginTop: 3 }}>
                   Last: {daysAgoText(lastDate)}
+                  {hasTemplate && <span style={{ color: "#525252", marginLeft: 4 }}>· weights loaded</span>}
                 </div>
               )}
             </div>
@@ -231,6 +265,38 @@ export default function TrainPage({ onStartWorkout, onLogPast }) {
           </div>
         );
       })}
+
+      {/* ── Quick Repeat ── */}
+      {quickRepeatOptions.length > 0 && (
+        <>
+          <div style={{ padding: "12px 16px 4px" }}><div style={S.label}>Quick Repeat</div></div>
+          {quickRepeatOptions.map(w => {
+            const vol = w.exercises?.reduce((a, e) =>
+              a + (e.sets?.reduce((b, s) => b + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0;
+            const progName = w.program_id ? programs.find(p => p.id === w.program_id)?.name : null;
+            return (
+              <div key={w.id} onClick={() => repeatWorkout(w)}
+                style={{ ...S.card, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>
+                    {w.day_label || w.dayLabel || "Workout"}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#525252", marginTop: 2 }}>
+                    {daysAgoText(w.date)}
+                    {` · ${w.exercises?.length || 0} exercises`}
+                    {vol > 0 ? ` · ${vol >= 1000 ? `${Math.round(vol / 1000)}k` : vol} lbs` : ""}
+                  </div>
+                  {progName && <div style={{ fontSize: 9, color: "#404040", marginTop: 1 }}>{progName}</div>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 9, color: "#525252", textTransform: "uppercase" }}>Repeat</span>
+                  <span style={{ color: "#525252", fontSize: 14 }}>→</span>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {/* ── Quick Start ── */}
       <div style={{ padding: "12px 16px 4px" }}><div style={S.label}>Quick Start</div></div>

@@ -42,7 +42,7 @@ const RECENT_COUNT = 5;
 const LOAD_MORE_COUNT = 10;
 
 export default function HistoryPage({ onLogPast }) {
-  const { workouts, programs, deleteWorkout, editWorkout, workoutReviews, aiConfig } = useTalos();
+  const { workouts, programs, deleteWorkout, editWorkout, repeatWorkout, workoutReviews, aiConfig } = useTalos();
   const [expanded, setExpanded] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -342,6 +342,7 @@ export default function HistoryPage({ onLogPast }) {
                   <ReviewSection review={workoutReviews[w.id]} />
                 )}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button onClick={() => repeatWorkout(w)} style={{ ...S.sm(), flex: 1, color: "#c9952d", borderColor: "#c9952d40" }}>Repeat</button>
                   <button onClick={() => editWorkout(w)} style={{ ...S.sm("ghost"), flex: 1 }}>Edit</button>
                   <button onClick={() => deleteWorkout(w.id)} style={{ ...S.sm("danger"), flex: 1 }}>Delete</button>
                 </div>

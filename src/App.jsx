@@ -344,6 +344,7 @@ export default function App() {
         )}
         {activeTab === "logPast" && (
           <LogPastWorkout
+            key={logPastDate || "new"}
             initialDate={logPastDate}
             onSave={(w) => { setLogPastDate(null); return savePastWorkout(w); }}
             onCancel={() => { setLogPastDate(null); setTab("history"); }}

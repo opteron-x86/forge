@@ -22,9 +22,12 @@ function BrowsePrograms({ onAdopt, onClose }) {
 
   useEffect(() => {
     api.get("/programs/browse").then(data => {
-      setCommunityPrograms(data.community || []);
+      setCommunityPrograms(data.programs || []);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((e) => {
+      console.error("Browse programs failed:", e);
+      setLoading(false);
+    });
   }, []);
 
   // Merge templates + community into one browseable list
@@ -39,7 +42,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
     const community = communityPrograms.map(p => ({
       ...p,
       _browseId: p.id,
-      source: "community",
+      source: p.source || "community",
       tags: null,
       _searchText: `${p.name} ${p.description || ""} ${p.creator_name || ""} ${p.days?.map(d => d.exercises?.map(e => e.name).join(" ")).join(" ") || ""}`.toLowerCase(),
     }));
@@ -50,7 +53,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
   const filtered = useMemo(() => {
     let list = allPrograms;
     if (filter === "templates") list = list.filter(p => p.source === "template");
-    if (filter === "community") list = list.filter(p => p.source === "community");
+    if (filter === "community") list = list.filter(p => p.source === "community" || p.source === "own");
     if (search.trim()) {
       const q = search.toLowerCase().trim();
       list = list.filter(p => p._searchText.includes(q));
@@ -97,6 +100,8 @@ function BrowsePrograms({ onAdopt, onClose }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             {p.source === "template" ? (
               <span style={S.tag("#c9952d")}>✦ TALOS Template</span>
+            ) : p.source === "own" ? (
+              <span style={S.tag("#22c55e")}>Your Program</span>
             ) : (
               <span style={S.tag("#6366f1")}>⊕ {p.creator_name}</span>
             )}
@@ -142,13 +147,19 @@ function BrowsePrograms({ onAdopt, onClose }) {
 
         <div style={{ padding: "8px 16px 20px", display: "flex", gap: 8 }}>
           <button onClick={() => setPreview(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
-          <button
-            onClick={() => handleAdopt(p)}
-            disabled={adopting || alreadyAdded}
-            style={{ ...S.btn("primary"), flex: 2, opacity: (adopting || alreadyAdded) ? 0.5 : 1 }}
-          >
-            {alreadyAdded ? "✓ Added" : adopting ? "Adding..." : "Add to My Programs"}
-          </button>
+          {p.source === "own" ? (
+            <div style={{ flex: 2, textAlign: "center", fontSize: 11, color: "#525252", padding: "10px 0" }}>
+              This is your program — edit it from Your Programs
+            </div>
+          ) : (
+            <button
+              onClick={() => handleAdopt(p)}
+              disabled={adopting || alreadyAdded}
+              style={{ ...S.btn("primary"), flex: 2, opacity: (adopting || alreadyAdded) ? 0.5 : 1 }}
+            >
+              {alreadyAdded ? "✓ Added" : adopting ? "Adding..." : "Add to My Programs"}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -211,6 +222,8 @@ function BrowsePrograms({ onAdopt, onClose }) {
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
                     {p.source === "template" ? (
                       <span style={{ ...S.tag("#c9952d"), fontSize: 8, padding: "2px 6px" }}>✦ TALOS</span>
+                    ) : p.source === "own" ? (
+                      <span style={{ ...S.tag("#22c55e"), fontSize: 8, padding: "2px 6px" }}>✓ Yours</span>
                     ) : (
                       <span style={{ ...S.tag("#6366f1"), fontSize: 8, padding: "2px 6px" }}>⊕ {p.creator_name}</span>
                     )}

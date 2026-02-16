@@ -548,19 +548,19 @@ app.get("/api/programs", requireAuth, (req, res) => {
   res.json(rows.map(r => ({ ...r, days: JSON.parse(r.days) })));
 });
 
-// Browse: shared programs from other users (client merges starter templates)
+// Browse: shared programs from all users + flag own programs
 app.get("/api/programs/browse", requireAuth, (req, res) => {
   const rows = db.prepare(
     `SELECT p.*, u.name as creator_name, u.color as creator_color
      FROM programs p JOIN users u ON p.user_id = u.id
-     WHERE p.shared = 1 AND p.user_id != ?
+     WHERE p.shared = 1
      ORDER BY p.created_at DESC`
-  ).all(req.user.id);
+  ).all();
 
   const programs = rows.map(r => ({
     ...r,
     days: JSON.parse(r.days),
-    source: "community",
+    source: r.user_id === req.user.id ? "own" : "community",
   }));
 
   // Which programs has this user already adopted?

@@ -99,6 +99,16 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS workout_reviews (
+    id TEXT PRIMARY KEY,
+    workout_id TEXT NOT NULL UNIQUE,
+    user_id TEXT NOT NULL,
+    review TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (workout_id) REFERENCES workouts(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 `);
 
 // --- Migrate profiles table (safe — ignores if columns already exist) ---
@@ -213,6 +223,7 @@ app.put("/api/users/:id", (req, res) => {
 app.delete("/api/users/:id", (req, res) => {
   const id = req.params.id;
   db.prepare("DELETE FROM workouts WHERE user_id = ?").run(id);
+  db.prepare("DELETE FROM workout_reviews WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM bio_history WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM profiles WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM programs WHERE user_id = ?").run(id);
@@ -257,7 +268,38 @@ app.put("/api/workouts/:id", (req, res) => {
 });
 
 app.delete("/api/workouts/:id", (req, res) => {
+  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ?").run(req.params.id);
   db.prepare("DELETE FROM workouts WHERE id = ?").run(req.params.id);
+  res.json({ ok: true });
+});
+
+// ===================== WORKOUT REVIEWS =====================
+
+app.get("/api/workout-reviews", (req, res) => {
+  const { user_id, workout_id } = req.query;
+  if (workout_id) {
+    const review = db.prepare("SELECT * FROM workout_reviews WHERE workout_id = ?").get(workout_id);
+    return res.json(review || null);
+  }
+  if (user_id) {
+    // Return map of workout_id -> review for efficient lookup
+    const reviews = db.prepare("SELECT * FROM workout_reviews WHERE user_id = ?").all(user_id);
+    return res.json(reviews);
+  }
+  res.status(400).json({ error: "user_id or workout_id required" });
+});
+
+app.post("/api/workout-reviews", (req, res) => {
+  const { id, workout_id, user_id, review } = req.body;
+  if (!workout_id || !user_id || !review) return res.status(400).json({ error: "workout_id, user_id, and review required" });
+  db.prepare(
+    "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
+  ).run(id || genId(), workout_id, user_id, review);
+  res.json({ ok: true });
+});
+
+app.delete("/api/workout-reviews/:workout_id", (req, res) => {
+  db.prepare("DELETE FROM workout_reviews WHERE workout_id = ?").run(req.params.workout_id);
   res.json({ ok: true });
 });
 
@@ -586,7 +628,7 @@ PROGRAM DESIGN PRINCIPLES:
 
 app.post("/api/coach/analyze", async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
-  const { workout, context } = req.body;
+  const { workout, context, workout_id, user_id } = req.body;
 
   const system = `You are a concise strength training coach providing a post-workout session analysis. Analyze the just-completed workout and give brief, specific feedback.
 
@@ -602,6 +644,14 @@ Keep it tight — max 150 words total. Be encouraging but honest. Use the user's
     const result = await aiProvider.chat(system, [
       { role: "user", content: `${context}\n\nJUST COMPLETED:\n${JSON.stringify(workout, null, 2)}` },
     ], { maxTokens: 800 });
+
+    // Persist the review if workout_id provided
+    if (workout_id && user_id && result.text) {
+      db.prepare(
+        "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
+      ).run(genId(), workout_id, user_id, result.text);
+    }
+
     res.json({ analysis: result.text });
   } catch (e) {
     console.error("Analysis error:", e.message);

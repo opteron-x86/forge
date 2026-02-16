@@ -52,6 +52,7 @@ export default function App() {
   // ── Coach state (lifted here so it survives tab switches) ──
   const [coachHistory, setCoachHistory] = useState([]);
   const [coachMode, setCoachMode] = useState("chat");
+  const [workoutReviews, setWorkoutReviews] = useState({});
 
   // ── Load user data on login ──
   useEffect(() => {
@@ -64,14 +65,21 @@ export default function App() {
       api.get("/exercises"),
       api.get("/ai/config"),
       api.get(`/coach/messages?user_id=${user.id}`),
+      api.get(`/workout-reviews?user_id=${user.id}`),
     ])
-      .then(([w, p, pr, ex, ai, coachMsgs]) => {
+      .then(([w, p, pr, ex, ai, coachMsgs, reviews]) => {
         setWorkouts(w);
         setProfile(p);
         setPrograms(pr);
         setCustomExercises(ex);
         setAiConfig(ai);
         setCoachHistory(Array.isArray(coachMsgs) ? coachMsgs : []);
+        // Build a map of workout_id -> review text for quick lookup
+        const reviewMap = {};
+        if (Array.isArray(reviews)) {
+          reviews.forEach(r => { reviewMap[r.workout_id] = r.review; });
+        }
+        setWorkoutReviews(reviewMap);
         setLoaded(true);
       })
       .catch((e) => {
@@ -199,28 +207,9 @@ export default function App() {
     await saveWorkout(w);
     setCurrent(null);
 
-    // Trigger AI analysis if available
-    if (aiConfig.enabled) {
-      setSessionSummary({ workout: w, analysis: null, loading: true });
-      setTab("summary");
-      try {
-        const res = await api.post("/ai/coach", {
-          prompt: `Analyze my workout session I just completed. Give brief, specific feedback.`,
-          context: `Completed workout: ${JSON.stringify(w)}`,
-          user_id: user.id,
-        });
-        setSessionSummary((prev) => ({
-          ...prev,
-          analysis: res.response || res.message,
-          loading: false,
-        }));
-      } catch {
-        setSessionSummary((prev) => ({ ...prev, loading: false }));
-      }
-    } else {
-      setSessionSummary({ workout: w, analysis: null, loading: false });
-      setTab("summary");
-    }
+    // Show summary (AI review is optional — triggered by user from summary screen)
+    setSessionSummary({ workout: w });
+    setTab("summary");
   }
 
   // ── Auth gate ──
@@ -274,6 +263,9 @@ export default function App() {
     setCoachHistory,
     coachMode,
     setCoachMode,
+    // Workout reviews
+    workoutReviews,
+    setWorkoutReviews,
   };
 
   // ── Render ──
@@ -370,6 +362,9 @@ export default function App() {
             onDone={() => {
               setSessionSummary(null);
               setTab("history");
+            }}
+            onReviewSaved={(workoutId, reviewText) => {
+              setWorkoutReviews(prev => ({ ...prev, [workoutId]: reviewText }));
             }}
           />
         )}

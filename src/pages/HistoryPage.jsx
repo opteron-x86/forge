@@ -6,6 +6,7 @@
 import { useState, useMemo } from "react";
 import { useTalos } from "../context/TalosContext";
 import { fmtDate, FEEL } from "../lib/helpers";
+import MarkdownText from "../components/MarkdownText";
 import S from "../lib/styles";
 
 // ── Generic color palette ──
@@ -41,7 +42,7 @@ const RECENT_COUNT = 5;
 const LOAD_MORE_COUNT = 10;
 
 export default function HistoryPage({ onLogPast }) {
-  const { workouts, programs, deleteWorkout, editWorkout } = useTalos();
+  const { workouts, programs, deleteWorkout, editWorkout, workoutReviews, aiConfig } = useTalos();
   const [expanded, setExpanded] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -304,6 +305,7 @@ export default function HistoryPage({ onLogPast }) {
         const vol = w.exercises?.reduce((a, e) => a + (e.sets?.reduce((b, s) => b + ((s.weight || 0) * (s.reps || 0)), 0) || 0), 0) || 0;
         const sets = w.exercises?.reduce((a, e) => a + (e.sets?.length || 0), 0) || 0;
         const exerciseCount = w.exercises?.length || 0;
+        const hasReview = !!workoutReviews?.[w.id];
         return (
           <div key={w.id} style={{ ...S.card, borderLeft: `3px solid ${getDayColor(w.day_label)}` }}>
             <div onClick={() => setExpanded(isExp ? null : w.id)} style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -311,6 +313,7 @@ export default function HistoryPage({ onLogPast }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#fafafa" }}>{w.day_label || "Workout"}</span>
                   <span style={S.tag(FEEL[w.feel - 1]?.c || "#737373")}>{FEEL[w.feel - 1]?.l || "—"}</span>
+                  {hasReview && <span style={{ fontSize: 10, color: "#c9952d", title: "AI Review available" }}>⚡</span>}
                 </div>
                 <div style={{ fontSize: 11, color: "#525252", marginTop: 3 }}>
                   {selectedDate ? "" : fmtDate(w.date)}
@@ -334,6 +337,10 @@ export default function HistoryPage({ onLogPast }) {
                 ))}
                 {w.notes && <div style={{ fontSize: 11, color: "#737373", marginTop: 8, fontStyle: "italic" }}>{w.notes}</div>}
                 {w.sleepHours && <div style={{ fontSize: 10, color: "#525252", marginTop: 4 }}>Sleep: {w.sleepHours}h</div>}
+                {/* AI Review section */}
+                {hasReview && (
+                  <ReviewSection review={workoutReviews[w.id]} />
+                )}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={() => editWorkout(w)} style={{ ...S.sm("ghost"), flex: 1 }}>Edit</button>
                   <button onClick={() => deleteWorkout(w.id)} style={{ ...S.sm("danger"), flex: 1 }}>Delete</button>
@@ -372,6 +379,30 @@ export default function HistoryPage({ onLogPast }) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Collapsible AI review section for workout cards ──
+function ReviewSection({ review }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ marginTop: 10, borderTop: "1px solid #1a1a1a", paddingTop: 8 }}>
+      <div
+        onClick={() => setShow(!show)}
+        style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+      >
+        <span style={{ fontSize: 11, color: "#c9952d" }}>⚡</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#c9952d", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+          AI Coach Review
+        </span>
+        <span style={{ color: "#525252", fontSize: 10, transform: show ? "rotate(180deg)" : "none", transition: "transform 0.2s", marginLeft: "auto" }}>▼</span>
+      </div>
+      {show && (
+        <div style={{ marginTop: 8 }}>
+          <MarkdownText text={review} />
+        </div>
+      )}
     </div>
   );
 }

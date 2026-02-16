@@ -21,6 +21,7 @@ export default function SettingsModal({ onClose, onLogout }) {
   const [showPassword, setShowPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
 
   // Admin panel state
@@ -57,10 +58,11 @@ export default function SettingsModal({ onClose, onLogout }) {
   async function changePassword() {
     setPasswordMsg("");
     if (newPassword.length < 8) { setPasswordMsg("Min 8 characters"); return; }
+    if (newPassword !== confirmNewPassword) { setPasswordMsg("Passwords don't match"); return; }
     try {
       await api.post("/auth/change-password", { currentPassword, newPassword });
       setPasswordMsg("Password updated!");
-      setCurrentPassword(""); setNewPassword("");
+      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword("");
     } catch (e) {
       setPasswordMsg(e.message);
     }
@@ -143,6 +145,10 @@ export default function SettingsModal({ onClose, onLogout }) {
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>New Password</div>
               <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="Min 8 characters" autoComplete="new-password" />
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: "#525252", marginBottom: 3, textTransform: "uppercase" }}>Confirm New Password</div>
+              <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="••••••••" autoComplete="new-password" />
             </div>
             {passwordMsg && <div style={{ fontSize: 11, color: passwordMsg === "Password updated!" ? "#22c55e" : "#ef4444", marginBottom: 8 }}>{passwordMsg}</div>}
             <button onClick={changePassword} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Update Password</button>

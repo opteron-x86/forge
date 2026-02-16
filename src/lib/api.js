@@ -33,8 +33,8 @@ const api = {
     return h;
   },
 
-  _handleAuthError(r) {
-    if (r.status === 401) {
+  _handleAuthError(r, path) {
+    if (r.status === 401 && !path?.startsWith("/auth/")) {
       this.clearToken();
       if (onAuthError) onAuthError();
       throw new Error("Session expired. Please log in again.");
@@ -43,7 +43,7 @@ const api = {
 
   async get(path) {
     const r = await fetch(`/api${path}`, { headers: this._headers() });
-    this._handleAuthError(r);
+    this._handleAuthError(r, path);
     if (!r.ok) throw new Error(r.statusText);
     return r.json();
   },
@@ -54,7 +54,7 @@ const api = {
       headers: this._headers(),
       body: JSON.stringify(body),
     });
-    this._handleAuthError(r);
+    this._handleAuthError(r, path);
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.error || r.statusText);
@@ -68,7 +68,7 @@ const api = {
       headers: this._headers(),
       body: JSON.stringify(body),
     });
-    this._handleAuthError(r);
+    this._handleAuthError(r, path);
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.error || r.statusText);
@@ -81,7 +81,7 @@ const api = {
       method: "DELETE",
       headers: this._headers(),
     });
-    this._handleAuthError(r);
+    this._handleAuthError(r, path);
     if (!r.ok) throw new Error(r.statusText);
     return r.json();
   },

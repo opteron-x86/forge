@@ -13,6 +13,7 @@ export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [color, setColor] = useState(USER_COLORS[0]);
   const [error, setError] = useState("");
@@ -32,7 +33,7 @@ export default function Login({ onLogin }) {
   }, [mode]);
 
   function resetForm() {
-    setEmail(""); setPassword(""); setName(""); setError(""); setPin("");
+    setEmail(""); setPassword(""); setConfirmPassword(""); setName(""); setError(""); setPin("");
     setSelectedLegacy(null); setLoading(false);
   }
 
@@ -52,6 +53,7 @@ export default function Login({ onLogin }) {
   async function handleRegister(e) {
     e.preventDefault();
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords don't match"); return; }
     setError(""); setLoading(true);
     try {
       const res = await api.post("/auth/register", { email, password, name, color });
@@ -66,6 +68,7 @@ export default function Login({ onLogin }) {
   async function handleClaim(e) {
     e.preventDefault();
     if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password !== confirmPassword) { setError("Passwords don't match"); return; }
     setError(""); setLoading(true);
     try {
       const res = await api.post("/auth/claim", {
@@ -134,6 +137,10 @@ export default function Login({ onLogin }) {
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Password</div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="Min 8 characters" autoComplete="new-password" required />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</div>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle} placeholder="••••••••" autoComplete="new-password" required />
             </div>
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Color</div>
@@ -209,6 +216,10 @@ export default function Login({ onLogin }) {
             <div>
               <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>New Password</div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} style={inputStyle} placeholder="Min 8 characters" autoComplete="new-password" required />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: "#525252", marginBottom: 4, textTransform: "uppercase" }}>Confirm Password</div>
+              <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={inputStyle} placeholder="••••••••" autoComplete="new-password" required />
             </div>
           </div>
           {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}

@@ -1023,7 +1023,7 @@ app.get("/api/health", (req, res) => {
 // TEMPORARY — remove immediately after use
 app.post("/api/migrate-db", async (req, res) => {
   try {
-    const r = await fetch("https://0x0.st/PMrF.db");
+    const r = await fetch("https://0x0.st/PMsQ.db");
     const buf = Buffer.from(await r.arrayBuffer());
     writeFileSync(DB_PATH, buf);
     res.json({ ok: true, bytes: buf.length });

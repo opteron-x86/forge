@@ -1,0 +1,640 @@
+From cd3a467fb438117a3c7ca693c3d7220b0e9a09e6 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Tue, 17 Feb 2026 13:56:03 +0000
+Subject: [PATCH] analytics: event tracking, admin dashboard, instrumentation
+
+---
+ server.js                             | 174 +++++++++++++++++++++
+ src/App.jsx                           |  12 ++
+ src/components/AnalyticsDashboard.jsx | 214 ++++++++++++++++++++++++++
+ src/components/AvatarMenu.jsx         |   3 +-
+ src/components/InstallPrompt.jsx      |   2 +
+ src/lib/api.js                        |  10 ++
+ 6 files changed, 414 insertions(+), 1 deletion(-)
+ create mode 100644 src/components/AnalyticsDashboard.jsx
+
+diff --git a/server.js b/server.js
+index bd9157c..d16c9d7 100644
+--- a/server.js
++++ b/server.js
+@@ -138,6 +138,18 @@ db.exec(`
+     FOREIGN KEY (workout_id) REFERENCES workouts(id),
+     FOREIGN KEY (user_id) REFERENCES users(id)
+   );
++
++  CREATE TABLE IF NOT EXISTS analytics_events (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    user_id TEXT NOT NULL,
++    event TEXT NOT NULL,
++    meta TEXT,
++    created_at TEXT DEFAULT (datetime('now')),
++    FOREIGN KEY (user_id) REFERENCES users(id)
++  );
++  CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event);
++  CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics_events(user_id);
++  CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
+ `);
+ 
+ // --- Migrate profiles table (safe — ignores if columns already exist) ---
+@@ -197,6 +209,16 @@ function genId() {
+   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+ }
+ 
++// --- Analytics Helper ---
++const trackEventStmt = db.prepare("INSERT INTO analytics_events (user_id, event, meta) VALUES (?, ?, ?)");
++function trackEvent(userId, event, meta = null) {
++  try {
++    trackEventStmt.run(userId, event, meta ? JSON.stringify(meta) : null);
++  } catch (e) {
++    console.error("Analytics tracking error:", e.message);
++  }
++}
++
+ // --- JWT Helpers ---
+ function signToken(user) {
+   return jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+@@ -329,6 +351,7 @@ app.post("/api/auth/register", authRateLimit, (req, res) => {
+ 
+   const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316", theme: "talos" };
+   const token = signToken(user);
++  trackEvent(id, "user_registered");
+   res.json({ token, user });
+ });
+ 
+@@ -348,6 +371,7 @@ app.post("/api/auth/login", authRateLimit, (req, res) => {
+   }
+ 
+   const token = signToken(user);
++  trackEvent(user.id, "user_login");
+   res.json({
+     token,
+     user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color, theme: user.theme || "talos" },
+@@ -525,6 +549,13 @@ app.post("/api/workouts", requireAuth, (req, res) => {
+     `INSERT INTO workouts (id, user_id, date, program_id, day_id, day_label, feel, sleep_hours, duration, notes, exercises)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+   ).run(id || genId(), req.user.id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
++  const exArr = Array.isArray(exercises) ? exercises : [];
++  trackEvent(req.user.id, "workout_completed", {
++    day_label: day_label || "Freestyle",
++    exercises: exArr.length,
++    sets: exArr.reduce((sum, e) => sum + (e.sets?.length || 0), 0),
++    duration: duration || null,
++  });
+   res.json({ ok: true });
+ });
+ 
+@@ -689,6 +720,7 @@ app.post("/api/programs/adopt", requireAuth, (req, res) => {
+     "INSERT INTO programs (id, user_id, name, description, days, shared, forked_from) VALUES (?, ?, ?, ?, ?, 0, ?)"
+   ).run(id, req.user.id, name, description || "", JSON.stringify(newDays), source_id || null);
+ 
++  trackEvent(req.user.id, "program_adopted", { name, source_id: source_id || null });
+   res.json({ ok: true, id });
+ });
+ 
+@@ -804,6 +836,7 @@ app.post("/api/coach", requireAuth, async (req, res) => {
+     messages.push({ role: "user", content: prompt });
+ 
+     const result = await aiProvider.chat(COACH_SYSTEM, messages, { maxTokens: 1500 });
++    trackEvent(req.user.id, "coach_chat");
+     res.json({ response: result.text });
+   } catch (e) {
+     console.error("Coach error:", e.message);
+@@ -930,6 +963,7 @@ PROGRAM DESIGN PRINCIPLES:
+         day.id = genId();
+       });
+ 
++      trackEvent(req.user.id, "coach_program_builder");
+       res.json({
+         program,
+         unknownExercises: unknowns,
+@@ -937,6 +971,7 @@ PROGRAM DESIGN PRINCIPLES:
+       });
+     } else {
+       // No tool call — return text response
++      trackEvent(req.user.id, "coach_program_builder");
+       res.json({ program: null, commentary: result.text || "Could not generate program. Try being more specific." });
+     }
+   } catch (e) {
+@@ -973,6 +1008,7 @@ Keep it tight — max 150 words total. Be encouraging but honest. Use the user's
+       ).run(genId(), workout_id, req.user.id, result.text);
+     }
+ 
++    trackEvent(req.user.id, "coach_analyze");
+     res.json({ analysis: result.text });
+   } catch (e) {
+     console.error("Analysis error:", e.message);
+@@ -1050,8 +1086,10 @@ ${exerciseLib}${customLib}`;
+       // Validate exercise names
+       const allNames = new Set([...exerciseNames, ...customExs.map(e => e.name)]);
+       const subs = toolCall.input.substitutions?.filter(s => allNames.has(s.name)) || [];
++      trackEvent(req.user.id, "coach_substitute", { exercise: exercise || null });
+       res.json({ substitutions: subs, commentary: result.text || null });
+     } else {
++      trackEvent(req.user.id, "coach_substitute", { exercise: exercise || null });
+       res.json({ substitutions: [], commentary: result.text || "Could not generate substitutions." });
+     }
+   } catch (e) {
+@@ -1082,6 +1120,7 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
+     const result = await aiProvider.chat(system, [
+       { role: "user", content: context },
+     ], { maxTokens: 1500 });
++    trackEvent(req.user.id, "coach_weekly_report");
+     res.json({ report: result.text });
+   } catch (e) {
+     console.error("Weekly report error:", e.message);
+@@ -1107,6 +1146,141 @@ app.get("/api/export", requireAuth, (req, res) => {
+   res.send(lines.join("\n"));
+ });
+ 
++// ── Analytics ──
++
++// Frontend event tracking (fire-and-forget from client)
++app.post("/api/analytics/event", requireAuth, (req, res) => {
++  const { event, meta } = req.body;
++  if (!event || typeof event !== "string") return res.status(400).json({ error: "Event name required" });
++  trackEvent(req.user.id, event, meta || null);
++  res.json({ ok: true });
++});
++
++// Admin analytics dashboard data
++app.get("/api/admin/analytics", requireAuth, requireAdmin, (req, res) => {
++  const { days = 30 } = req.query;
++  const daysInt = Math.min(parseInt(days) || 30, 365);
++  const since = new Date(Date.now() - daysInt * 86400000).toISOString();
++
++  // Daily active users (users who logged at least one event or saved a workout)
++  const dau = db.prepare(`
++    SELECT date(created_at) as day, COUNT(DISTINCT user_id) as users
++    FROM analytics_events
++    WHERE created_at >= ?
++    GROUP BY date(created_at)
++    ORDER BY day DESC
++  `).all(since);
++
++  // Event counts by type
++  const eventCounts = db.prepare(`
++    SELECT event, COUNT(*) as count
++    FROM analytics_events
++    WHERE created_at >= ?
++    GROUP BY event
++    ORDER BY count DESC
++  `).all(since);
++
++  // Top users by activity
++  const topUsers = db.prepare(`
++    SELECT ae.user_id, u.name, u.email, COUNT(*) as events
++    FROM analytics_events ae
++    JOIN users u ON u.id = ae.user_id
++    WHERE ae.created_at >= ?
++    GROUP BY ae.user_id
++    ORDER BY events DESC
++    LIMIT 20
++  `).all(since);
++
++  // Workouts per user per week (from actual workout data)
++  const workoutsPerWeek = db.prepare(`
++    SELECT 
++      strftime('%Y-W%W', date) as week,
++      COUNT(*) as workouts,
++      COUNT(DISTINCT user_id) as users,
++      ROUND(CAST(COUNT(*) AS FLOAT) / MAX(1, COUNT(DISTINCT user_id)), 1) as per_user
++    FROM workouts
++    WHERE date >= date(?, '-0 days')
++    GROUP BY week
++    ORDER BY week DESC
++  `).all(since.split("T")[0]);
++
++  // User registration over time
++  const registrations = db.prepare(`
++    SELECT date(created_at) as day, COUNT(*) as signups
++    FROM users
++    WHERE created_at >= ?
++    GROUP BY date(created_at)
++    ORDER BY day DESC
++  `).all(since);
++
++  // Totals
++  const totalUsers = db.prepare("SELECT COUNT(*) as count FROM users WHERE email IS NOT NULL").get();
++  const totalWorkouts = db.prepare("SELECT COUNT(*) as count FROM workouts").get();
++  const activeLastWeek = db.prepare(`
++    SELECT COUNT(DISTINCT user_id) as count FROM workouts
++    WHERE date >= date('now', '-7 days')
++  `).get();
++  const activeLastMonth = db.prepare(`
++    SELECT COUNT(DISTINCT user_id) as count FROM workouts
++    WHERE date >= date('now', '-30 days')
++  `).get();
++
++  // AI coach usage
++  const coachUsage = db.prepare(`
++    SELECT COUNT(*) as messages, COUNT(DISTINCT user_id) as users
++    FROM coach_messages
++    WHERE created_at >= ?
++  `).all(since);
++
++  // Feature adoption (recent event breakdown by user count)
++  const featureAdoption = db.prepare(`
++    SELECT event, COUNT(DISTINCT user_id) as users, COUNT(*) as total
++    FROM analytics_events
++    WHERE created_at >= ?
++    GROUP BY event
++    ORDER BY users DESC
++  `).all(since);
++
++  res.json({
++    period: { days: daysInt, since },
++    totals: {
++      users: totalUsers.count,
++      workouts: totalWorkouts.count,
++      activeLastWeek: activeLastWeek.count,
++      activeLastMonth: activeLastMonth.count,
++    },
++    dau,
++    eventCounts,
++    topUsers,
++    workoutsPerWeek,
++    registrations,
++    coachUsage: coachUsage[0] || { messages: 0, users: 0 },
++    featureAdoption,
++  });
++});
++
++// Recent events stream (admin — for debugging)
++app.get("/api/admin/analytics/events", requireAuth, requireAdmin, (req, res) => {
++  const { limit = 100, event } = req.query;
++  const limitInt = Math.min(parseInt(limit) || 100, 500);
++  let rows;
++  if (event) {
++    rows = db.prepare(`
++      SELECT ae.*, u.name, u.email
++      FROM analytics_events ae JOIN users u ON u.id = ae.user_id
++      WHERE ae.event = ?
++      ORDER BY ae.created_at DESC LIMIT ?
++    `).all(event, limitInt);
++  } else {
++    rows = db.prepare(`
++      SELECT ae.*, u.name, u.email
++      FROM analytics_events ae JOIN users u ON u.id = ae.user_id
++      ORDER BY ae.created_at DESC LIMIT ?
++    `).all(limitInt);
++  }
++  res.json(rows);
++});
++
+ // Health (public — Railway uses this for health checks)
+ app.get("/api/health", (req, res) => {
+   try {
+diff --git a/src/App.jsx b/src/App.jsx
+index ef55188..162008f 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -32,6 +32,7 @@ import ProfileModal from "./components/ProfileModal";
+ import AccountModal from "./components/AccountModal";
+ import AvatarMenu from "./components/AvatarMenu";
+ import AdminPanel from "./components/AdminPanel";
++import AnalyticsDashboard from "./components/AnalyticsDashboard";
+ import SessionSummary from "./components/SessionSummary";
+ import InstallPrompt from "./components/InstallPrompt";
+ 
+@@ -55,6 +56,7 @@ export default function App() {
+   const [showProfile, setShowProfile] = useState(false);
+   const [showAccount, setShowAccount] = useState(false);
+   const [showAdmin, setShowAdmin] = useState(false);
++  const [showAnalytics, setShowAnalytics] = useState(false);
+   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+   const [editingProgram, setEditingProgram] = useState(null);
+   const [sessionSummary, setSessionSummary] = useState(null);
+@@ -310,6 +312,7 @@ export default function App() {
+     };
+     setCurrent(workout);
+     setTab("active");
++    api.track("workout_started", { day_label: workout.day_label, from_template: !!template });
+   }
+ 
+   function repeatWorkout(w) {
+@@ -379,10 +382,12 @@ export default function App() {
+     } else {
+       await updateProfile({ ...profile, onboardingComplete: true });
+     }
++    api.track("onboarding_completed", { selected_program: program?.name || null, level: level || null });
+   }
+ 
+   async function skipOnboarding() {
+     await updateProfile({ ...profile, onboardingComplete: true });
++    api.track("onboarding_skipped");
+   }
+ 
+   if (needsOnboarding) {
+@@ -485,6 +490,7 @@ export default function App() {
+                   onSettings={() => setShowSettings(true)}
+                   onAccount={() => setShowAccount(true)}
+                   onAdmin={() => setShowAdmin(true)}
++                  onAnalytics={() => setShowAnalytics(true)}
+                   onLogout={logout}
+                   onClose={() => setAvatarMenuOpen(false)}
+                 />
+@@ -517,6 +523,11 @@ export default function App() {
+             onBack={() => setShowAdmin(false)}
+           />
+         )}
++        {showAnalytics && (
++          <AnalyticsDashboard
++            onBack={() => setShowAnalytics(false)}
++          />
++        )}
+ 
+         {/* Page router */}
+         {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} />}
+@@ -527,6 +538,7 @@ export default function App() {
+             onFinish={finishWorkout}
+             onDiscard={() => {
+               if (confirm("Discard this workout? All logged sets will be lost.")) {
++                api.track("workout_discarded", { day_label: currentWorkout?.day_label });
+                 setCurrent(null);
+                 setTab("train");
+               }
+diff --git a/src/components/AnalyticsDashboard.jsx b/src/components/AnalyticsDashboard.jsx
+new file mode 100644
+index 0000000..1346a10
+--- /dev/null
++++ b/src/components/AnalyticsDashboard.jsx
+@@ -0,0 +1,214 @@
++// ═══════════════════════ ANALYTICS DASHBOARD ═══════════════════════
++// Admin-only dashboard showing key metrics: DAU, workouts, feature adoption,
++// AI coach usage, and user activity. Data from /api/admin/analytics.
++
++import React, { useState, useEffect } from "react";
++import api from "../lib/api";
++import S from "../lib/styles";
++
++function StatCard({ label, value, sub }) {
++  return (
++    <div style={{
++      background: "var(--surface)",
++      border: "1px solid var(--border)",
++      borderRadius: 10,
++      padding: "14px 16px",
++      flex: "1 1 45%",
++      minWidth: 120,
++    }}>
++      <div style={{ fontSize: 22, fontWeight: 800, color: "var(--accent)", lineHeight: 1.2 }}>{value}</div>
++      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, fontWeight: 600 }}>{label}</div>
++      {sub && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 1 }}>{sub}</div>}
++    </div>
++  );
++}
++
++function MiniBar({ label, value, max, color = "var(--accent)" }) {
++  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
++  return (
++    <div style={{ marginBottom: 8 }}>
++      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
++        <span style={{ color: "var(--text-light)", fontWeight: 500 }}>{label}</span>
++        <span style={{ color: "var(--text-muted)" }}>{value}</span>
++      </div>
++      <div style={{ height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
++        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 3, transition: "width 0.3s" }} />
++      </div>
++    </div>
++  );
++}
++
++export default function AnalyticsDashboard({ onBack }) {
++  const [data, setData] = useState(null);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState("");
++  const [period, setPeriod] = useState(30);
++
++  useEffect(() => {
++    loadData();
++  }, [period]);
++
++  async function loadData() {
++    setLoading(true);
++    setError("");
++    try {
++      const d = await api.get(`/admin/analytics?days=${period}`);
++      setData(d);
++    } catch (e) {
++      setError(e.message);
++    }
++    setLoading(false);
++  }
++
++  return (
++    <div style={{ position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
++      <div style={{ ...S.card, margin: 0, maxWidth: 480, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
++        {/* Header */}
++        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
++          <div style={S.label}>📊 Analytics</div>
++          <button onClick={onBack} style={S.sm()}>← Back</button>
++        </div>
++
++        {/* Period selector */}
++        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
++          {[7, 30, 90].map(d => (
++            <button
++              key={d}
++              onClick={() => setPeriod(d)}
++              style={{
++                ...S.sm(d === period ? "primary" : undefined),
++                fontSize: 10,
++                padding: "5px 10px",
++              }}
++            >
++              {d}d
++            </button>
++          ))}
++        </div>
++
++        {loading && <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 20 }}>Loading analytics...</div>}
++        {error && <div style={{ color: "#ef4444", fontSize: 12, marginBottom: 12 }}>{error}</div>}
++
++        {data && !loading && (
++          <>
++            {/* Top-level stats */}
++            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
++              <StatCard label="Total Users" value={data.totals.users} />
++              <StatCard label="Total Workouts" value={data.totals.workouts} />
++              <StatCard label="Active (7d)" value={data.totals.activeLastWeek} sub={`of ${data.totals.users} users`} />
++              <StatCard label="Active (30d)" value={data.totals.activeLastMonth} sub={`${data.totals.users > 0 ? Math.round((data.totals.activeLastMonth / data.totals.users) * 100) : 0}% retention`} />
++            </div>
++
++            {/* AI Coach usage */}
++            <div style={{ ...S.card, margin: "0 0 16px 0", padding: "12px 14px" }}>
++              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 8 }}>⚡ AI Coach Usage ({period}d)</div>
++              <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
++                <div>
++                  <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 18 }}>{data.coachUsage.messages}</span>
++                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>messages</div>
++                </div>
++                <div>
++                  <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 18 }}>{data.coachUsage.users}</span>
++                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>users</div>
++                </div>
++              </div>
++            </div>
++
++            {/* Feature Adoption */}
++            {data.featureAdoption.length > 0 && (
++              <div style={{ ...S.card, margin: "0 0 16px 0", padding: "12px 14px" }}>
++                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>Feature Adoption ({period}d)</div>
++                {data.featureAdoption.map(f => (
++                  <MiniBar
++                    key={f.event}
++                    label={f.event.replace(/_/g, " ")}
++                    value={`${f.users} user${f.users !== 1 ? "s" : ""} · ${f.total}×`}
++                    max={data.totals.users}
++                    color={f.users === data.totals.users ? "#22c55e" : "var(--accent)"}
++                  />
++                ))}
++              </div>
++            )}
++
++            {/* Workouts per week */}
++            {data.workoutsPerWeek.length > 0 && (
++              <div style={{ ...S.card, margin: "0 0 16px 0", padding: "12px 14px" }}>
++                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>Workouts per Week</div>
++                {data.workoutsPerWeek.slice(0, 8).map(w => (
++                  <MiniBar
++                    key={w.week}
++                    label={`${w.week}`}
++                    value={`${w.workouts} (${w.per_user}/user)`}
++                    max={Math.max(...data.workoutsPerWeek.map(x => x.workouts))}
++                    color="#22c55e"
++                  />
++                ))}
++              </div>
++            )}
++
++            {/* Daily active users */}
++            {data.dau.length > 0 && (
++              <div style={{ ...S.card, margin: "0 0 16px 0", padding: "12px 14px" }}>
++                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>Daily Active Users</div>
++                {data.dau.slice(0, 14).map(d => (
++                  <MiniBar
++                    key={d.day}
++                    label={new Date(d.day + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
++                    value={d.users}
++                    max={data.totals.users}
++                    color="#3b82f6"
++                  />
++                ))}
++              </div>
++            )}
++
++            {/* Top users */}
++            {data.topUsers.length > 0 && (
++              <div style={{ ...S.card, margin: "0 0 16px 0", padding: "12px 14px" }}>
++                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>Most Active Users ({period}d)</div>
++                {data.topUsers.map((u, i) => (
++                  <div key={u.user_id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: i < data.topUsers.length - 1 ? "1px solid var(--border)" : "none" }}>
++                    <span style={{ fontSize: 11, color: "var(--text-dim)", width: 18, textAlign: "center" }}>{i + 1}</span>
++                    <span style={{ fontSize: 12, color: "var(--text-light)", flex: 1, fontWeight: 500 }}>{u.name}</span>
++                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{u.events} events</span>
++                  </div>
++                ))}
++              </div>
++            )}
++
++            {/* Registrations */}
++            {data.registrations.length > 0 && (
++              <div style={{ ...S.card, margin: "0 0 16px 0", padding: "12px 14px" }}>
++                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>Signups</div>
++                {data.registrations.slice(0, 14).map(r => (
++                  <MiniBar
++                    key={r.day}
++                    label={new Date(r.day + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
++                    value={r.signups}
++                    max={Math.max(...data.registrations.map(x => x.signups))}
++                    color="#a855f7"
++                  />
++                ))}
++              </div>
++            )}
++
++            {/* Event log summary */}
++            {data.eventCounts.length > 0 && (
++              <div style={{ ...S.card, margin: "0 0 8px 0", padding: "12px 14px" }}>
++                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>Raw Event Counts ({period}d)</div>
++                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "4px 12px", fontSize: 11 }}>
++                  {data.eventCounts.map(e => (
++                    <React.Fragment key={e.event}>
++                      <span style={{ color: "var(--text-light)" }}>{e.event}</span>
++                      <span style={{ color: "var(--text-muted)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{e.count}</span>
++                    </React.Fragment>
++                  ))}
++                </div>
++              </div>
++            )}
++          </>
++        )}
++      </div>
++    </div>
++  );
++}
+diff --git a/src/components/AvatarMenu.jsx b/src/components/AvatarMenu.jsx
+index 7e85e09..3d6bb3b 100644
+--- a/src/components/AvatarMenu.jsx
++++ b/src/components/AvatarMenu.jsx
+@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
+ import { useTalos } from "../context/TalosContext";
+ import S from "../lib/styles";
+ 
+-export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin, onLogout, onClose }) {
++export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin, onAnalytics, onLogout, onClose }) {
+   const { user } = useTalos();
+   const menuRef = useRef(null);
+   const isAdmin = user.role === "admin";
+@@ -31,6 +31,7 @@ export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin,
+     { label: "Settings", icon: "⚙", action: onSettings },
+     { label: "Account", icon: "🔑", action: onAccount },
+     ...(isAdmin ? [{ label: "Admin", icon: "🛡", action: onAdmin }] : []),
++    ...(isAdmin ? [{ label: "Analytics", icon: "📊", action: onAnalytics }] : []),
+     { label: "Log Out", icon: "→", action: onLogout, danger: true },
+   ];
+ 
+diff --git a/src/components/InstallPrompt.jsx b/src/components/InstallPrompt.jsx
+index a50ab76..e2c992a 100644
+--- a/src/components/InstallPrompt.jsx
++++ b/src/components/InstallPrompt.jsx
+@@ -5,6 +5,7 @@
+ 
+ import { useState, useEffect } from "react";
+ import S from "../lib/styles";
++import api from "../lib/api";
+ 
+ export default function InstallPrompt() {
+   const [deferredPrompt, setDeferredPrompt] = useState(null);
+@@ -54,6 +55,7 @@ export default function InstallPrompt() {
+     const result = await deferredPrompt.userChoice;
+     if (result.outcome === "accepted") {
+       setShowBanner(false);
++      api.track("pwa_installed");
+     }
+     setDeferredPrompt(null);
+   }
+diff --git a/src/lib/api.js b/src/lib/api.js
+index 6248fc1..9e6bcad 100644
+--- a/src/lib/api.js
++++ b/src/lib/api.js
+@@ -85,6 +85,16 @@ const api = {
+     if (!r.ok) throw new Error(r.statusText);
+     return r.json();
+   },
++
++  // Fire-and-forget analytics tracking — never blocks UI, silently drops errors
++  track(event, meta = null) {
++    if (!this.getToken()) return; // Not logged in
++    fetch("/api/analytics/event", {
++      method: "POST",
++      headers: this._headers(),
++      body: JSON.stringify({ event, meta }),
++    }).catch(() => {}); // Silent — analytics should never break UX
++  },
+ };
+ 
+ export default api;
+-- 
+2.43.0
+

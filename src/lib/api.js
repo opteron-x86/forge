@@ -85,6 +85,16 @@ const api = {
     if (!r.ok) throw new Error(r.statusText);
     return r.json();
   },
+
+  // Fire-and-forget analytics tracking — never blocks UI, silently drops errors
+  track(event, meta = null) {
+    if (!this.getToken()) return; // Not logged in
+    fetch("/api/analytics/event", {
+      method: "POST",
+      headers: this._headers(),
+      body: JSON.stringify({ event, meta }),
+    }).catch(() => {}); // Silent — analytics should never break UX
+  },
 };
 
 export default api;

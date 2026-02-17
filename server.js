@@ -138,6 +138,18 @@ db.exec(`
     FOREIGN KEY (workout_id) REFERENCES workouts(id),
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS analytics_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    event TEXT NOT NULL,
+    meta TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event);
+  CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics_events(user_id);
+  CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics_events(created_at);
 `);
 
 // --- Migrate profiles table (safe — ignores if columns already exist) ---
@@ -195,6 +207,16 @@ if (ADMIN_EMAIL) {
 
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
+}
+
+// --- Analytics Helper ---
+const trackEventStmt = db.prepare("INSERT INTO analytics_events (user_id, event, meta) VALUES (?, ?, ?)");
+function trackEvent(userId, event, meta = null) {
+  try {
+    trackEventStmt.run(userId, event, meta ? JSON.stringify(meta) : null);
+  } catch (e) {
+    console.error("Analytics tracking error:", e.message);
+  }
 }
 
 // --- JWT Helpers ---
@@ -329,6 +351,7 @@ app.post("/api/auth/register", authRateLimit, (req, res) => {
 
   const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316", theme: "talos" };
   const token = signToken(user);
+  trackEvent(id, "user_registered");
   res.json({ token, user });
 });
 
@@ -348,6 +371,7 @@ app.post("/api/auth/login", authRateLimit, (req, res) => {
   }
 
   const token = signToken(user);
+  trackEvent(user.id, "user_login");
   res.json({
     token,
     user: { id: user.id, name: user.name, email: user.email, role: user.role, color: user.color, theme: user.theme || "talos" },
@@ -525,6 +549,13 @@ app.post("/api/workouts", requireAuth, (req, res) => {
     `INSERT INTO workouts (id, user_id, date, program_id, day_id, day_label, feel, sleep_hours, duration, notes, exercises)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(id || genId(), req.user.id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
+  const exArr = Array.isArray(exercises) ? exercises : [];
+  trackEvent(req.user.id, "workout_completed", {
+    day_label: day_label || "Freestyle",
+    exercises: exArr.length,
+    sets: exArr.reduce((sum, e) => sum + (e.sets?.length || 0), 0),
+    duration: duration || null,
+  });
   res.json({ ok: true });
 });
 
@@ -689,6 +720,7 @@ app.post("/api/programs/adopt", requireAuth, (req, res) => {
     "INSERT INTO programs (id, user_id, name, description, days, shared, forked_from) VALUES (?, ?, ?, ?, ?, 0, ?)"
   ).run(id, req.user.id, name, description || "", JSON.stringify(newDays), source_id || null);
 
+  trackEvent(req.user.id, "program_adopted", { name, source_id: source_id || null });
   res.json({ ok: true, id });
 });
 
@@ -804,6 +836,7 @@ app.post("/api/coach", requireAuth, async (req, res) => {
     messages.push({ role: "user", content: prompt });
 
     const result = await aiProvider.chat(COACH_SYSTEM, messages, { maxTokens: 1500 });
+    trackEvent(req.user.id, "coach_chat");
     res.json({ response: result.text });
   } catch (e) {
     console.error("Coach error:", e.message);
@@ -930,6 +963,7 @@ PROGRAM DESIGN PRINCIPLES:
         day.id = genId();
       });
 
+      trackEvent(req.user.id, "coach_program_builder");
       res.json({
         program,
         unknownExercises: unknowns,
@@ -937,6 +971,7 @@ PROGRAM DESIGN PRINCIPLES:
       });
     } else {
       // No tool call — return text response
+      trackEvent(req.user.id, "coach_program_builder");
       res.json({ program: null, commentary: result.text || "Could not generate program. Try being more specific." });
     }
   } catch (e) {
@@ -973,6 +1008,7 @@ Keep it tight — max 150 words total. Be encouraging but honest. Use the user's
       ).run(genId(), workout_id, req.user.id, result.text);
     }
 
+    trackEvent(req.user.id, "coach_analyze");
     res.json({ analysis: result.text });
   } catch (e) {
     console.error("Analysis error:", e.message);
@@ -1050,8 +1086,10 @@ ${exerciseLib}${customLib}`;
       // Validate exercise names
       const allNames = new Set([...exerciseNames, ...customExs.map(e => e.name)]);
       const subs = toolCall.input.substitutions?.filter(s => allNames.has(s.name)) || [];
+      trackEvent(req.user.id, "coach_substitute", { exercise: exercise || null });
       res.json({ substitutions: subs, commentary: result.text || null });
     } else {
+      trackEvent(req.user.id, "coach_substitute", { exercise: exercise || null });
       res.json({ substitutions: [], commentary: result.text || "Could not generate substitutions." });
     }
   } catch (e) {
@@ -1082,6 +1120,7 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
     const result = await aiProvider.chat(system, [
       { role: "user", content: context },
     ], { maxTokens: 1500 });
+    trackEvent(req.user.id, "coach_weekly_report");
     res.json({ report: result.text });
   } catch (e) {
     console.error("Weekly report error:", e.message);
@@ -1105,6 +1144,141 @@ app.get("/api/export", requireAuth, (req, res) => {
   res.setHeader("Content-Type", "text/csv");
   res.setHeader("Content-Disposition", `attachment; filename=talos-export.csv`);
   res.send(lines.join("\n"));
+});
+
+// ── Analytics ──
+
+// Frontend event tracking (fire-and-forget from client)
+app.post("/api/analytics/event", requireAuth, (req, res) => {
+  const { event, meta } = req.body;
+  if (!event || typeof event !== "string") return res.status(400).json({ error: "Event name required" });
+  trackEvent(req.user.id, event, meta || null);
+  res.json({ ok: true });
+});
+
+// Admin analytics dashboard data
+app.get("/api/admin/analytics", requireAuth, requireAdmin, (req, res) => {
+  const { days = 30 } = req.query;
+  const daysInt = Math.min(parseInt(days) || 30, 365);
+  const since = new Date(Date.now() - daysInt * 86400000).toISOString();
+
+  // Daily active users (users who logged at least one event or saved a workout)
+  const dau = db.prepare(`
+    SELECT date(created_at) as day, COUNT(DISTINCT user_id) as users
+    FROM analytics_events
+    WHERE created_at >= ?
+    GROUP BY date(created_at)
+    ORDER BY day DESC
+  `).all(since);
+
+  // Event counts by type
+  const eventCounts = db.prepare(`
+    SELECT event, COUNT(*) as count
+    FROM analytics_events
+    WHERE created_at >= ?
+    GROUP BY event
+    ORDER BY count DESC
+  `).all(since);
+
+  // Top users by activity
+  const topUsers = db.prepare(`
+    SELECT ae.user_id, u.name, u.email, COUNT(*) as events
+    FROM analytics_events ae
+    JOIN users u ON u.id = ae.user_id
+    WHERE ae.created_at >= ?
+    GROUP BY ae.user_id
+    ORDER BY events DESC
+    LIMIT 20
+  `).all(since);
+
+  // Workouts per user per week (from actual workout data)
+  const workoutsPerWeek = db.prepare(`
+    SELECT 
+      strftime('%Y-W%W', date) as week,
+      COUNT(*) as workouts,
+      COUNT(DISTINCT user_id) as users,
+      ROUND(CAST(COUNT(*) AS FLOAT) / MAX(1, COUNT(DISTINCT user_id)), 1) as per_user
+    FROM workouts
+    WHERE date >= date(?, '-0 days')
+    GROUP BY week
+    ORDER BY week DESC
+  `).all(since.split("T")[0]);
+
+  // User registration over time
+  const registrations = db.prepare(`
+    SELECT date(created_at) as day, COUNT(*) as signups
+    FROM users
+    WHERE created_at >= ?
+    GROUP BY date(created_at)
+    ORDER BY day DESC
+  `).all(since);
+
+  // Totals
+  const totalUsers = db.prepare("SELECT COUNT(*) as count FROM users WHERE email IS NOT NULL").get();
+  const totalWorkouts = db.prepare("SELECT COUNT(*) as count FROM workouts").get();
+  const activeLastWeek = db.prepare(`
+    SELECT COUNT(DISTINCT user_id) as count FROM workouts
+    WHERE date >= date('now', '-7 days')
+  `).get();
+  const activeLastMonth = db.prepare(`
+    SELECT COUNT(DISTINCT user_id) as count FROM workouts
+    WHERE date >= date('now', '-30 days')
+  `).get();
+
+  // AI coach usage
+  const coachUsage = db.prepare(`
+    SELECT COUNT(*) as messages, COUNT(DISTINCT user_id) as users
+    FROM coach_messages
+    WHERE created_at >= ?
+  `).all(since);
+
+  // Feature adoption (recent event breakdown by user count)
+  const featureAdoption = db.prepare(`
+    SELECT event, COUNT(DISTINCT user_id) as users, COUNT(*) as total
+    FROM analytics_events
+    WHERE created_at >= ?
+    GROUP BY event
+    ORDER BY users DESC
+  `).all(since);
+
+  res.json({
+    period: { days: daysInt, since },
+    totals: {
+      users: totalUsers.count,
+      workouts: totalWorkouts.count,
+      activeLastWeek: activeLastWeek.count,
+      activeLastMonth: activeLastMonth.count,
+    },
+    dau,
+    eventCounts,
+    topUsers,
+    workoutsPerWeek,
+    registrations,
+    coachUsage: coachUsage[0] || { messages: 0, users: 0 },
+    featureAdoption,
+  });
+});
+
+// Recent events stream (admin — for debugging)
+app.get("/api/admin/analytics/events", requireAuth, requireAdmin, (req, res) => {
+  const { limit = 100, event } = req.query;
+  const limitInt = Math.min(parseInt(limit) || 100, 500);
+  let rows;
+  if (event) {
+    rows = db.prepare(`
+      SELECT ae.*, u.name, u.email
+      FROM analytics_events ae JOIN users u ON u.id = ae.user_id
+      WHERE ae.event = ?
+      ORDER BY ae.created_at DESC LIMIT ?
+    `).all(event, limitInt);
+  } else {
+    rows = db.prepare(`
+      SELECT ae.*, u.name, u.email
+      FROM analytics_events ae JOIN users u ON u.id = ae.user_id
+      ORDER BY ae.created_at DESC LIMIT ?
+    `).all(limitInt);
+  }
+  res.json(rows);
 });
 
 // Health (public — Railway uses this for health checks)

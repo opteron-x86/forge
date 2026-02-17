@@ -32,6 +32,7 @@ import ProfileModal from "./components/ProfileModal";
 import AccountModal from "./components/AccountModal";
 import AvatarMenu from "./components/AvatarMenu";
 import AdminPanel from "./components/AdminPanel";
+import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import SessionSummary from "./components/SessionSummary";
 import InstallPrompt from "./components/InstallPrompt";
 
@@ -55,6 +56,7 @@ export default function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
@@ -310,6 +312,7 @@ export default function App() {
     };
     setCurrent(workout);
     setTab("active");
+    api.track("workout_started", { day_label: workout.day_label, from_template: !!template });
   }
 
   function repeatWorkout(w) {
@@ -379,10 +382,12 @@ export default function App() {
     } else {
       await updateProfile({ ...profile, onboardingComplete: true });
     }
+    api.track("onboarding_completed", { selected_program: program?.name || null, level: level || null });
   }
 
   async function skipOnboarding() {
     await updateProfile({ ...profile, onboardingComplete: true });
+    api.track("onboarding_skipped");
   }
 
   if (needsOnboarding) {
@@ -485,6 +490,7 @@ export default function App() {
                   onSettings={() => setShowSettings(true)}
                   onAccount={() => setShowAccount(true)}
                   onAdmin={() => setShowAdmin(true)}
+                  onAnalytics={() => setShowAnalytics(true)}
                   onLogout={logout}
                   onClose={() => setAvatarMenuOpen(false)}
                 />
@@ -517,6 +523,11 @@ export default function App() {
             onBack={() => setShowAdmin(false)}
           />
         )}
+        {showAnalytics && (
+          <AnalyticsDashboard
+            onBack={() => setShowAnalytics(false)}
+          />
+        )}
 
         {/* Page router */}
         {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} />}
@@ -527,6 +538,7 @@ export default function App() {
             onFinish={finishWorkout}
             onDiscard={() => {
               if (confirm("Discard this workout? All logged sets will be lost.")) {
+                api.track("workout_discarded", { day_label: currentWorkout?.day_label });
                 setCurrent(null);
                 setTab("train");
               }

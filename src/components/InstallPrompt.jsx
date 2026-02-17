@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import S from "../lib/styles";
+import api from "../lib/api";
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -54,6 +55,7 @@ export default function InstallPrompt() {
     const result = await deferredPrompt.userChoice;
     if (result.outcome === "accepted") {
       setShowBanner(false);
+      api.track("pwa_installed");
     }
     setDeferredPrompt(null);
   }

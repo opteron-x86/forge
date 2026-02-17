@@ -54,7 +54,7 @@ export default function ProfileModal({ onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Sex</div>
-                <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
                   <option value="">—</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -62,7 +62,7 @@ export default function ProfileModal({ onClose }) {
               </div>
               <div>
                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>DOB</div>
-                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "4px 4px", fontSize: 11 }} />
+                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "4px 4px", fontSize: 11, height: 44 }} />
               </div>
               <div>
                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Target Wt</div>
@@ -73,7 +73,7 @@ export default function ProfileModal({ onClose }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Goal</div>
-                <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
                   <option value="">—</option>
                   <option value="bulk">Bulk</option>
                   <option value="cut">Cut</option>
@@ -84,7 +84,7 @@ export default function ProfileModal({ onClose }) {
               </div>
               <div>
                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Experience</div>
-                <select value={tmp.experienceLevel || ""} onChange={e => setTmp(p => ({ ...p, experienceLevel: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                <select value={tmp.experienceLevel || ""} onChange={e => setTmp(p => ({ ...p, experienceLevel: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
                   <option value="">—</option>
                   <option value="beginner">Beginner</option>
                   <option value="intermediate">Intermediate</option>
@@ -93,7 +93,7 @@ export default function ProfileModal({ onClose }) {
               </div>
               <div>
                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Intensity</div>
-                <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "6px 4px" }}>
+                <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
                   <option value="">—</option>
                   <option value="low">Low</option>
                   <option value="moderate">Moderate</option>

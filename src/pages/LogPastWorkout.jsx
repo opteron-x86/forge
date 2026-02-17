@@ -261,7 +261,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
             <select
               value={selectedProgram?.id || ""}
               onChange={(e) => handleProgramSelect(e.target.value || null)}
-              style={{ ...S.input, cursor: "pointer" }}
+              style={{ ...S.input, cursor: "pointer", height: 44 }}
             >
               <option value="">Freestyle (no program)</option>
               {userPrograms.map((p) => (
@@ -505,7 +505,7 @@ function SetRow({ set, setIndex, exIndex, updateSet, intensityScale }) {
       <select
         value={set.rpe || ""}
         onChange={(e) => updateSet(exIndex, setIndex, "rpe", e.target.value ? Number(e.target.value) : "")}
-        style={{ ...S.input, padding: "6px 4px", fontSize: 13, textAlign: "center", appearance: "auto", WebkitAppearance: "menulist" }}
+        style={{ ...S.smSelect, textAlign: "center" }}
       >
         {scaleOptions.map(v => <option key={v} value={v}>{v === "" ? "—" : v}</option>)}
       </select>

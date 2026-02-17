@@ -240,7 +240,7 @@ export default function SettingsModal({ onClose }) {
                     const newProvider = e.target.value;
                     const models = PROVIDERS.find(p => p.id === newProvider)?.models || [];
                     setAiForm(f => ({ ...f, provider: newProvider, model: models[0]?.id || "" }));
-                  }} style={{ ...S.input, fontSize: 12 }}>
+                  }} style={{ ...S.input, fontSize: 12, height: 44 }}>
                     {PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
@@ -256,7 +256,7 @@ export default function SettingsModal({ onClose }) {
                           <select value={isKnownModel ? aiForm.model : "__custom__"} onChange={e => {
                             if (e.target.value === "__custom__") setAiForm(f => ({ ...f, model: "" }));
                             else setAiForm(f => ({ ...f, model: e.target.value }));
-                          }} style={{ ...S.input, fontSize: 12 }}>
+                          }} style={{ ...S.input, fontSize: 12, height: 44 }}>
                             {providerModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                             <option value="__custom__">Custom model...</option>
                           </select>

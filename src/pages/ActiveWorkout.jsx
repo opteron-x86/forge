@@ -238,9 +238,9 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
                 {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 2 }}>{ex.notes}</div>}
               </div>
               <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-                {ei > 0 && <button onClick={() => moveExercise(ei, -1)} style={S.sm()} title="Move up">↑</button>}
-                {ei < workout.exercises.length - 1 && <button onClick={() => moveExercise(ei, 1)} style={S.sm()} title="Move down">↓</button>}
-                {hasSub && <button onClick={() => quickSub(ei)} style={S.sm()} title="Substitute">↔</button>}
+                {ei > 0 && <button onClick={() => moveExercise(ei, -1)} style={{ ...S.sm(), fontSize: 16, fontWeight: 900, minWidth: 44 }} title="Move up">↑</button>}
+                {ei < workout.exercises.length - 1 && <button onClick={() => moveExercise(ei, 1)} style={{ ...S.sm(), fontSize: 16, fontWeight: 900, minWidth: 44 }} title="Move down">↓</button>}
+                {hasSub && <button onClick={() => quickSub(ei)} style={{ ...S.sm(), minWidth: 44 }} title="Substitute"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg></button>}
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "24px 1fr 1fr 1fr 44px", gap: 5, marginBottom: 4 }}>
@@ -251,7 +251,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
                 <div style={{ fontSize: 10, color: "var(--text-dim)", fontWeight: 700, textAlign: "center" }}>{si + 1}</div>
                 <input type="number" inputMode="decimal" value={set.weight} onChange={e => updateSet(ei, si, "weight", e.target.value ? Number(e.target.value) : "")} onFocus={e => e.target.select()} style={S.smInput} placeholder="—" />
                 <input type="number" inputMode="numeric" value={set.reps} onChange={e => updateSet(ei, si, "reps", e.target.value ? Number(e.target.value) : "")} onFocus={e => e.target.select()} style={S.smInput} placeholder="—" />
-                <select value={set.rpe || ""} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={{ ...S.smInput, appearance: "auto", WebkitAppearance: "menulist" }}>
+                <select value={set.rpe || ""} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={S.smSelect}>
                   {scaleOptions.map(v => <option key={v} value={v}>{v === "" ? "—" : v}</option>)}
                 </select>
                 <button onClick={() => toggleSet(ei, si)} style={S.check(set.completed)}>{set.completed ? "✓" : ""}</button>

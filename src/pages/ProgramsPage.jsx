@@ -416,8 +416,8 @@ export default function ProgramsPage() {
           </div>
           </div>
           <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
-            {di > 0 && <button onClick={() => moveDay(di, -1)} style={S.sm()}>↑</button>}
-            {di < editing.days.length - 1 && <button onClick={() => moveDay(di, 1)} style={S.sm()}>↓</button>}
+            {di > 0 && <button onClick={() => moveDay(di, -1)} style={{ ...S.sm(), fontSize: 16, fontWeight: 900, minWidth: 44 }}>↑</button>}
+            {di < editing.days.length - 1 && <button onClick={() => moveDay(di, 1)} style={{ ...S.sm(), fontSize: 16, fontWeight: 900, minWidth: 44 }}>↓</button>}
             <button onClick={() => removeDay(di)} style={S.sm("danger")}>Remove</button>
           </div>
           </div>
@@ -438,7 +438,7 @@ export default function ProgramsPage() {
                   n.days[di] = { ...n.days[di], exercises: exs };
                   return n;
                 });
-              }} style={{ ...S.smInput, width: 48, textAlign: "center" }} title="Sets">
+              }} style={{ ...S.smSelect, width: 48, textAlign: "center" }} title="Sets">
               {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
               <span style={{ fontSize: 9, color: "var(--text-dim)" }}>×</span>
@@ -451,8 +451,8 @@ export default function ProgramsPage() {
                   return n;
                 });
               }} style={{ ...S.smInput, width: 52, textAlign: "center" }} placeholder="8-12" title="Rep range" />
-              {ei > 0 && <button onClick={() => moveExInDay(di, ei, -1)} style={S.sm()}>↑</button>}
-              {ei < day.exercises.length - 1 && <button onClick={() => moveExInDay(di, ei, 1)} style={S.sm()}>↓</button>}
+              {ei > 0 && <button onClick={() => moveExInDay(di, ei, -1)} style={{ ...S.sm(), fontSize: 16, fontWeight: 900, minWidth: 44 }}>↑</button>}
+              {ei < day.exercises.length - 1 && <button onClick={() => moveExInDay(di, ei, 1)} style={{ ...S.sm(), fontSize: 16, fontWeight: 900, minWidth: 44 }}>↓</button>}
               <button onClick={() => removeExFromDay(di, ei)} style={S.sm("danger")}>✕</button>
               </div>
             ))}

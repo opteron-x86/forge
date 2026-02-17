@@ -248,7 +248,7 @@ export default function StatsPage() {
           <select
             value={activeChartExercise}
             onChange={e => setChartExercise(e.target.value)}
-            style={{ ...S.input, fontSize: 12, marginBottom: 10, background: "var(--surface2)" }}
+            style={{ ...S.input, fontSize: 12, marginBottom: 10, background: "var(--surface2)", height: 44 }}
           >
             {exerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
           </select>

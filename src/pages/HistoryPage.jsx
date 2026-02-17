@@ -165,7 +165,7 @@ export default function HistoryPage({ onLogPast }) {
       <div style={S.card}>
         {/* Month nav */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <button onClick={prevMonth} style={{ ...S.sm(), padding: "6px 10px" }}>◀</button>
+          <button onClick={prevMonth} style={{ ...S.sm(), padding: "6px 10px", fontSize: 16 }}>◀</button>
           <div onClick={goToToday} style={{ cursor: "pointer", textAlign: "center" }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-bright)" }}>{monthLabel}</div>
             <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
@@ -174,7 +174,7 @@ export default function HistoryPage({ onLogPast }) {
               {monthAvgFeel && ` · ${monthAvgFeel} feel`}
             </div>
           </div>
-          <button onClick={nextMonth} style={{ ...S.sm(), padding: "6px 10px" }}>▶</button>
+          <button onClick={nextMonth} style={{ ...S.sm(), padding: "6px 10px", fontSize: 16 }}>▶</button>
         </div>
 
         {/* Day-of-week headers */}
@@ -277,13 +277,13 @@ export default function HistoryPage({ onLogPast }) {
       {showAllHistory && !selectedDate && showFilters && (
         <div style={{ padding: "0 16px 8px", display: "flex", gap: 6, flexWrap: "wrap" }}>
           <select value={filterProgram} onChange={e => { setFilterProgram(e.target.value); setFilterDay("all"); setVisibleCount(LOAD_MORE_COUNT); }}
-            style={{ ...S.sm(), padding: "4px 6px", background: "var(--surface2)", color: "var(--text-light)", border: "1px solid var(--border2)", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
+            style={{ ...S.sm(), padding: "4px 6px", background: "var(--surface2)", color: "var(--text-light)", border: "1px solid var(--border2)", borderRadius: 4, fontSize: 10, fontFamily: "inherit", height: 44 }}>
             <option value="all">All Programs</option>
             {programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           {filteredDays.length > 0 && (
             <select value={filterDay} onChange={e => { setFilterDay(e.target.value); setVisibleCount(LOAD_MORE_COUNT); }}
-              style={{ ...S.sm(), padding: "4px 6px", background: "var(--surface2)", color: "var(--text-light)", border: "1px solid var(--border2)", borderRadius: 4, fontSize: 10, fontFamily: "inherit" }}>
+              style={{ ...S.sm(), padding: "4px 6px", background: "var(--surface2)", color: "var(--text-light)", border: "1px solid var(--border2)", borderRadius: 4, fontSize: 10, fontFamily: "inherit", height: 44 }}>
               <option value="all">All Days</option>
               {filteredDays.map(d => <option key={d.id} value={d.id}>{d.label}</option>)}
             </select>

@@ -1,10 +1,10 @@
-// ═══════════════════════ REST TIMER (FLOATING BAR) ═══════════════════════
-// Compact fixed-position bar above the nav. Always visible during rest.
+// ═══════════════════════ REST TIMER (MODAL) ═══════════════════════
+// Full-screen modal rest timer with circular progress ring.
 //
 // Features:
-// - Pinned to bottom of screen, above nav bar
-// - Progress bar + countdown + skip
-// - Tap countdown to add 15s, tap label to subtract 15s
+// - Centered modal overlay
+// - Circular SVG progress ring with countdown
+// - +15 / -15 buttons plus tap-ring to add time
 // - Color shifts green → amber in last 15s
 // - Vibrates + shows "Done" state on completion
 // - Auto-dismisses 2s after finishing
@@ -12,6 +12,11 @@
 // Props: seconds (initial), onDone, onCancel
 
 import { useState, useEffect, useRef, useCallback } from "react";
+
+const RING_SIZE = 180;
+const RING_STROKE = 8;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 export default function RestTimer({ seconds: initialSeconds, onDone, onCancel }) {
   const [total, setTotal] = useState(initialSeconds);
@@ -50,121 +55,180 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
     setRemaining(r => Math.max(1, r - 15));
   }, [done]);
 
-  const pct = total > 0 ? Math.min(((total - remaining) / total) * 100, 100) : 100;
+  const pct = total > 0 ? Math.min((total - remaining) / total, 1) : 1;
   const min = Math.floor(Math.max(remaining, 0) / 60);
   const sec = Math.max(remaining, 0) % 60;
   const isWarning = !done && remaining <= 15 && remaining > 0;
 
-  const barColor = done ? "#22c55e" : isWarning ? "#eab308" : "#4ade80";
-  const bgColor = done ? "#0a1a10" : "#0f1612";
-  const borderColor = done ? "#166534" : isWarning ? "#854d0e40" : "#1a3a2540";
+  const ringColor = done ? "#22c55e" : isWarning ? "#eab308" : "#4ade80";
+  const strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
 
   return (
     <div style={{
       position: "fixed",
-      bottom: "calc(max(12px, env(safe-area-inset-bottom)) + 50px)",
-      left: "50%",
-      transform: "translateX(-50%)",
-      width: "calc(100% - 32px)",
-      maxWidth: 488,
-      zIndex: 150,
-      background: bgColor,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 10,
-      padding: "10px 14px",
-      boxShadow: "0 -2px 16px rgba(0,0,0,0.6)",
-      animation: done ? "restDonePulse 0.6s ease-out" : undefined,
+      inset: 0,
+      background: "rgba(0,0,0,0.75)",
+      zIndex: 250,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+      backdropFilter: "blur(4px)",
+      WebkitBackdropFilter: "blur(4px)",
+      animation: "restModalIn 0.2s ease-out",
     }}>
-      {/* Progress bar (top) */}
       <div style={{
-        height: 4,
-        background: "var(--surface2)",
-        borderRadius: 2,
-        overflow: "hidden",
-        marginBottom: 8,
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        borderRadius: 16,
+        padding: "28px 24px 20px",
+        width: "100%",
+        maxWidth: 300,
+        textAlign: "center",
+        animation: done ? "restDonePulse 0.6s ease-out" : undefined,
       }}>
+        {/* Label */}
         <div style={{
-          height: "100%",
-          background: barColor,
-          borderRadius: 2,
-          width: `${pct}%`,
-          transition: "width 1s linear, background 0.3s",
-        }} />
-      </div>
-
-      {/* Content row */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-      }}>
-        {/* Label — tap to subtract 15s */}
-        <div
-          onClick={subTime}
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "1px",
-            textTransform: "uppercase",
-            color: done ? "#22c55e" : isWarning ? "#eab308" : "#4ade80",
-            cursor: done ? "default" : "pointer",
-            userSelect: "none",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {done ? "✓ Go" : "Rest"}
-          {!done && <span style={{ fontSize: 8, color: "var(--text-dim)", marginLeft: 4 }}>−15</span>}
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "1.5px",
+          textTransform: "uppercase",
+          color: done ? "#22c55e" : "var(--text-muted)",
+          marginBottom: 16,
+        }}>
+          {done ? "✓ Time's Up" : "Rest"}
         </div>
 
-        {/* Countdown — tap to add 15s */}
+        {/* Circular progress ring */}
         <div
           onClick={addTime}
           style={{
-            fontSize: 28,
-            fontWeight: 800,
-            color: done ? "#22c55e" : "var(--text-bright)",
-            fontVariantNumeric: "tabular-nums",
-            fontFamily: "'JetBrains Mono','SF Mono',monospace",
+            position: "relative",
+            width: RING_SIZE,
+            height: RING_SIZE,
+            margin: "0 auto 20px",
             cursor: done ? "default" : "pointer",
             userSelect: "none",
-            minWidth: 72,
-            textAlign: "center",
-            lineHeight: 1,
           }}
         >
-          {done ? "0:00" : `${min}:${sec.toString().padStart(2, "0")}`}
-          {!done && <div style={{ fontSize: 8, color: "var(--text-dim)", marginTop: 2, fontWeight: 400 }}>tap +15s</div>}
+          <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: "rotate(-90deg)" }}>
+            {/* Background ring */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              fill="none"
+              stroke="var(--surface2)"
+              strokeWidth={RING_STROKE}
+            />
+            {/* Progress ring */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              fill="none"
+              stroke={ringColor}
+              strokeWidth={RING_STROKE}
+              strokeLinecap="round"
+              strokeDasharray={RING_CIRCUMFERENCE}
+              strokeDashoffset={strokeDashoffset}
+              style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s" }}
+            />
+          </svg>
+          {/* Countdown text (centered inside ring) */}
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <div style={{
+              fontSize: 42,
+              fontWeight: 800,
+              color: done ? "#22c55e" : "var(--text-bright)",
+              fontVariantNumeric: "tabular-nums",
+              fontFamily: "'JetBrains Mono','SF Mono',monospace",
+              lineHeight: 1,
+            }}>
+              {done ? "0:00" : `${min}:${sec.toString().padStart(2, "0")}`}
+            </div>
+            {!done && (
+              <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, fontWeight: 400 }}>
+                tap to add 15s
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Skip / Dismiss */}
-        <button
-          onClick={done ? onDone : onCancel}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 5,
-            border: "1px solid var(--border2)",
-            background: "transparent",
-            color: done ? "#22c55e" : "var(--text-muted)",
-            fontSize: 11,
-            fontWeight: 700,
-            fontFamily: "inherit",
-            cursor: "pointer",
-            letterSpacing: "0.5px",
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {done ? "Done" : "Skip"}
-        </button>
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          {!done && (
+            <button
+              onClick={subTime}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 8,
+                border: "1px solid var(--border2)",
+                background: "transparent",
+                color: "var(--text-muted)",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              −15s
+            </button>
+          )}
+          <button
+            onClick={done ? onDone : onCancel}
+            style={{
+              padding: "8px 24px",
+              borderRadius: 8,
+              border: done ? "1px solid #166534" : "1px solid var(--border2)",
+              background: done ? "#16653420" : "transparent",
+              color: done ? "#22c55e" : "var(--text-muted)",
+              fontSize: 12,
+              fontWeight: 700,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            {done ? "Done" : "Skip"}
+          </button>
+          {!done && (
+            <button
+              onClick={addTime}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 8,
+                border: "1px solid var(--border2)",
+                background: "transparent",
+                color: "var(--text-muted)",
+                fontSize: 12,
+                fontWeight: 700,
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              +15s
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Inline animation keyframes */}
       <style>{`
         @keyframes restDonePulse {
           0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-          50% { box-shadow: 0 0 16px 4px rgba(34, 197, 94, 0.3); }
-          100% { box-shadow: 0 -2px 12px rgba(0,0,0,0.5); }
+          50% { box-shadow: 0 0 24px 8px rgba(34, 197, 94, 0.3); }
+          100% { box-shadow: none; }
+        }
+        @keyframes restModalIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
       `}</style>
     </div>

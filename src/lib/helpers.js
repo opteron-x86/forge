@@ -57,6 +57,8 @@ export const DEFAULT_PROFILE = {
   bodyFat: null,
   restTimerCompound: 150,
   restTimerIsolation: 90,
+  restTimerEnabled: true,
+  intensityScale: "rpe",
   sex: "",
   dateOfBirth: "",
   goal: "",

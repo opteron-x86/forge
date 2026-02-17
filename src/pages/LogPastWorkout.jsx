@@ -311,6 +311,8 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
         const last = getLastPerformance(ex.name);
         const allExs = getAllExercises(customExercises);
         const exMeta = allExs.find((e) => e.name === ex.name);
+        const isRir = profile.intensityScale === "rir";
+        const scaleLabel = isRir ? "RIR" : "RPE";
 
         return (
           <div key={ei} style={S.card}>
@@ -327,7 +329,6 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
               <div style={{ display: "flex", gap: 4 }}>
                 {ei > 0 && <button onClick={() => moveExercise(ei, -1)} style={S.sm("ghost")}>↑</button>}
                 {ei < exercises.length - 1 && <button onClick={() => moveExercise(ei, 1)} style={S.sm("ghost")}>↓</button>}
-                <button onClick={() => removeExercise(ei)} style={S.sm("danger")}>✕</button>
               </div>
             </div>
 
@@ -344,19 +345,22 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
               <div style={{ fontSize: 9, color: "var(--text-dim)", textAlign: "center" }}>#</div>
               <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Weight</div>
               <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Reps</div>
-              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>RPE</div>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.5px" }}>{scaleLabel}</div>
 
               {ex.sets.map((s, si) => (
-                <SetRow key={si} set={s} setIndex={si} exIndex={ei} updateSet={updateSet} />
+                <SetRow key={si} set={s} setIndex={si} exIndex={ei} updateSet={updateSet} intensityScale={profile.intensityScale} />
               ))}
             </div>
 
-            {/* Set controls */}
-            <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => addSet(ei)} style={S.sm("ghost")}>+ Set</button>
-              {ex.sets.length > 1 && (
-                <button onClick={() => removeSet(ei)} style={S.sm("ghost")}>− Set</button>
-              )}
+            {/* Set controls + remove exercise */}
+            <div style={{ display: "flex", gap: 4, justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: 4 }}>
+                <button onClick={() => addSet(ei)} style={S.sm("ghost")}>+ Set</button>
+                {ex.sets.length > 1 && (
+                  <button onClick={() => removeSet(ei)} style={S.sm("ghost")}>− Set</button>
+                )}
+              </div>
+              <button onClick={() => removeExercise(ei)} style={S.sm("danger")}>✕ Remove</button>
             </div>
 
             {/* Exercise notes */}
@@ -470,7 +474,11 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
 }
 
 // ── Set Row (inline sub-component) ──
-function SetRow({ set, setIndex, exIndex, updateSet }) {
+function SetRow({ set, setIndex, exIndex, updateSet, intensityScale }) {
+  const isRir = intensityScale === "rir";
+  const scaleOptions = isRir
+    ? ["", "0", "1", "2", "3", "4", "5"]
+    : ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   return (
     <>
       <div style={{ fontSize: 11, color: "var(--text-dim)", textAlign: "center", fontWeight: 700 }}>
@@ -492,17 +500,13 @@ function SetRow({ set, setIndex, exIndex, updateSet }) {
         style={{ ...S.input, padding: "6px 8px", fontSize: 13, textAlign: "center" }}
         inputMode="numeric"
       />
-      <input
-        type="number"
-        value={set.rpe}
-        onChange={(e) => updateSet(exIndex, setIndex, "rpe", e.target.value)}
-        placeholder="—"
-        style={{ ...S.input, padding: "6px 8px", fontSize: 13, textAlign: "center" }}
-        inputMode="decimal"
-        min="1"
-        max="10"
-        step="0.5"
-      />
+      <select
+        value={set.rpe || ""}
+        onChange={(e) => updateSet(exIndex, setIndex, "rpe", e.target.value ? Number(e.target.value) : "")}
+        style={{ ...S.input, padding: "6px 4px", fontSize: 13, textAlign: "center", appearance: "auto", WebkitAppearance: "menulist" }}
+      >
+        {scaleOptions.map(v => <option key={v} value={v}>{v === "" ? "—" : v}</option>)}
+      </select>
     </>
   );
 }

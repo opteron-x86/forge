@@ -42,7 +42,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
       n.exercises[ei].sets[si].completed = !was;
       return n;
     });
-    if (!workout.exercises[ei].sets[si].completed) {
+    if (!workout.exercises[ei].sets[si].completed && profile.restTimerEnabled !== false) {
       const ex = workout.exercises[ei];
       const isCompound = EXERCISES.find(e => e.name === ex.name)?.type === "compound";
       const secs = isCompound ? (profile.restTimerCompound || 150) : (profile.restTimerIsolation || 90);
@@ -224,6 +224,11 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
       {workout.exercises.map((ex, ei) => {
         const last = getLastPerformance(ex.name);
         const hasSub = aiConfig.enabled || SUBSTITUTIONS[ex.name];
+        const isRir = profile.intensityScale === "rir";
+        const scaleLabel = isRir ? "RIR" : "RPE";
+        const scaleOptions = isRir
+          ? ["", "0", "1", "2", "3", "4", "5"]
+          : ["", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
         return (
           <div key={ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
@@ -236,24 +241,28 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
                 {ei > 0 && <button onClick={() => moveExercise(ei, -1)} style={S.sm()} title="Move up">↑</button>}
                 {ei < workout.exercises.length - 1 && <button onClick={() => moveExercise(ei, 1)} style={S.sm()} title="Move down">↓</button>}
                 {hasSub && <button onClick={() => quickSub(ei)} style={S.sm()} title="Substitute">↔</button>}
-                <button onClick={() => removeExercise(ei)} style={S.sm("danger")}>✕</button>
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "24px 1fr 1fr 1fr 32px", gap: 5, marginBottom: 4 }}>
-              {["Set", "Lbs", "Reps", "RPE", ""].map((h, i) => <div key={i} style={{ fontSize: 9, color: "var(--text-dim)", textAlign: "center", textTransform: "uppercase" }}>{h}</div>)}
+              {["Set", "Lbs", "Reps", scaleLabel, ""].map((h, i) => <div key={i} style={{ fontSize: 9, color: "var(--text-dim)", textAlign: "center", textTransform: "uppercase" }}>{h}</div>)}
             </div>
             {ex.sets.map((set, si) => (
               <div key={si} style={S.setRow(set.completed)}>
                 <div style={{ fontSize: 10, color: "var(--text-dim)", fontWeight: 700, textAlign: "center" }}>{si + 1}</div>
                 <input type="number" inputMode="decimal" value={set.weight} onChange={e => updateSet(ei, si, "weight", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
                 <input type="number" inputMode="numeric" value={set.reps} onChange={e => updateSet(ei, si, "reps", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
-                <input type="number" inputMode="decimal" value={set.rpe} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
+                <select value={set.rpe || ""} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={{ ...S.smInput, appearance: "auto", WebkitAppearance: "menulist" }}>
+                  {scaleOptions.map(v => <option key={v} value={v}>{v === "" ? "—" : v}</option>)}
+                </select>
                 <button onClick={() => toggleSet(ei, si)} style={S.check(set.completed)}>{set.completed ? "✓" : ""}</button>
               </div>
             ))}
-            <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
-              <button onClick={() => addSet(ei)} style={S.sm()}>+ Set</button>
-              {ex.sets.length > 1 && <button onClick={() => removeSet(ei)} style={S.sm()}>− Set</button>}
+            <div style={{ display: "flex", gap: 5, marginTop: 6, justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: 5 }}>
+                <button onClick={() => addSet(ei)} style={S.sm()}>+ Set</button>
+                {ex.sets.length > 1 && <button onClick={() => removeSet(ei)} style={S.sm()}>− Set</button>}
+              </div>
+              <button onClick={() => removeExercise(ei)} style={S.sm("danger")} title="Remove exercise">✕ Remove</button>
             </div>
           </div>
         );
@@ -273,10 +282,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
         <button onClick={onFinish} style={{ ...S.btn("primary"), flex: 2 }}>Finish Workout</button>
       </div>
 
-      {/* Extra bottom padding when rest timer is visible so content isn't hidden */}
-      {restTimer && <div style={{ height: 64 }} />}
-
-      {/* Floating rest timer bar (fixed position, above nav) */}
+      {/* Rest timer modal (overlays screen when active) */}
       {restTimer && (
         <RestTimer
           seconds={restTimer}

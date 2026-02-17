@@ -28,6 +28,10 @@ import CoachPage from "./pages/CoachPage";
 import Login from "./components/Login";
 import Onboarding from "./components/Onboarding";
 import SettingsModal from "./components/SettingsModal";
+import ProfileModal from "./components/ProfileModal";
+import AccountModal from "./components/AccountModal";
+import AvatarMenu from "./components/AvatarMenu";
+import AdminPanel from "./components/AdminPanel";
 import SessionSummary from "./components/SessionSummary";
 import InstallPrompt from "./components/InstallPrompt";
 
@@ -48,6 +52,10 @@ export default function App() {
   const [tab, setTab] = useState("train");
   const [currentWorkout, setCurrent] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null);
@@ -464,11 +472,23 @@ export default function App() {
             >
               ⚡
             </button>
-            <div
-              onClick={() => setShowSettings(true)}
-              style={S.avatar(user.color)}
-            >
-              {user.name?.[0]?.toUpperCase()}
+            <div style={{ position: "relative" }}>
+              <div
+                onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+                style={S.avatar(user.color)}
+              >
+                {user.name?.[0]?.toUpperCase()}
+              </div>
+              {avatarMenuOpen && (
+                <AvatarMenu
+                  onProfile={() => setShowProfile(true)}
+                  onSettings={() => setShowSettings(true)}
+                  onAccount={() => setShowAccount(true)}
+                  onAdmin={() => setShowAdmin(true)}
+                  onLogout={logout}
+                  onClose={() => setAvatarMenuOpen(false)}
+                />
+              )}
             </div>
           </div>
         </header>
@@ -476,11 +496,25 @@ export default function App() {
         {/* PWA Install Prompt */}
         <InstallPrompt />
 
-        {/* Settings */}
+        {/* Modals */}
         {showSettings && (
           <SettingsModal
             onClose={() => setShowSettings(false)}
-            onLogout={logout}
+          />
+        )}
+        {showProfile && (
+          <ProfileModal
+            onClose={() => setShowProfile(false)}
+          />
+        )}
+        {showAccount && (
+          <AccountModal
+            onClose={() => setShowAccount(false)}
+          />
+        )}
+        {showAdmin && (
+          <AdminPanel
+            onBack={() => setShowAdmin(false)}
           />
         )}
 

@@ -1,5 +1,6 @@
 // ═══════════════════════ SETTINGS MODAL ═══════════════════════
-// Account settings, theme, AI config (admin only), password change, admin panel.
+// App preferences: theme, avatar color, rest timer config, RPE/RIR scale,
+// AI config (admin only).
 
 import { useState, useEffect } from "react";
 import { useTalos } from "../context/TalosContext";
@@ -7,29 +8,28 @@ import { USER_COLORS } from "../lib/helpers";
 import { THEME_LIST, THEMES, applyTheme } from "../lib/themes";
 import api from "../lib/api";
 import S from "../lib/styles";
-import AdminPanel from "./AdminPanel";
 
-export default function SettingsModal({ onClose, onLogout }) {
-  const { user, updateUser } = useTalos();
+export default function SettingsModal({ onClose }) {
+  const { user, updateUser, profile, updateProfile } = useTalos();
   const [name, setName] = useState(user.name);
   const [color, setColor] = useState(user.color);
   const [theme, setTheme] = useState(user.theme || "talos");
   const [originalTheme] = useState(user.theme || "talos");
+
+  // Rest timer settings
+  const [restTimerEnabled, setRestTimerEnabled] = useState(profile.restTimerEnabled !== false);
+  const [restCompound, setRestCompound] = useState(profile.restTimerCompound || 150);
+  const [restIsolation, setRestIsolation] = useState(profile.restTimerIsolation || 90);
+
+  // Intensity scale (RPE vs RIR)
+  const [intensityScale, setIntensityScale] = useState(profile.intensityScale || "rpe");
+
+  // AI config (admin only)
   const [showAI, setShowAI] = useState(false);
   const [aiForm, setAiForm] = useState({ provider: "", model: "", baseUrl: "", supportsTools: true });
   const [aiProviders, setAiProviders] = useState([]);
   const [aiStatus, setAiStatus] = useState("");
   const [aiLoaded, setAiLoaded] = useState(false);
-
-  // Password change state
-  const [showPassword, setShowPassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [passwordMsg, setPasswordMsg] = useState("");
-
-  // Admin panel state
-  const [showAdmin, setShowAdmin] = useState(false);
 
   const isAdmin = user.role === "admin";
 
@@ -49,7 +49,6 @@ export default function SettingsModal({ onClose, onLogout }) {
     }
   }, [showAI]);
 
-  // Live preview: apply theme immediately on selection
   function selectTheme(id) {
     setTheme(id);
     applyTheme(id);
@@ -57,8 +56,19 @@ export default function SettingsModal({ onClose, onLogout }) {
 
   async function save() {
     try {
+      // Save account settings (name, color, theme)
       await api.put("/auth/account", { name, color, theme });
       updateUser({ name, color, theme });
+
+      // Save profile settings (rest timer, intensity scale)
+      await updateProfile({
+        ...profile,
+        restTimerEnabled,
+        restTimerCompound: restCompound,
+        restTimerIsolation: restIsolation,
+        intensityScale,
+      });
+
       onClose();
     } catch (e) {
       alert("Save failed: " + e.message);
@@ -66,24 +76,8 @@ export default function SettingsModal({ onClose, onLogout }) {
   }
 
   function handleClose() {
-    // Revert theme if not saved
-    if (theme !== originalTheme) {
-      applyTheme(originalTheme);
-    }
+    if (theme !== originalTheme) applyTheme(originalTheme);
     onClose();
-  }
-
-  async function changePassword() {
-    setPasswordMsg("");
-    if (newPassword.length < 8) { setPasswordMsg("Min 8 characters"); return; }
-    if (newPassword !== confirmNewPassword) { setPasswordMsg("Passwords don't match"); return; }
-    try {
-      await api.post("/auth/change-password", { currentPassword, newPassword });
-      setPasswordMsg("Password updated!");
-      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword("");
-    } catch (e) {
-      setPasswordMsg(e.message);
-    }
   }
 
   async function saveAI() {
@@ -97,11 +91,6 @@ export default function SettingsModal({ onClose, onLogout }) {
 
   const PROVIDERS = aiProviders;
 
-  // ── Admin Panel overlay ──
-  if (showAdmin) {
-    return <AdminPanel onBack={() => setShowAdmin(false)} />;
-  }
-
   return (
     <div style={{ position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ ...S.card, margin: 0, maxWidth: 360, width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
@@ -110,11 +99,7 @@ export default function SettingsModal({ onClose, onLogout }) {
           <button onClick={handleClose} style={S.sm()}>✕</button>
         </div>
 
-        {/* Account info */}
-        <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
-          {user.email}{isAdmin && <span style={{ ...S.tag(), marginLeft: 6, fontSize: 9 }}>ADMIN</span>}
-        </div>
-
+        {/* Name */}
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Name</div>
           <input value={name} onChange={e => setName(e.target.value)} style={S.input} />
@@ -139,7 +124,6 @@ export default function SettingsModal({ onClose, onLogout }) {
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {/* Color preview dots */}
                   <div style={{ display: "flex", gap: 4, marginBottom: 5 }}>
                     <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.bg, border: "1px solid rgba(128,128,128,0.3)" }} />
                     <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.surface, border: "1px solid rgba(128,128,128,0.3)" }} />
@@ -161,45 +145,95 @@ export default function SettingsModal({ onClose, onLogout }) {
           </div>
         </div>
 
-        {/* Change Password */}
+        {/* Intensity Scale (RPE / RIR) */}
         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
-          <div onClick={() => setShowPassword(!showPassword)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-            <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Change Password</div>
-            <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showPassword ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 6, textTransform: "uppercase" }}>Intensity Scale</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => setIntensityScale("rpe")}
+              style={{
+                ...S.sm(intensityScale === "rpe" ? "primary" : "ghost"),
+                flex: 1,
+                padding: "8px 10px",
+                fontSize: 11,
+              }}
+            >
+              RPE (1–10)
+            </button>
+            <button
+              onClick={() => setIntensityScale("rir")}
+              style={{
+                ...S.sm(intensityScale === "rir" ? "primary" : "ghost"),
+                flex: 1,
+                padding: "8px 10px",
+                fontSize: 11,
+              }}
+            >
+              RIR (0–5)
+            </button>
+          </div>
+          <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4 }}>
+            {intensityScale === "rpe" ? "Rate of Perceived Exertion (10 = max effort)" : "Reps In Reserve (0 = nothing left)"}
           </div>
         </div>
-        {showPassword && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Current Password</div>
-              <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="current-password" />
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>New Password</div>
-              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="new-password" />
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Confirm New Password</div>
-              <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} autoComplete="new-password" />
-            </div>
-            {passwordMsg && <div style={{ fontSize: 11, color: passwordMsg === "Password updated!" ? "#22c55e" : "#ef4444", marginBottom: 8 }}>{passwordMsg}</div>}
-            <button onClick={changePassword} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Update Password</button>
+
+        {/* Rest Timer Toggle + Config */}
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Rest Timer</div>
+            <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={restTimerEnabled}
+                onChange={e => setRestTimerEnabled(e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0 }}
+              />
+              <span style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: 11,
+                background: restTimerEnabled ? "var(--accent)" : "var(--surface2)",
+                border: "1px solid var(--border2)",
+                transition: "background 0.2s",
+              }}>
+                <span style={{
+                  position: "absolute",
+                  top: 2,
+                  left: restTimerEnabled ? 20 : 2,
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  background: "var(--text-bright)",
+                  transition: "left 0.2s",
+                }} />
+              </span>
+            </label>
           </div>
-        )}
+          {restTimerEnabled && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Compound (sec)</div>
+                <input type="number" inputMode="numeric" value={restCompound} onChange={e => setRestCompound(Number(e.target.value))} style={S.smInput} />
+              </div>
+              <div>
+                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Isolation (sec)</div>
+                <input type="number" inputMode="numeric" value={restIsolation} onChange={e => setRestIsolation(Number(e.target.value))} style={S.smInput} />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* AI Provider Config (admin only) */}
         {isAdmin && (
-          <>
-            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
-              <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-                <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>AI Coach Provider</div>
-                <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
-              </div>
-              {aiStatus && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{aiStatus}</div>}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
+            <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>AI Coach Provider</div>
+              <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
             </div>
+            {aiStatus && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{aiStatus}</div>}
 
             {showAI && (
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginTop: 8 }}>
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Provider</div>
                   <select value={aiForm.provider} onChange={e => {
@@ -249,25 +283,13 @@ export default function SettingsModal({ onClose, onLogout }) {
                   </>
                 )}
                 <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save AI Config</button>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "center" }}>API keys are set via environment variables (AI_API_KEY or ANTHROPIC_API_KEY).</div>
+                <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "center" }}>API keys are set via environment variables.</div>
               </div>
             )}
-          </>
-        )}
-
-        {/* Admin Panel link */}
-        {isAdmin && (
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
-            <button onClick={() => setShowAdmin(true)} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11, color: "var(--accent)" }}>
-              Admin Panel — Manage Users
-            </button>
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onLogout} style={{ ...S.btn("ghost"), flex: 1 }}>Log Out</button>
-          <button onClick={save} style={{ ...S.btn("primary"), flex: 1 }}>Save</button>
-        </div>
+        <button onClick={save} style={{ ...S.btn("primary"), width: "100%" }}>Save</button>
       </div>
     </div>
   );

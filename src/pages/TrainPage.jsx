@@ -211,7 +211,7 @@ export default function TrainPage({ onStartWorkout }) {
             <div style={{ marginTop: 8, background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 8, overflow: "hidden" }}>
               {programs.filter(p => p.id !== activeProg.id).map(p => (
                 <div key={p.id} onClick={() => switchProgram(p.id)}
-                  style={{ padding: "10px 12px", cursor: "pointer", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  style={{ padding: "10px 12px", cursor: "pointer", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 44 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>{p.name}</div>
                     <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>{p.days?.length || 0} days</div>

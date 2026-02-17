@@ -95,6 +95,7 @@ export default function ExercisePicker({ onSelect, onClose, customExercises }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          minHeight: 44,
         }}
       >
         <div>

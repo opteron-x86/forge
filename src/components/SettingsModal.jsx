@@ -140,8 +140,8 @@ export default function SettingsModal({ onClose }) {
         {/* Avatar color */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Avatar Color</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {USER_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 24, height: 24, borderRadius: "50%", background: c, cursor: "pointer", border: color === c ? "3px solid var(--text-bright)" : "3px solid transparent" }} />)}
+          <div style={{ display: "flex", gap: 2 }}>
+            {USER_COLORS.map(c => <div key={c} onClick={() => setColor(c)} style={{ width: 44, height: 44, borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ width: 24, height: 24, borderRadius: "50%", background: c, border: color === c ? "3px solid var(--text-bright)" : "3px solid transparent" }} /></div>)}
           </div>
         </div>
 

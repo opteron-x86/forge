@@ -177,6 +177,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
                 fontWeight: 700,
                 fontFamily: "inherit",
                 cursor: "pointer",
+                minHeight: 44,
               }}
             >
               −15s
@@ -194,6 +195,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
               fontWeight: 700,
               fontFamily: "inherit",
               cursor: "pointer",
+              minHeight: 44,
             }}
           >
             {done ? "Done" : "Skip"}
@@ -211,6 +213,7 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
                 fontWeight: 700,
                 fontFamily: "inherit",
                 cursor: "pointer",
+                minHeight: 44,
               }}
             >
               +15s

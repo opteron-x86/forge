@@ -177,6 +177,9 @@ function BrowsePrograms({ onAdopt, onClose }) {
     fontFamily: "inherit",
     cursor: "pointer",
     letterSpacing: "0.3px",
+    minHeight: 44,
+    display: "inline-flex",
+    alignItems: "center",
   });
 
   return (

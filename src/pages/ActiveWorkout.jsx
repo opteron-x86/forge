@@ -173,7 +173,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
                 {subModal.subs.map((sub, i) => {
                   const last = getLastPerformance(sub.name);
                   return (
-                    <div key={i} onClick={() => applySub(sub.name)} style={{ padding: "10px 8px", borderBottom: "1px solid var(--border)", cursor: "pointer", borderRadius: 6 }}>
+                    <div key={i} onClick={() => applySub(sub.name)} style={{ padding: "10px 8px", borderBottom: "1px solid var(--border)", cursor: "pointer", borderRadius: 6, minHeight: 44 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{sub.name}</div>
                         <div style={{ display: "flex", gap: 2 }}>
@@ -213,7 +213,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
         <div style={{ display: "flex", gap: 5 }}>
           {FEEL.map(f => (
             <button key={f.v} onClick={() => setWorkout(p => ({ ...p, feel: f.v }))}
-              style={{ flex: 1, padding: "5px 2px", borderRadius: 6, border: workout.feel === f.v ? `2px solid ${f.c}` : "1px solid var(--border2)", background: workout.feel === f.v ? f.c + "20" : "transparent", color: workout.feel === f.v ? f.c : "var(--text-dim)", fontSize: 9, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", textTransform: "uppercase" }}>
+              style={{ flex: 1, padding: "5px 2px", borderRadius: 6, border: workout.feel === f.v ? `2px solid ${f.c}` : "1px solid var(--border2)", background: workout.feel === f.v ? f.c + "20" : "transparent", color: workout.feel === f.v ? f.c : "var(--text-dim)", fontSize: 9, fontWeight: 700, fontFamily: "inherit", cursor: "pointer", textTransform: "uppercase", minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
               {f.l}
             </button>
           ))}
@@ -243,14 +243,14 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
                 {hasSub && <button onClick={() => quickSub(ei)} style={S.sm()} title="Substitute">↔</button>}
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "24px 1fr 1fr 1fr 32px", gap: 5, marginBottom: 4 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "24px 1fr 1fr 1fr 44px", gap: 5, marginBottom: 4 }}>
               {["Set", "Lbs", "Reps", scaleLabel, ""].map((h, i) => <div key={i} style={{ fontSize: 9, color: "var(--text-dim)", textAlign: "center", textTransform: "uppercase" }}>{h}</div>)}
             </div>
             {ex.sets.map((set, si) => (
               <div key={si} style={S.setRow(set.completed)}>
                 <div style={{ fontSize: 10, color: "var(--text-dim)", fontWeight: 700, textAlign: "center" }}>{si + 1}</div>
-                <input type="number" inputMode="decimal" value={set.weight} onChange={e => updateSet(ei, si, "weight", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
-                <input type="number" inputMode="numeric" value={set.reps} onChange={e => updateSet(ei, si, "reps", e.target.value ? Number(e.target.value) : "")} style={S.smInput} placeholder="—" />
+                <input type="number" inputMode="decimal" value={set.weight} onChange={e => updateSet(ei, si, "weight", e.target.value ? Number(e.target.value) : "")} onFocus={e => e.target.select()} style={S.smInput} placeholder="—" />
+                <input type="number" inputMode="numeric" value={set.reps} onChange={e => updateSet(ei, si, "reps", e.target.value ? Number(e.target.value) : "")} onFocus={e => e.target.select()} style={S.smInput} placeholder="—" />
                 <select value={set.rpe || ""} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={{ ...S.smInput, appearance: "auto", WebkitAppearance: "menulist" }}>
                   {scaleOptions.map(v => <option key={v} value={v}>{v === "" ? "—" : v}</option>)}
                 </select>

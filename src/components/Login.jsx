@@ -122,7 +122,7 @@ export default function Login({ onLogin }) {
           <button type="submit" disabled={loading} style={{ ...S.btn("primary"), width: "100%", marginTop: 12, opacity: loading ? 0.6 : 1 }}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
-          <button type="button" onClick={() => { resetForm(); setMode("forgot"); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11, fontFamily: "inherit", cursor: "pointer", marginTop: 12, textAlign: "center", width: "100%" }}>
+          <button type="button" onClick={() => { resetForm(); setMode("forgot"); }} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 11, fontFamily: "inherit", cursor: "pointer", marginTop: 12, textAlign: "center", width: "100%", minHeight: 44 }}>
             Forgot password?
           </button>
           <button type="button" onClick={() => { resetForm(); setMode("register"); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 8, fontSize: 12 }}>Create Account</button>

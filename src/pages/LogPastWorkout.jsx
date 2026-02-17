@@ -488,6 +488,7 @@ function SetRow({ set, setIndex, exIndex, updateSet, intensityScale }) {
         type="number"
         value={set.weight}
         onChange={(e) => updateSet(exIndex, setIndex, "weight", e.target.value)}
+        onFocus={(e) => e.target.select()}
         placeholder="lbs"
         style={{ ...S.input, padding: "6px 8px", fontSize: 13, textAlign: "center" }}
         inputMode="decimal"
@@ -496,6 +497,7 @@ function SetRow({ set, setIndex, exIndex, updateSet, intensityScale }) {
         type="number"
         value={set.reps}
         onChange={(e) => updateSet(exIndex, setIndex, "reps", e.target.value)}
+        onFocus={(e) => e.target.select()}
         placeholder="reps"
         style={{ ...S.input, padding: "6px 8px", fontSize: 13, textAlign: "center" }}
         inputMode="numeric"

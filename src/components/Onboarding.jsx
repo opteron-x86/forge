@@ -216,7 +216,7 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
                 value={height}
                 onChange={e => setHeight(e.target.value)}
                 style={fieldInput}
-                placeholder='e.g. 5\'10"'
+                placeholder={"e.g. 5'10\""}
                 inputMode="text"
               />
             </div>

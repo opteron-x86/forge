@@ -10,7 +10,10 @@ import S from "../lib/styles";
 
 function daysAgoText(dateStr) {
   if (!dateStr) return null;
-  const d = Math.floor((new Date() - new Date(dateStr + "T12:00:00")) / 86400000);
+  const today = new Date();
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const thatMidnight = new Date(dateStr + "T00:00:00");
+  const d = Math.round((todayMidnight - thatMidnight) / 86400000);
   if (d === 0) return "Today";
   if (d === 1) return "Yesterday";
   if (d < 7) return `${d}d ago`;
@@ -24,15 +27,18 @@ export default function TrainPage({ onStartWorkout }) {
   const [showLastSession, setShowLastSession] = useState(false);
 
   // ── Contextual stats ──
-  const stats = useMemo(() => {
+const stats = useMemo(() => {
     const dates = [...new Set(workouts.map(w => w.date))].sort();
-    const today = new Date().toISOString().split("T")[0];
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
 
     // Current streak (gap ≤ 3 days)
     let streak = 0;
     for (let i = dates.length - 1; i >= 0; i--) {
-      const d = new Date(dates[i] + "T12:00:00");
-      const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T12:00:00") : new Date(today + "T12:00:00");
+      const d = new Date(dates[i] + "T00:00:00");
+      const prev = i < dates.length - 1
+        ? new Date(dates[i + 1] + "T00:00:00")
+        : todayMidnight;
       if (Math.round((prev - d) / 86400000) <= 3) streak++;
       else break;
     }
@@ -40,11 +46,13 @@ export default function TrainPage({ onStartWorkout }) {
 
     // This week
     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
-    const thisWeek = workouts.filter(w => new Date(w.date + "T12:00:00") >= weekAgo).length;
+    const thisWeek = workouts.filter(w => new Date(w.date + "T00:00:00") >= weekAgo).length;
 
     // Days since last workout
     const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
-    const daysSince = lastDate ? Math.floor((new Date() - new Date(lastDate + "T12:00:00")) / 86400000) : null;
+    const daysSince = lastDate
+      ? Math.round((todayMidnight - new Date(lastDate + "T00:00:00")) / 86400000)
+      : null;
 
     return { streak, thisWeek, daysSince, lastDate };
   }, [workouts]);

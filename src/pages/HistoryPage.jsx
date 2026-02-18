@@ -195,7 +195,7 @@ export default function HistoryPage({ onLogPast }) {
             const dayWorkouts = workoutsByDate[dateStr] || [];
             const isToday = dateStr === today.toISOString().split("T")[0];
             const isSelected = dateStr === selectedDate;
-            const hasFuture = new Date(dateStr + "T12:00:00") > today;
+            const hasFuture = new Date(dateStr + "T00:00:00") > today;
 
             return (
               <div key={dayNum} onClick={() => {

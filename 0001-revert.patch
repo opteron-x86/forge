@@ -1,0 +1,114 @@
+From d8632d3518e0c0ce6950e0dd3a0429c37a96a071 Mon Sep 17 00:00:00 2001
+From: opteron-x86 <opteronx86@protonmail.com>
+Date: Wed, 18 Feb 2026 07:38:42 -0500
+Subject: [PATCH] revert
+
+---
+ src/pages/TrainPage.jsx | 59 ++++++-----------------------------------
+ 1 file changed, 8 insertions(+), 51 deletions(-)
+
+diff --git a/src/pages/TrainPage.jsx b/src/pages/TrainPage.jsx
+index 40424ba..df87973 100644
+--- a/src/pages/TrainPage.jsx
++++ b/src/pages/TrainPage.jsx
+@@ -3,17 +3,14 @@
+ // workout as fast as possible. Program days auto-fill from last
+ // performance. Quick Repeat section for recent session types.
+ 
+-import { useState, useMemo, useEffect } from "react";
++import { useState, useMemo } from "react";
+ import { useTalos } from "../context/TalosContext";
+ import { fmtDate, FEEL } from "../lib/helpers";
+ import S from "../lib/styles";
+ 
+ function daysAgoText(dateStr) {
+   if (!dateStr) return null;
+-  const today = new Date();
+-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+-  const thatMidnight = new Date(dateStr + "T00:00:00");
+-  const d = Math.round((todayMidnight - thatMidnight) / 86400000);
++  const d = Math.floor((new Date() - new Date(dateStr + "T12:00:00")) / 86400000);
+   if (d === 0) return "Today";
+   if (d === 1) return "Yesterday";
+   if (d < 7) return `${d}d ago`;
+@@ -26,56 +23,16 @@ export default function TrainPage({ onStartWorkout }) {
+   const [showProgramPicker, setShowProgramPicker] = useState(false);
+   const [showLastSession, setShowLastSession] = useState(false);
+ 
+-  // ── Day-change detection ──
+-  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+-
+-  useEffect(() => {
+-    const check = () => {
+-      const now = new Date().toISOString().split("T")[0];
+-      if (now !== today) setToday(now);
+-    };
+-    const onVisible = () => {
+-      if (document.visibilityState === "visible") check();
+-    };
+-    document.addEventListener("visibilitychange", onVisible);
+-    const interval = setInterval(check, 60000);
+-    return () => {
+-      document.removeEventListener("visibilitychange", onVisible);
+-      clearInterval(interval);
+-    };
+-  }, [today]);
+-
+-  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+-
+-  useEffect(() => {
+-    const check = () => {
+-      const now = new Date().toISOString().split("T")[0];
+-      if (now !== today) setToday(now);
+-    };
+-
+-    const onVisible = () => {
+-      if (document.visibilityState === 'visible') check();
+-    };
+-
+-    document.addEventListener('visibilitychange', onVisible);
+-    const interval = setInterval(check, 60000);
+-
+-    return () => {
+-      document.removeEventListener('visibilitychange', onVisible);
+-      clearInterval(interval);
+-    };
+-  }, [today]);
+-
+   // ── Contextual stats ──
+   const stats = useMemo(() => {
+     const dates = [...new Set(workouts.map(w => w.date))].sort();
+-    const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0);
++    const today = new Date().toISOString().split("T")[0];
+ 
+     // Current streak (gap ≤ 3 days)
+     let streak = 0;
+     for (let i = dates.length - 1; i >= 0; i--) {
+-      const d = new Date(dates[i] + "T00:00:00");
+-      const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T00:00:00") : todayMidnight;
++      const d = new Date(dates[i] + "T12:00:00");
++      const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T12:00:00") : new Date(today + "T12:00:00");
+       if (Math.round((prev - d) / 86400000) <= 3) streak++;
+       else break;
+     }
+@@ -83,14 +40,14 @@ export default function TrainPage({ onStartWorkout }) {
+ 
+     // This week
+     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+-    const thisWeek = workouts.filter(w => new Date(w.date + "T00:00:00") >= weekAgo).length;
++    const thisWeek = workouts.filter(w => new Date(w.date + "T12:00:00") >= weekAgo).length;
+ 
+     // Days since last workout
+     const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
+-    const daysSince = lastDate ? Math.round((todayMidnight - new Date(lastDate + "T00:00:00")) / 86400000) : null;
++    const daysSince = lastDate ? Math.floor((new Date() - new Date(lastDate + "T12:00:00")) / 86400000) : null;
+ 
+     return { streak, thisWeek, daysSince, lastDate };
+-  }, [workouts,  today]);
++  }, [workouts]);
+ 
+   // ── Last workout ──
+   const lastWorkout = workouts.length > 0 ? workouts[workouts.length - 1] : null;
+-- 
+2.43.0
+

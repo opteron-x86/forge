@@ -18,7 +18,7 @@ const RING_STROKE = 8;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-export default function RestTimer({ seconds: initialSeconds, onDone, onCancel }) {
+export default function RestTimer({ seconds: initialSeconds, nextInfo, onDone, onCancel }) {
   const [total, setTotal] = useState(initialSeconds);
   const [remaining, setRemaining] = useState(initialSeconds);
   const [done, setDone] = useState(false);
@@ -87,16 +87,23 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
         textAlign: "center",
         animation: done ? "restDonePulse 0.6s ease-out" : undefined,
       }}>
-        {/* Label */}
+        {/* Label — show next exercise/set or fallback */}
         <div style={{
-          fontSize: 11,
+          fontSize: nextInfo ? 12 : 11,
           fontWeight: 700,
-          letterSpacing: "1.5px",
-          textTransform: "uppercase",
-          color: done ? "#22c55e" : "var(--text-muted)",
+          letterSpacing: nextInfo ? "0.3px" : "1.5px",
+          textTransform: nextInfo ? "none" : "uppercase",
+          color: done ? "#22c55e" : "var(--text-bright)",
           marginBottom: 16,
         }}>
-          {done ? "✓ Time's Up" : "Rest"}
+          {done ? "✓ Time's Up" : nextInfo
+            ? <>
+                <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: "1px", textTransform: "uppercase", color: "var(--text-dim)", display: "block", marginBottom: 3 }}>Up Next</span>
+                {nextInfo.exercise}
+                <span style={{ fontSize: 10, fontWeight: 500, color: "var(--text-muted)", marginLeft: 6 }}>Set {nextInfo.set}/{nextInfo.totalSets}</span>
+              </>
+            : "Rest"
+          }
         </div>
 
         {/* Circular progress ring */}
@@ -144,6 +151,11 @@ export default function RestTimer({ seconds: initialSeconds, onDone, onCancel })
             alignItems: "center",
             justifyContent: "center",
           }}>
+            {!done && (
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "1.5px", textTransform: "uppercase", color: "var(--text-dim)", marginBottom: 2 }}>
+                REST
+              </div>
+            )}
             <div style={{
               fontSize: 42,
               fontWeight: 800,

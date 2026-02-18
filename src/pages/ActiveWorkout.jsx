@@ -36,17 +36,49 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
   }
 
   function toggleSet(ei, si) {
+    const wasCompleted = workout.exercises[ei].sets[si].completed;
     setWorkout(p => {
       const n = JSON.parse(JSON.stringify(p));
-      const was = n.exercises[ei].sets[si].completed;
-      n.exercises[ei].sets[si].completed = !was;
+      n.exercises[ei].sets[si].completed = !wasCompleted;
+      // Auto-fill: when completing a set, propagate weight/reps to subsequent empty sets
+      if (!wasCompleted) {
+        const completedSet = n.exercises[ei].sets[si];
+        const sets = n.exercises[ei].sets;
+        for (let s = si + 1; s < sets.length; s++) {
+          if (!sets[s].completed) {
+            if ((sets[s].weight === "" || sets[s].weight === undefined || sets[s].weight === null) && completedSet.weight) {
+              sets[s].weight = completedSet.weight;
+            }
+            if ((sets[s].reps === "" || sets[s].reps === undefined || sets[s].reps === null) && completedSet.reps) {
+              sets[s].reps = completedSet.reps;
+            }
+          }
+        }
+      }
       return n;
     });
-    if (!workout.exercises[ei].sets[si].completed && profile.restTimerEnabled !== false) {
+    if (!wasCompleted && profile.restTimerEnabled !== false) {
       const ex = workout.exercises[ei];
       const isCompound = EXERCISES.find(e => e.name === ex.name)?.type === "compound";
       const secs = isCompound ? (profile.restTimerCompound || 150) : (profile.restTimerIsolation || 90);
-      setRestTimer(secs);
+      // Determine what's next: next incomplete set in same exercise, or next exercise
+      let nextInfo = null;
+      const currentSets = ex.sets;
+      const nextSetIdx = currentSets.findIndex((s, idx) => idx > si && !s.completed);
+      if (nextSetIdx !== -1) {
+        nextInfo = { exercise: ex.name, set: nextSetIdx + 1, totalSets: currentSets.length };
+      } else {
+        // Look for next exercise with incomplete sets
+        for (let e = ei + 1; e < workout.exercises.length; e++) {
+          const nextEx = workout.exercises[e];
+          const firstIncomplete = nextEx.sets.findIndex(s => !s.completed);
+          if (firstIncomplete !== -1) {
+            nextInfo = { exercise: nextEx.name, set: firstIncomplete + 1, totalSets: nextEx.sets.length };
+            break;
+          }
+        }
+      }
+      setRestTimer({ seconds: secs, nextInfo });
     }
   }
 
@@ -251,7 +283,7 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
                 <div style={{ fontSize: 10, color: "var(--text-dim)", fontWeight: 700, textAlign: "center" }}>{si + 1}</div>
                 <input type="number" inputMode="decimal" value={set.weight} onChange={e => updateSet(ei, si, "weight", e.target.value ? Number(e.target.value) : "")} onFocus={e => e.target.select()} style={S.smInput} placeholder="—" />
                 <input type="number" inputMode="numeric" value={set.reps} onChange={e => updateSet(ei, si, "reps", e.target.value ? Number(e.target.value) : "")} onFocus={e => e.target.select()} style={S.smInput} placeholder="—" />
-                <select value={set.rpe || ""} onChange={e => updateSet(ei, si, "rpe", e.target.value ? Number(e.target.value) : "")} style={S.smSelect}>
+                <select value={set.rpe != null && set.rpe !== "" ? set.rpe : ""} onChange={e => updateSet(ei, si, "rpe", e.target.value !== "" ? Number(e.target.value) : "")} style={S.smSelect}>
                   {scaleOptions.map(v => <option key={v} value={v}>{v === "" ? "—" : v}</option>)}
                 </select>
                 <button onClick={() => toggleSet(ei, si)} style={S.check(set.completed)}>{set.completed ? "✓" : ""}</button>
@@ -285,7 +317,8 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
       {/* Rest timer modal (overlays screen when active) */}
       {restTimer && (
         <RestTimer
-          seconds={restTimer}
+          seconds={restTimer.seconds}
+          nextInfo={restTimer.nextInfo}
           onDone={() => setRestTimer(null)}
           onCancel={() => setRestTimer(null)}
         />

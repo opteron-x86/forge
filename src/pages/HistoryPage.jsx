@@ -5,8 +5,9 @@
 
 import { useState, useMemo } from "react";
 import { useTalos } from "../context/TalosContext";
-import { fmtDate, FEEL } from "../lib/helpers";
+import { fmtDate, FEEL, est1RM } from "../lib/helpers";
 import MarkdownText from "../components/MarkdownText";
+import api from "../lib/api";
 import S from "../lib/styles";
 
 // ── Generic color palette ──
@@ -341,6 +342,9 @@ export default function HistoryPage({ onLogPast }) {
                 {hasReview && (
                   <ReviewSection review={workoutReviews[w.id]} />
                 )}
+                {!hasReview && aiConfig.enabled && (
+                  <RequestReviewButton workout={w} />
+                )}
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={() => repeatWorkout(w)} style={{ ...S.sm(), flex: 1, color: "var(--accent)", borderColor: "var(--accent-bg2)" }}>Repeat</button>
                   <button onClick={() => editWorkout(w)} style={{ ...S.sm("ghost"), flex: 1 }}>Edit</button>
@@ -403,6 +407,73 @@ function ReviewSection({ review }) {
         <div style={{ marginTop: 8 }}>
           <MarkdownText text={review} />
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Request AI review from history ──
+function RequestReviewButton({ workout }) {
+  const { workouts, user, profile, programs, setWorkoutReviews } = useTalos();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function requestReview() {
+    setLoading(true);
+    setError(null);
+    try {
+      const prevWorkouts = workouts.filter(w => w.id !== workout.id);
+      const recent = prevWorkouts.slice(-5);
+      const prs = {};
+      prevWorkouts.forEach(w => w.exercises?.forEach(ex => ex.sets?.forEach(s => {
+        if (!s.weight || !s.reps) return;
+        const e = est1RM(parseFloat(s.weight), parseInt(s.reps));
+        if (!prs[ex.name] || (e && e > (prs[ex.name].e1rm || 0)))
+          prs[ex.name] = { weight: s.weight, reps: s.reps, e1rm: e, date: w.date };
+      })));
+
+      const profileLines = [
+        `Name: ${user.name}`,
+        profile.experienceLevel ? `Experience: ${profile.experienceLevel}` : null,
+        profile.goal ? `Goal: ${profile.goal}` : null,
+        profile.weight ? `Weight: ${profile.weight} lbs` : null,
+        profile.injuriesNotes ? `Injuries: ${profile.injuriesNotes}` : null,
+      ].filter(Boolean).join(", ");
+
+      const context = `USER: ${profileLines}
+PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
+RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+
+      const res = await api.post("/coach/analyze", {
+        workout,
+        context,
+        workout_id: workout.id,
+      });
+
+      setWorkoutReviews(prev => ({ ...prev, [workout.id]: res.analysis }));
+    } catch (e) {
+      console.error("Review error:", e);
+      setError("Failed to generate review");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 10, borderTop: "1px solid var(--surface2)", paddingTop: 8 }}>
+      {error ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 10, color: "#ef4444" }}>{error}</span>
+          <button onClick={requestReview} style={{ ...S.sm("ghost"), fontSize: 9 }}>Retry</button>
+        </div>
+      ) : loading ? (
+        <div style={{ fontSize: 10, color: "var(--accent)", textAlign: "center", padding: 4 }}>
+          Analyzing session...
+        </div>
+      ) : (
+        <button onClick={requestReview} style={{ ...S.sm(), width: "100%", color: "var(--accent)", borderColor: "var(--accent-bg2)", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <span>⚡</span> Get AI Review
+        </button>
       )}
     </div>
   );

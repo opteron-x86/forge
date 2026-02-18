@@ -367,26 +367,58 @@ export default function App() {
   // ── Onboarding for new users ──
   const needsOnboarding = loaded && programs.length === 0 && workouts.length === 0 && !profile.onboardingComplete;
 
-  async function completeOnboarding(program, level) {
+  async function completeOnboarding(program, level, profileData) {
+    // Merge onboarding profile data with existing profile
+    const profileUpdates = {
+      ...profile,
+      experienceLevel: level || profile.experienceLevel,
+      onboardingComplete: true,
+    };
+
+    // Apply collected profile data (sex, DOB, height, weight)
+    if (profileData) {
+      if (profileData.sex) profileUpdates.sex = profileData.sex;
+      if (profileData.dateOfBirth) profileUpdates.dateOfBirth = profileData.dateOfBirth;
+      if (profileData.height) profileUpdates.height = profileData.height;
+      if (profileData.weight) profileUpdates.weight = profileData.weight;
+      // equipmentPreference could be stored for future use (AI coach context, template filtering)
+      // For now, we don't have a DB column for it — add if needed
+    }
+
     // Save the selected program
     if (program) {
       await saveProgram(program);
-      // Refresh programs to get the saved one with its ID
       const updated = await api.get("/programs");
       setPrograms(updated);
-      // Set as active program
       if (updated.length > 0) {
-        await updateProfile({ ...profile, activeProgramId: updated[0].id, experienceLevel: level || profile.experienceLevel, onboardingComplete: true });
+        profileUpdates.activeProgramId = updated[0].id;
       }
-    } else {
-      await updateProfile({ ...profile, onboardingComplete: true });
     }
-    api.track("onboarding_completed", { selected_program: program?.name || null, level: level || null });
+
+    await updateProfile(profileUpdates);
+    api.track("onboarding_completed", {
+      selected_program: program?.name || null,
+      level: level || null,
+      equipment: profileData?.equipmentPreference || null,
+      has_profile_data: !!(profileData?.sex || profileData?.weight),
+    });
   }
 
-  async function skipOnboarding() {
-    await updateProfile({ ...profile, onboardingComplete: true });
-    api.track("onboarding_skipped");
+  async function skipOnboarding(profileData) {
+    const profileUpdates = { ...profile, onboardingComplete: true };
+
+    // Even when skipping, save any profile data they entered
+    if (profileData) {
+      if (profileData.sex) profileUpdates.sex = profileData.sex;
+      if (profileData.dateOfBirth) profileUpdates.dateOfBirth = profileData.dateOfBirth;
+      if (profileData.height) profileUpdates.height = profileData.height;
+      if (profileData.weight) profileUpdates.weight = profileData.weight;
+    }
+
+    await updateProfile(profileUpdates);
+    api.track("onboarding_skipped", {
+      has_profile_data: !!(profileData?.sex || profileData?.weight),
+    });
   }
 
   if (needsOnboarding) {

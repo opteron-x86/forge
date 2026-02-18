@@ -1,10 +1,12 @@
 // ═══════════════════════ ONBOARDING ═══════════════════════
 // Multi-step new user flow:
-// 1. Welcome → 2. Experience → 3. Days → 4. Browse templates → 5. Done
-// Skippable at any point. Saves selected program and marks onboarding complete.
+// 0. Welcome → 1. Quick Stats → 2. Equipment/Location →
+// 3. Experience → 4. Days → 5. Browse templates → 6. Preview
+// Skippable at any point. Saves selected program, profile data,
+// and marks onboarding complete.
 
 import { useState, useMemo } from "react";
-import { STARTER_TEMPLATES } from "../lib/starterTemplates";
+import { STARTER_TEMPLATES, EQUIPMENT_OPTIONS } from "../lib/starterTemplates";
 import { genId } from "../lib/helpers";
 import S from "../lib/styles";
 
@@ -21,31 +23,65 @@ const DAY_OPTIONS = [
   { n: 6, label: "6 days", desc: "High frequency" },
 ];
 
+const SEX_OPTIONS = [
+  { id: "male", label: "Male" },
+  { id: "female", label: "Female" },
+];
+
 export default function Onboarding({ userName, onComplete, onSkip }) {
-  const [step, setStep] = useState(0); // 0=welcome, 1=level, 2=days, 3=browse, 4=preview
+  const [step, setStep] = useState(0);
+  // Steps: 0=welcome, 1=quickStats, 2=equipment, 3=level, 4=days, 5=browse, 6=preview
+
+  // Profile data collected during onboarding
+  const [sex, setSex] = useState(null);
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+
+  // Training preferences
+  const [equipment, setEquipment] = useState(null);
   const [level, setLevel] = useState(null);
   const [days, setDays] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
-  // Filter templates based on selections
+  // Filter templates based on all selections
   const filtered = useMemo(() => {
     return STARTER_TEMPLATES.filter(t => {
+      // Equipment filter
+      if (equipment && t.tags.equipment !== equipment) {
+        // Allow adjacent: full_gym users see dumbbells too, dumbbells see minimal
+        if (equipment === "full_gym" && t.tags.equipment === "bodyweight") return false;
+        if (equipment === "bodyweight" && t.tags.equipment !== "bodyweight") return false;
+        if (equipment === "minimal" && t.tags.equipment === "full_gym") return false;
+        if (equipment === "dumbbells" && t.tags.equipment === "full_gym") return false;
+      }
+      // Level filter
       if (level && t.tags.level !== level) {
-        // Allow adjacent levels — beginner sees beginner+intermediate, advanced sees intermediate+advanced
         if (level === "beginner" && t.tags.level === "advanced") return false;
         if (level === "advanced" && t.tags.level === "beginner") return false;
       }
+      // Days filter
       if (days && t.tags.daysPerWeek !== days) return false;
       return true;
     });
-  }, [level, days]);
+  }, [equipment, level, days]);
 
   // Show all templates if filters are too strict
   const displayTemplates = filtered.length > 0 ? filtered : STARTER_TEMPLATES;
-  const isFiltered = filtered.length > 0 && (level || days);
+  const isFiltered = filtered.length > 0 && (level || days || equipment);
+
+  // Build profile data to pass back
+  function getProfileData() {
+    return {
+      sex: sex || undefined,
+      dateOfBirth: dateOfBirth || undefined,
+      height: height || undefined,
+      weight: weight ? Number(weight) : undefined,
+      equipmentPreference: equipment || undefined,
+    };
+  }
 
   function adoptTemplate(template) {
-    // Build a program object from the template
     const program = {
       name: template.name,
       description: template.description,
@@ -57,7 +93,14 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
       })),
       shared: false,
     };
-    onComplete(program, level);
+    onComplete(program, level, getProfileData());
+  }
+
+  function handleSkip() {
+    // Still save whatever profile data they entered before skipping
+    const profileData = getProfileData();
+    const hasData = profileData.sex || profileData.dateOfBirth || profileData.height || profileData.weight;
+    onSkip(hasData ? profileData : null);
   }
 
   // ── Shared styles ──
@@ -73,6 +116,25 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
     transition: "border-color 0.15s, background 0.15s",
   });
   const skipBtn = { background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, cursor: "pointer", fontFamily: "inherit", padding: "8px 0" };
+  const inputRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 };
+  const fieldLabel = { fontSize: 10, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" };
+  const fieldInput = { ...S.input, fontSize: 14, padding: "10px 12px" };
+
+  // Step indicator
+  const totalSteps = 6;
+  const StepDots = ({ current }) => (
+    <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
+      {Array.from({ length: totalSteps }, (_, i) => (
+        <div key={i} style={{
+          width: i + 1 === current ? 20 : 6,
+          height: 6,
+          borderRadius: 3,
+          background: i + 1 <= current ? "var(--accent)" : "var(--border)",
+          transition: "all 0.2s",
+        }} />
+      ))}
+    </div>
+  );
 
   // ══════════════ STEP 0: Welcome ══════════════
   if (step === 0) {
@@ -86,25 +148,144 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
             </div>
             <div style={{ fontSize: 14, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.6 }}>
               Your training, tracked and analyzed.<br />
-              Let's set up your first program.
+              Let's set up your profile and first program.
             </div>
           </div>
           <button onClick={() => setStep(1)} style={{ ...S.btn("primary"), width: "100%", padding: "14px 0", fontSize: 15, fontWeight: 700 }}>
             Get Started
           </button>
           <div style={{ textAlign: "center", marginTop: 12 }}>
-            <button onClick={onSkip} style={skipBtn}>I'll set up later</button>
+            <button onClick={handleSkip} style={skipBtn}>I'll set up later</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ══════════════ STEP 1: Experience Level ══════════════
+  // ══════════════ STEP 1: Quick Stats ══════════════
   if (step === 1) {
     return (
       <div style={container}>
         <div style={{ paddingTop: 32 }}>
+          <StepDots current={1} />
+          <div style={heading}>Quick Stats</div>
+          <div style={subtext}>
+            Helps your AI coach give better, personalized advice. Everything here is optional.
+          </div>
+
+          {/* Sex toggle */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={fieldLabel}>Sex</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {SEX_OPTIONS.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setSex(sex === s.id ? null : s.id)}
+                  style={{
+                    ...S.btn(sex === s.id ? "primary" : "ghost"),
+                    flex: 1,
+                    padding: "10px 0",
+                    fontSize: 13,
+                    fontWeight: sex === s.id ? 700 : 500,
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date of birth */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={fieldLabel}>Date of Birth</div>
+            <input
+              type="date"
+              value={dateOfBirth}
+              onChange={e => setDateOfBirth(e.target.value)}
+              style={{ ...fieldInput, colorScheme: "dark" }}
+              max={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+
+          {/* Height & Weight */}
+          <div style={inputRow}>
+            <div>
+              <div style={fieldLabel}>Height</div>
+              <input
+                type="text"
+                value={height}
+                onChange={e => setHeight(e.target.value)}
+                style={fieldInput}
+                placeholder='e.g. 5\'10"'
+                inputMode="text"
+              />
+            </div>
+            <div>
+              <div style={fieldLabel}>Weight (lbs)</div>
+              <input
+                type="number"
+                value={weight}
+                onChange={e => setWeight(e.target.value)}
+                style={fieldInput}
+                placeholder="e.g. 180"
+                inputMode="numeric"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+            <button onClick={() => setStep(0)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+            <button onClick={() => setStep(2)} style={{ ...S.btn("primary"), flex: 2 }}>Next</button>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <button onClick={handleSkip} style={skipBtn}>Skip setup</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════ STEP 2: Equipment / Where You Train ══════════════
+  if (step === 2) {
+    return (
+      <div style={container}>
+        <div style={{ paddingTop: 32 }}>
+          <StepDots current={2} />
+          <div style={heading}>Where do you train?</div>
+          <div style={subtext}>
+            We'll recommend programs that match your equipment. You can always browse everything later.
+          </div>
+
+          {EQUIPMENT_OPTIONS.map(eq => (
+            <div key={eq.id} onClick={() => setEquipment(eq.id)} style={card(equipment === eq.id)}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 24 }}>{eq.icon}</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: equipment === eq.id ? "var(--text-bright)" : "var(--text-secondary)" }}>{eq.label}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{eq.desc}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <button onClick={() => setStep(1)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+            <button onClick={() => setStep(3)} disabled={!equipment} style={{ ...S.btn("primary"), flex: 2, opacity: equipment ? 1 : 0.4 }}>Next</button>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <button onClick={handleSkip} style={skipBtn}>Skip setup</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════ STEP 3: Experience Level ══════════════
+  if (step === 3) {
+    return (
+      <div style={container}>
+        <div style={{ paddingTop: 32 }}>
+          <StepDots current={3} />
           <div style={heading}>What's your experience level?</div>
           <div style={subtext}>This helps us recommend the right program. You can always change later.</div>
 
@@ -121,22 +302,23 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
           ))}
 
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button onClick={() => setStep(0)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
-            <button onClick={() => setStep(2)} disabled={!level} style={{ ...S.btn("primary"), flex: 2, opacity: level ? 1 : 0.4 }}>Next</button>
+            <button onClick={() => setStep(2)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+            <button onClick={() => setStep(4)} disabled={!level} style={{ ...S.btn("primary"), flex: 2, opacity: level ? 1 : 0.4 }}>Next</button>
           </div>
           <div style={{ textAlign: "center", marginTop: 8 }}>
-            <button onClick={onSkip} style={skipBtn}>Skip setup</button>
+            <button onClick={handleSkip} style={skipBtn}>Skip setup</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ══════════════ STEP 2: Days Per Week ══════════════
-  if (step === 2) {
+  // ══════════════ STEP 4: Days Per Week ══════════════
+  if (step === 4) {
     return (
       <div style={container}>
         <div style={{ paddingTop: 32 }}>
+          <StepDots current={4} />
           <div style={heading}>How many days can you train?</div>
           <div style={subtext}>Be honest — consistency beats ambition. You can always adjust.</div>
 
@@ -154,22 +336,33 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
           </div>
 
           <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-            <button onClick={() => setStep(1)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
-            <button onClick={() => setStep(3)} disabled={!days} style={{ ...S.btn("primary"), flex: 2, opacity: days ? 1 : 0.4 }}>See Programs</button>
+            <button onClick={() => setStep(3)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+            <button onClick={() => setStep(5)} disabled={!days} style={{ ...S.btn("primary"), flex: 2, opacity: days ? 1 : 0.4 }}>See Programs</button>
           </div>
           <div style={{ textAlign: "center", marginTop: 8 }}>
-            <button onClick={onSkip} style={skipBtn}>Skip setup</button>
+            <button onClick={handleSkip} style={skipBtn}>Skip setup</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ══════════════ STEP 3: Browse Templates ══════════════
-  if (step === 3) {
+  // ══════════════ STEP 5: Browse Templates ══════════════
+  if (step === 5) {
+    // Build filter summary
+    const filterParts = [];
+    if (equipment) {
+      const eq = EQUIPMENT_OPTIONS.find(e => e.id === equipment);
+      if (eq) filterParts.push(eq.label.toLowerCase());
+    }
+    if (level) filterParts.push(level);
+    if (days) filterParts.push(`${days}x/week`);
+    const filterSummary = filterParts.length > 0 ? filterParts.join(" · ") : null;
+
     return (
       <div style={container}>
         <div style={{ paddingTop: 32 }}>
+          <StepDots current={5} />
           <div style={heading}>Pick a program</div>
           <div style={subtext}>
             {isFiltered
@@ -177,10 +370,26 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
               : "Browse all available programs. Tap to preview."}
           </div>
 
+          {/* Active filters badge */}
+          {filterSummary && (
+            <div style={{
+              fontSize: 11,
+              color: "var(--accent)",
+              background: "var(--accent-bg)",
+              padding: "6px 10px",
+              borderRadius: 6,
+              marginBottom: 12,
+              display: "inline-block",
+            }}>
+              Filtered: {filterSummary}
+            </div>
+          )}
+
           {displayTemplates.map((t, i) => {
             const goalColors = { strength: "#ef4444", hypertrophy: "var(--accent)", general: "#22c55e" };
+            const equipLabel = EQUIPMENT_OPTIONS.find(e => e.id === t.tags.equipment);
             return (
-              <div key={i} onClick={() => { setSelectedTemplate(t); setStep(4); }} style={{ ...S.card, cursor: "pointer" }}>
+              <div key={i} onClick={() => { setSelectedTemplate(t); setStep(6); }} style={{ ...S.card, cursor: "pointer" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{t.name}</div>
@@ -188,6 +397,9 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
                       <span style={S.tag(goalColors[t.tags.goal] || "var(--text-muted)")}>{t.tags.goal}</span>
                       <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x/week</span>
                       <span style={S.tag("#525252")}>{t.tags.level}</span>
+                      {equipLabel && t.tags.equipment !== "full_gym" && (
+                        <span style={S.tag("#6366f1")}>{equipLabel.label}</span>
+                      )}
                     </div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.4 }}>{t.description}</div>
                   </div>
@@ -198,61 +410,54 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
           })}
 
           {isFiltered && filtered.length < STARTER_TEMPLATES.length && (
-            <button onClick={() => { setLevel(null); setDays(null); }} style={{ ...S.btn("ghost"), width: "100%", marginTop: 4 }}>
-              Show all {STARTER_TEMPLATES.length} programs
-            </button>
+            <div style={{ textAlign: "center", marginTop: 8, marginBottom: 8 }}>
+              <button
+                onClick={() => { setEquipment(null); setLevel(null); setDays(null); }}
+                style={{ ...skipBtn, color: "var(--accent)", fontSize: 12 }}
+              >
+                Show all {STARTER_TEMPLATES.length} programs
+              </button>
+            </div>
           )}
 
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button onClick={() => setStep(2)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
-          </div>
-          <div style={{ textAlign: "center", marginTop: 8 }}>
-            <button onClick={onSkip} style={skipBtn}>I'll build my own later</button>
+            <button onClick={() => setStep(4)} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+            <button onClick={() => onComplete(null, level, getProfileData())} style={{ ...S.btn("ghost"), flex: 1 }}>
+              Skip — no program
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  // ══════════════ STEP 4: Template Preview ══════════════
-  if (step === 4 && selectedTemplate) {
+  // ══════════════ STEP 6: Template Preview ══════════════
+  if (step === 6 && selectedTemplate) {
     const t = selectedTemplate;
-    const totalExercises = t.days.reduce((a, d) => a + d.exercises.length, 0);
-
+    const equipLabel = EQUIPMENT_OPTIONS.find(e => e.id === t.tags.equipment);
     return (
       <div style={container}>
         <div style={{ paddingTop: 32 }}>
+          <StepDots current={6} />
           <div style={heading}>{t.name}</div>
-          <div style={subtext}>{t.description}</div>
-
-          {/* Quick stats */}
-          <div style={{ ...S.card, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, textAlign: "center" }}>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-bright)" }}>{t.days.length}</div>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Days</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text-bright)" }}>{totalExercises}</div>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Exercises</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--accent)" }}>{t.tags.level}</div>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Level</div>
-            </div>
+          <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+            <span style={S.tag("#525252")}>{t.tags.daysPerWeek}x/week</span>
+            <span style={S.tag("#525252")}>{t.tags.level}</span>
+            <span style={S.tag("#525252")}>{t.tags.goal}</span>
+            {equipLabel && <span style={S.tag("#6366f1")}>{equipLabel.label}</span>}
           </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.5 }}>{t.description}</div>
 
-          {/* Day breakdown */}
-          {t.days.map((day, di) => (
-            <div key={di} style={S.card}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{day.label}</div>
-                  {day.subtitle && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 1 }}>{day.subtitle}</div>}
-                </div>
-                <span style={{ fontSize: 10, color: "var(--text-dim)" }}>{day.exercises.length} exercises</span>
-              </div>
-              {day.exercises.map((ex, ei) => (
-                <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderTop: ei === 0 ? "1px solid var(--surface2)" : "none" }}>
+          {t.days.map((d, di) => (
+            <div key={di} style={{ ...S.card, padding: "10px 12px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)", marginBottom: 2 }}>{d.label}</div>
+              {d.subtitle && <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase" }}>{d.subtitle}</div>}
+              {d.exercises.map((ex, ei) => (
+                <div key={ei} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  fontSize: 12, padding: "4px 0",
+                  borderTop: ei > 0 ? "1px solid var(--surface2)" : "none",
+                }}>
                   <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
                   <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, marginLeft: 8 }}>
                     {ex.defaultSets}×{ex.targetReps}
@@ -266,7 +471,7 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
             Start with this program
           </button>
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-            <button onClick={() => setStep(3)} style={{ ...S.btn("ghost"), flex: 1 }}>Back to list</button>
+            <button onClick={() => setStep(5)} style={{ ...S.btn("ghost"), flex: 1 }}>Back to list</button>
           </div>
         </div>
       </div>

@@ -132,7 +132,7 @@ export default function SettingsModal({ onClose }) {
                     <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.accent }} />
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: active ? "var(--accent)" : "var(--text)" }}>{t.name}</div>
-                  <div style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 1 }}>{t.description}</div>
+                                 
                 </div>
               );
             })}

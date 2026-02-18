@@ -186,7 +186,7 @@ export const STARTER_TEMPLATES = [
           ex("Bench Press", 4, "5-6"),
           ex("Incline DB Press", 3, "8-10"),
           ex("Cable Fly (Low to High)", 3, "12"),
-          ex("Overhead Press", 3, "8"),
+          ex("Seated DB Shoulder Press", 3, "8-10"),
           ex("DB Lateral Raise", 4, "12-15"),
           ex("Rope Pushdown", 3, "10-12"),
           ex("DB Overhead Extension", 3, "12"),

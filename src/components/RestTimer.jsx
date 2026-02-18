@@ -8,6 +8,8 @@
 // - Color shifts green → amber in last 15s
 // - Vibrates + shows "Done" state on completion
 // - Auto-dismisses 2s after finishing
+// - 3-2-1 countdown beeps + completion chime via Web Audio API
+//   (mixes over user's music — does NOT interrupt playback)
 //
 // Props: seconds (initial), onDone, onCancel
 
@@ -18,6 +20,101 @@ const RING_STROKE = 8;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
+// ── Web Audio beep utilities ──────────────────────────────────
+// Using OscillatorNode instead of <audio> / new Audio() so that
+// sounds MIX with whatever the user is already playing (Spotify,
+// Apple Music, etc.) rather than ducking or pausing it.
+//
+// AudioContext must be created/resumed during a user gesture on iOS,
+// which is satisfied because the rest timer is always triggered by
+// a tap (completing a set).
+
+let _audioCtx = null;
+
+function getAudioCtx() {
+  if (!_audioCtx) {
+    _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // iOS suspends AudioContext until a user gesture resumes it
+  if (_audioCtx.state === "suspended") {
+    _audioCtx.resume().catch(() => {});
+  }
+  return _audioCtx;
+}
+
+/**
+ * Play a short beep tone.
+ * @param {number} freq    - Frequency in Hz (higher = higher pitch)
+ * @param {number} dur     - Duration in seconds
+ * @param {number} volume  - Gain 0–1
+ * @param {"sine"|"triangle"|"square"} wave - Oscillator type
+ */
+function beep(freq = 660, dur = 0.12, volume = 0.15, wave = "sine") {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = wave;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+    // Quick fade-out to avoid click/pop
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {
+    // Silently fail — audio is a nice-to-have, not critical
+  }
+}
+
+/** Countdown beep: short, subtle tick — ascending pitch for 3→2→1 */
+function countdownBeep(secondsLeft) {
+  // 3 = low, 2 = mid, 1 = high
+  const freqs = { 3: 520, 2: 660, 1: 880 };
+  beep(freqs[secondsLeft] || 660, 0.1, 0.12, "sine");
+}
+
+/** Completion chime: pleasant two-note rising tone */
+function completionChime() {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // Note 1
+    const osc1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(660, now);
+    g1.gain.setValueAtTime(0.18, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc1.connect(g1);
+    g1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.25);
+
+    // Note 2 (higher, slight delay)
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(880, now + 0.15);
+    g2.gain.setValueAtTime(0.001, now);
+    g2.gain.setValueAtTime(0.18, now + 0.15);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc2.connect(g2);
+    g2.connect(ctx.destination);
+    osc2.start(now + 0.15);
+    osc2.stop(now + 0.45);
+  } catch (e) {
+    // Fail silently
+  }
+}
+
+// ── Component ─────────────────────────────────────────────────
+
 export default function RestTimer({ seconds: initialSeconds, nextInfo, onDone, onCancel }) {
   const [total, setTotal] = useState(initialSeconds);
   const [remaining, setRemaining] = useState(initialSeconds);
@@ -26,9 +123,17 @@ export default function RestTimer({ seconds: initialSeconds, nextInfo, onDone, o
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
 
+  // Warm up AudioContext on mount (must be in a user-gesture call stack).
+  // The component mounts when user taps to complete a set, which counts.
+  useEffect(() => {
+    getAudioCtx();
+  }, []);
+
   useEffect(() => {
     if (done) return;
     if (remaining <= 0) {
+      // ── Timer complete ──
+      completionChime();
       try { navigator.vibrate?.([200, 100, 200, 100, 200]); } catch (e) {}
       setDone(true);
       doneTimeout.current = setTimeout(() => {
@@ -36,6 +141,12 @@ export default function RestTimer({ seconds: initialSeconds, nextInfo, onDone, o
       }, 2000);
       return;
     }
+
+    // ── 3-2-1 countdown beeps ──
+    if (remaining <= 3 && remaining >= 1) {
+      countdownBeep(remaining);
+    }
+
     const t = setTimeout(() => setRemaining(r => r - 1), 1000);
     return () => clearTimeout(t);
   }, [remaining, done]);

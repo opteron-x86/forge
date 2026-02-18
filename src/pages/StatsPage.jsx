@@ -73,21 +73,22 @@ export default function StatsPage() {
   const { streak, maxStreak, thisWeek } = useMemo(() => {
     const dates = [...new Set(workouts.map(w => w.date))].sort();
     let s = 0, ms = 0, ts = 1;
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     for (let i = dates.length - 1; i >= 0; i--) {
-      const d = new Date(dates[i] + "T12:00:00");
-      const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T12:00:00") : new Date(today + "T12:00:00");
+      const d = new Date(dates[i] + "T00:00:00");
+      const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T00:00:00") : todayMidnight;
       const gap = Math.round((prev - d) / 86400000);
       if (gap <= 3) s++; else break;
     }
     for (let i = 1; i < dates.length; i++) {
-      const gap = Math.round((new Date(dates[i] + "T12:00:00") - new Date(dates[i - 1] + "T12:00:00")) / 86400000);
+    const gap = Math.round((new Date(dates[i] + "T00:00:00") - new Date(dates[i - 1] + "T00:00:00")) / 86400000);
       if (gap <= 3) ts++; else { ms = Math.max(ms, ts); ts = 1; }
     }
     ms = Math.max(ms, ts);
     if (dates.length === 0) { s = 0; ms = 0; }
     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
-    const tw = workouts.filter(w => new Date(w.date + "T12:00:00") >= weekAgo).length;
+    const tw = workouts.filter(w => new Date(w.date + "T00:00:00") >= weekAgo).length;
     return { streak: s, maxStreak: ms, thisWeek: tw };
   }, [workouts]);
 

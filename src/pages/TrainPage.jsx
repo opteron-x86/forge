@@ -29,8 +29,8 @@ export default function TrainPage({ onStartWorkout }) {
   // ── Contextual stats ──
 const stats = useMemo(() => {
     const dates = [...new Set(workouts.map(w => w.date))].sort();
-    const todayMidnight = new Date();
-    todayMidnight.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // Current streak (gap ≤ 3 days)
     let streak = 0;
@@ -54,7 +54,12 @@ const stats = useMemo(() => {
       ? Math.round((todayMidnight - new Date(lastDate + "T00:00:00")) / 86400000)
       : null;
 
-    return { streak, thisWeek, daysSince, lastDate };
+    // Hours since last workout (for hybrid rest display)
+    const hoursSince = lastDate
+      ? Math.round((now - new Date(lastDate + "T00:00:00")) / 3600000)
+      : null;
+
+    return { streak, thisWeek, daysSince, hoursSince, lastDate };
   }, [workouts]);
 
   // ── Last workout ──
@@ -136,9 +141,16 @@ const stats = useMemo(() => {
               : stats.daysSince <= 4 ? "#eab308"
               : "#ef4444",
           }}>
-            {stats.daysSince === null ? "—" : stats.daysSince === 0 ? "✓" : stats.daysSince}
+            {stats.daysSince === null ? "—"
+              : stats.daysSince === 0 ? "✓"
+              : stats.hoursSince < 36 ? `${stats.hoursSince}h`
+              : stats.daysSince}
           </div>
-          <div style={S.statL}>{stats.daysSince === 0 ? "Trained Today" : "Days Rest"}</div>
+          <div style={S.statL}>
+            {stats.daysSince === 0 ? "Trained Today"
+              : stats.hoursSince < 36 ? "Rest"
+              : "Days Rest"}
+          </div>
         </div>
       </div>
 

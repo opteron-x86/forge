@@ -27,7 +27,7 @@ export default function TrainPage({ onStartWorkout }) {
   const [showLastSession, setShowLastSession] = useState(false);
 
   // ── Contextual stats ──
-const stats = useMemo(() => {
+  const stats = useMemo(() => {
     const dates = [...new Set(workouts.map(w => w.date))].sort();
     const now = new Date();
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -48,16 +48,26 @@ const stats = useMemo(() => {
     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
     const thisWeek = workouts.filter(w => new Date(w.date + "T00:00:00") >= weekAgo).length;
 
-    // Days since last workout
+    // Days since last workout (calendar days)
     const lastDate = dates.length > 0 ? dates[dates.length - 1] : null;
     const daysSince = lastDate
       ? Math.round((todayMidnight - new Date(lastDate + "T00:00:00")) / 86400000)
       : null;
 
-    // Hours since last workout (for hybrid rest display)
-    const hoursSince = lastDate
-      ? Math.round((now - new Date(lastDate + "T00:00:00")) / 3600000)
-      : null;
+    // Hours since last workout (from finished_at if available, else end-of-day estimate)
+    let hoursSince = null;
+    if (lastDate) {
+      const lastWorkout = [...workouts].reverse().find(w => w.date === lastDate);
+      if (lastWorkout?.finished_at) {
+        hoursSince = Math.round((now - new Date(lastWorkout.finished_at)) / 3600000);
+      } else {
+        // No finished_at (old workouts) — estimate from midnight + duration or end of day
+        const endEstimate = lastWorkout?.duration
+          ? new Date(lastDate + "T00:00:00").getTime() + (lastWorkout.duration * 60000) + (12 * 3600000)
+          : new Date(lastDate + "T18:00:00").getTime(); // assume ~6 PM if no data
+        hoursSince = Math.round((now - endEstimate) / 3600000);
+      }
+    }
 
     return { streak, thisWeek, daysSince, hoursSince, lastDate };
   }, [workouts]);
@@ -143,12 +153,12 @@ const stats = useMemo(() => {
           }}>
             {stats.daysSince === null ? "—"
               : stats.daysSince === 0 ? "✓"
-              : stats.hoursSince < 36 ? `${stats.hoursSince}h`
+              : stats.hoursSince != null && stats.hoursSince < 36 ? `${stats.hoursSince}h`
               : stats.daysSince}
           </div>
           <div style={S.statL}>
             {stats.daysSince === 0 ? "Trained Today"
-              : stats.hoursSince < 36 ? "Rest"
+              : stats.hoursSince != null && stats.hoursSince < 36 ? "Rest"
               : "Days Rest"}
           </div>
         </div>

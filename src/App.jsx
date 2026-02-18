@@ -325,6 +325,7 @@ export default function App() {
     const w = {
       ...currentWorkout,
       duration: Math.round((Date.now() - currentWorkout.startTime) / 60000),
+      finished_at: new Date().toISOString(),
     };
     // Remove incomplete sets
     w.exercises = w.exercises

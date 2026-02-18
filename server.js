@@ -199,6 +199,14 @@ for (const sql of programMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
 }
 
+// --- Migrate workouts table ---
+const workoutMigrations = [
+  "ALTER TABLE workouts ADD COLUMN finished_at TEXT",
+];
+for (const sql of workoutMigrations) {
+  try { db.exec(sql); } catch (e) { /* column already exists */ }
+}
+
 // --- Set admin role for ADMIN_EMAIL if configured ---
 if (ADMIN_EMAIL) {
   const adminUser = db.prepare("SELECT id FROM users WHERE email = ?").get(ADMIN_EMAIL);
@@ -546,11 +554,11 @@ app.get("/api/workouts", requireAuth, (req, res) => {
 });
 
 app.post("/api/workouts", requireAuth, (req, res) => {
-  const { id, date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
+  const { id, date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises, finished_at } = req.body;
   db.prepare(
-    `INSERT INTO workouts (id, user_id, date, program_id, day_id, day_label, feel, sleep_hours, duration, notes, exercises)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(id || genId(), req.user.id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises));
+    `INSERT INTO workouts (id, user_id, date, program_id, day_id, day_label, feel, sleep_hours, duration, notes, exercises, finished_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(id || genId(), req.user.id, date, program_id || null, day_id || null, day_label || null, feel || 3, sleepHours || null, duration || null, notes || "", JSON.stringify(exercises), finished_at || null);
   const exArr = Array.isArray(exercises) ? exercises : [];
   trackEvent(req.user.id, "workout_completed", {
     day_label: day_label || "Freestyle",
@@ -562,20 +570,20 @@ app.post("/api/workouts", requireAuth, (req, res) => {
 });
 
 app.put("/api/workouts/:id", requireAuth, (req, res) => {
-  const { date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises } = req.body;
+  const { date, program_id, day_id, day_label, feel, sleepHours, duration, notes, exercises, finished_at } = req.body;
   const existing = db.prepare("SELECT id FROM workouts WHERE id = ? AND user_id = ?").get(req.params.id, req.user.id);
   if (!existing) return res.status(404).json({ error: "Workout not found" });
   db.prepare(
     `UPDATE workouts SET date = ?, program_id = ?, day_id = ?, day_label = ?,
-     feel = ?, sleep_hours = ?, duration = ?, notes = ?, exercises = ?
+     feel = ?, sleep_hours = ?, duration = ?, notes = ?, exercises = ?,
+     finished_at = ?
      WHERE id = ? AND user_id = ?`
   ).run(
     date, program_id || null, day_id || null, day_label || null,
     feel || 3, sleepHours || null, duration || null, notes || "",
-    JSON.stringify(exercises), req.params.id, req.user.id
+    JSON.stringify(exercises), finished_at || null,
+    req.params.id, req.user.id
   );
-  res.json({ ok: true });
-});
 
 app.delete("/api/workouts/:id", requireAuth, (req, res) => {
   db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.id, req.user.id);

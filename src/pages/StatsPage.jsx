@@ -82,7 +82,7 @@ export default function StatsPage() {
       if (gap <= 3) s++; else break;
     }
     for (let i = 1; i < dates.length; i++) {
-    const gap = Math.round((new Date(dates[i] + "T00:00:00") - new Date(dates[i - 1] + "T00:00:00")) / 86400000);
+      const gap = Math.round((new Date(dates[i] + "T00:00:00") - new Date(dates[i - 1] + "T00:00:00")) / 86400000);
       if (gap <= 3) ts++; else { ms = Math.max(ms, ts); ts = 1; }
     }
     ms = Math.max(ms, ts);

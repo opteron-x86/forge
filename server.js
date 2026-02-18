@@ -584,6 +584,8 @@ app.put("/api/workouts/:id", requireAuth, (req, res) => {
     JSON.stringify(exercises), finished_at || null,
     req.params.id, req.user.id
   );
+  res.json({ ok: true });
+});
 
 app.delete("/api/workouts/:id", requireAuth, (req, res) => {
   db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.id, req.user.id);

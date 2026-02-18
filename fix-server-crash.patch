@@ -1,0 +1,26 @@
+diff --git a/server.js b/server.js
+index 6f7c8b4..ef88fad 100644
+--- a/server.js
++++ b/server.js
+@@ -584,6 +584,8 @@ app.put("/api/workouts/:id", requireAuth, (req, res) => {
+     JSON.stringify(exercises), finished_at || null,
+     req.params.id, req.user.id
+   );
++  res.json({ ok: true });
++});
+ 
+ app.delete("/api/workouts/:id", requireAuth, (req, res) => {
+   db.prepare("DELETE FROM workout_reviews WHERE workout_id = ? AND user_id = ?").run(req.params.id, req.user.id);
+diff --git a/src/pages/StatsPage.jsx b/src/pages/StatsPage.jsx
+index 62d6e50..f5f6ac8 100644
+--- a/src/pages/StatsPage.jsx
++++ b/src/pages/StatsPage.jsx
+@@ -82,7 +82,7 @@ export default function StatsPage() {
+       if (gap <= 3) s++; else break;
+     }
+     for (let i = 1; i < dates.length; i++) {
+-    const gap = Math.round((new Date(dates[i] + "T00:00:00") - new Date(dates[i - 1] + "T00:00:00")) / 86400000);
++      const gap = Math.round((new Date(dates[i] + "T00:00:00") - new Date(dates[i - 1] + "T00:00:00")) / 86400000);
+       if (gap <= 3) ts++; else { ms = Math.max(ms, ts); ts = 1; }
+     }
+     ms = Math.max(ms, ts);

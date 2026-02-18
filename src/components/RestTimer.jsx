@@ -70,7 +70,7 @@ function getAudioCtx() {
  * @param {number} dur       - Duration in seconds
  * @param {number} volume    - Gain 0–1
  */
-function chirp(startFreq = 1400, endFreq = 1600, dur = 0.18, volume = 0.8) {
+function chirp(startFreq = 1400, endFreq = 1420, dur = 0.18, volume = 0.8) {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
@@ -104,7 +104,7 @@ function countdownBeep(secondsLeft) {
     const now = ctx.currentTime;
 
     // Ascending base frequency: 3→low, 2→mid, 1→high
-    const bases = { 3: 2200, 2: 2600, 1: 3000 };
+    const bases = { 3: 1400, 2: 1600, 1: 1800 };
     const base = bases[secondsLeft] || 2600;
     const vol = 0.7;
 
@@ -122,7 +122,7 @@ function countdownBeep(secondsLeft) {
     osc1.start(now);
     osc1.stop(now + 0.12);
 
-    // Chirp 2 (scheduled via AudioContext, not setTimeout)
+    /* Chirp 2 (scheduled via AudioContext, not setTimeout)
     const osc2 = ctx.createOscillator();
     const g2 = ctx.createGain();
     osc2.type = "sine";
@@ -136,6 +136,7 @@ function countdownBeep(secondsLeft) {
     g2.connect(ctx.destination);
     osc2.start(now + 0.14);
     osc2.stop(now + 0.26);
+    */
   } catch (e) {}
 }
 
@@ -150,9 +151,11 @@ function completionChime() {
     const vol = 0.75;
 
     const notes = [
-      { start: 0,    freq: 2400, end: 2800, dur: 0.16 },
+      { start: 0,    freq: 2000, end: 2000, dur: 0.5 },
+      /*
       { start: 0.18, freq: 2800, end: 3200, dur: 0.16 },
       { start: 0.36, freq: 3200, end: 3800, dur: 0.28 },  // final note held longer
+      */
     ];
 
     for (const n of notes) {

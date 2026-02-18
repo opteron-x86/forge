@@ -3,7 +3,7 @@
 // workout as fast as possible. Program days auto-fill from last
 // performance. Quick Repeat section for recent session types.
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTalos } from "../context/TalosContext";
 import { fmtDate, FEEL } from "../lib/helpers";
 import S from "../lib/styles";
@@ -22,6 +22,27 @@ export default function TrainPage({ onStartWorkout }) {
   const { workouts, programs, profile, setActiveProgramId, repeatWorkout } = useTalos();
   const [showProgramPicker, setShowProgramPicker] = useState(false);
   const [showLastSession, setShowLastSession] = useState(false);
+
+  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
+
+  useEffect(() => {
+    const check = () => {
+      const now = new Date().toISOString().split("T")[0];
+      if (now !== today) setToday(now);
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check();
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    const interval = setInterval(check, 60000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(interval);
+    };
+  }, [today]);
 
   // ── Contextual stats ──
   const stats = useMemo(() => {
@@ -47,7 +68,7 @@ export default function TrainPage({ onStartWorkout }) {
     const daysSince = lastDate ? Math.floor((new Date() - new Date(lastDate + "T12:00:00")) / 86400000) : null;
 
     return { streak, thisWeek, daysSince, lastDate };
-  }, [workouts]);
+  }, [workouts,  today]);
 
   // ── Last workout ──
   const lastWorkout = workouts.length > 0 ? workouts[workouts.length - 1] : null;

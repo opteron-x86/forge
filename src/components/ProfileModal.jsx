@@ -7,6 +7,31 @@ import { useTalos } from "../context/TalosContext";
 import { est1RM } from "../lib/helpers";
 import S from "../lib/styles";
 
+// ── Form field styles (left-aligned, proper padding for iOS) ──
+const fInput = {
+  background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 6,
+  padding: "8px 10px", color: "var(--text)", fontSize: 14, fontFamily: "inherit",
+  width: "100%", boxSizing: "border-box", outline: "none", minHeight: 44,
+};
+const fSelect = {
+  ...fInput, appearance: "auto", WebkitAppearance: "menulist",
+};
+const fLabel = {
+  fontSize: 10, color: "var(--text-dim)", marginBottom: 4,
+  textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600,
+};
+
+function Field({ label, suffix, children }) {
+  return (
+    <div>
+      <div style={fLabel}>
+        {label}{suffix && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 3 }}>({suffix})</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function ProfileModal({ onClose }) {
   const { workouts, profile, updateProfile } = useTalos();
   const [editing, setEditing] = useState(false);
@@ -41,39 +66,35 @@ export default function ProfileModal({ onClose }) {
 
         {editing ? (
           <div>
-            {/* Row 1: Core biometrics */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
-              {[["Weight", "weight", "number"], ["BF %", "bodyFat", "number"], ["Height", "height", "text"]].map(([l, k, t]) => (
-                <div key={k}>
-                  <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>{l}</div>
-                  <input type={t} inputMode={t === "number" ? "decimal" : undefined} value={tmp[k] || ""} onChange={e => setTmp(p => ({ ...p, [k]: t === "number" ? Number(e.target.value) : e.target.value }))} style={S.smInput} />
-                </div>
-              ))}
+            {/* Row 1: Weight, Height, BF% — short numeric values, 3-col ok */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <Field label="Weight" suffix="lbs">
+                <input type="number" inputMode="decimal" value={tmp.weight || ""} onChange={e => setTmp(p => ({ ...p, weight: Number(e.target.value) }))} style={fInput} placeholder="—" />
+              </Field>
+              <Field label="Height">
+                <input type="text" value={tmp.height || ""} onChange={e => setTmp(p => ({ ...p, height: e.target.value }))} style={fInput} placeholder="—" />
+              </Field>
+              <Field label="BF" suffix="%">
+                <input type="number" inputMode="decimal" value={tmp.bodyFat || ""} onChange={e => setTmp(p => ({ ...p, bodyFat: Number(e.target.value) }))} style={fInput} placeholder="—" />
+              </Field>
             </div>
-            {/* Row 2: Sex, DOB, Target Weight */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Sex</div>
-                <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
+            {/* Row 2: Sex, DOB — DOB needs room for the date string */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
+              <Field label="Sex">
+                <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={fSelect}>
                   <option value="">—</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                 </select>
-              </div>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>DOB</div>
-                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...S.smInput, textAlign: "left", padding: "4px 4px", fontSize: 11, height: 44 }} />
-              </div>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Target Wt</div>
-                <input type="number" inputMode="decimal" value={tmp.targetWeight || ""} onChange={e => setTmp(p => ({ ...p, targetWeight: Number(e.target.value) }))} style={S.smInput} placeholder="lbs" />
-              </div>
+              </Field>
+              <Field label="Date of Birth">
+                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={fInput} />
+              </Field>
             </div>
-            {/* Row 3: Goal, Experience, Intensity */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Goal</div>
-                <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
+            {/* Row 3: Goal, Experience — 2-col so Experience doesn't truncate */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <Field label="Goal">
+                <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={fSelect}>
                   <option value="">—</option>
                   <option value="bulk">Bulk</option>
                   <option value="cut">Cut</option>
@@ -81,53 +102,58 @@ export default function ProfileModal({ onClose }) {
                   <option value="maintain">Maintain</option>
                   <option value="strength">Strength</option>
                 </select>
-              </div>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Experience</div>
-                <select value={tmp.experienceLevel || ""} onChange={e => setTmp(p => ({ ...p, experienceLevel: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
+              </Field>
+              <Field label="Experience">
+                <select value={tmp.experienceLevel || ""} onChange={e => setTmp(p => ({ ...p, experienceLevel: e.target.value }))} style={fSelect}>
                   <option value="">—</option>
                   <option value="beginner">Beginner</option>
                   <option value="intermediate">Intermediate</option>
                   <option value="advanced">Advanced</option>
                 </select>
-              </div>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Intensity</div>
-                <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={{ ...S.smSelect, textAlign: "left" }}>
+              </Field>
+            </div>
+            {/* Row 4: Intensity, Target Weight */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <Field label="Intensity">
+                <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={fSelect}>
                   <option value="">—</option>
                   <option value="low">Low</option>
                   <option value="moderate">Moderate</option>
                   <option value="high">High</option>
                 </select>
-              </div>
+              </Field>
+              <Field label="Target Weight" suffix="lbs">
+                <input type="number" inputMode="decimal" value={tmp.targetWeight || ""} onChange={e => setTmp(p => ({ ...p, targetWeight: Number(e.target.value) }))} style={fInput} placeholder="—" />
+              </Field>
             </div>
-            {/* Row 4: Nutrition targets */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Calorie Target</div>
-                <input type="number" inputMode="numeric" value={tmp.caloriesTarget || ""} onChange={e => setTmp(p => ({ ...p, caloriesTarget: Number(e.target.value) }))} style={S.smInput} placeholder="kcal/day" />
-              </div>
-              <div>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Protein Target</div>
-                <input type="number" inputMode="numeric" value={tmp.proteinTarget || ""} onChange={e => setTmp(p => ({ ...p, proteinTarget: Number(e.target.value) }))} style={S.smInput} placeholder="g/day" />
-              </div>
+            {/* Row 5: Nutrition targets */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <Field label="Calories" suffix="kcal">
+                <input type="number" inputMode="numeric" value={tmp.caloriesTarget || ""} onChange={e => setTmp(p => ({ ...p, caloriesTarget: Number(e.target.value) }))} style={fInput} placeholder="—" />
+              </Field>
+              <Field label="Protein" suffix="g">
+                <input type="number" inputMode="numeric" value={tmp.proteinTarget || ""} onChange={e => setTmp(p => ({ ...p, proteinTarget: Number(e.target.value) }))} style={fInput} placeholder="—" />
+              </Field>
             </div>
             {/* Target PRs */}
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Target PRs</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
-                {["Bench Press", "Back Squat", "Conventional Deadlift", "Overhead Press"].map(lift => (
-                  <div key={lift} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <div style={{ fontSize: 9, color: "var(--text-muted)", flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lift.replace("Conventional ", "")}</div>
-                    <input type="number" inputMode="numeric" value={tmp.targetPrs?.[lift] || ""} onChange={e => setTmp(p => ({ ...p, targetPrs: { ...(p.targetPrs || {}), [lift]: Number(e.target.value) || undefined } }))} style={{ ...S.smInput, width: 64, flex: "none" }} placeholder="lbs" />
-                  </div>
-                ))}
+            <div style={{ marginBottom: 10 }}>
+              <div style={fLabel}>Target PRs</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                {["Bench Press", "Back Squat", "Deadlift", "Overhead Press"].map(lift => {
+                  const key = lift === "Deadlift" ? "Conventional Deadlift" : lift;
+                  return (
+                    <div key={lift} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", flex: 1, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lift}</div>
+                      <input type="number" inputMode="numeric" value={tmp.targetPrs?.[key] || ""} onChange={e => setTmp(p => ({ ...p, targetPrs: { ...(p.targetPrs || {}), [key]: Number(e.target.value) || undefined } }))} style={{ ...fInput, width: 72, flex: "none", textAlign: "center" }} placeholder="lbs" />
+                    </div>
+                  );
+                })}
               </div>
             </div>
             {/* Injuries/Notes */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Injuries / Limitations</div>
-              <textarea value={tmp.injuriesNotes || ""} onChange={e => setTmp(p => ({ ...p, injuriesNotes: e.target.value }))} style={{ ...S.input, minHeight: 40, resize: "vertical", fontSize: 12 }} placeholder="Hip bursitis, bad shoulder, etc." />
+            <div style={{ marginBottom: 14 }}>
+              <div style={fLabel}>Injuries / Limitations</div>
+              <textarea value={tmp.injuriesNotes || ""} onChange={e => setTmp(p => ({ ...p, injuriesNotes: e.target.value }))} style={{ ...S.input, minHeight: 44, resize: "vertical", fontSize: 13 }} placeholder="Hip bursitis, bad shoulder, etc." />
             </div>
             <button onClick={save} style={{ ...S.btn("primary"), width: "100%" }}>Save Profile</button>
           </div>

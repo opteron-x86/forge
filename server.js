@@ -988,6 +988,8 @@ app.post("/api/coach/analyze", requireAuth, async (req, res) => {
 
   const system = `You are a concise strength training coach providing a post-workout session analysis. Analyze the just-completed workout and give brief, specific feedback.
 
+IMPORTANT: The "rpe" field in set data represents the user's chosen INTENSITY SCALE, which will be specified in the user context. If the user uses RIR (Reps In Reserve), then @1 means 1 rep left in the tank (NEAR MAXIMAL), @0 means absolute failure. If RPE (Rate of Perceived Exertion), @10 means maximal effort. Always interpret intensity values according to the specified scale.
+
 FORMAT YOUR RESPONSE IN THESE SECTIONS (skip any that aren't relevant):
 **Session Summary** — One line overview (duration, volume, energy)
 **PRs & Wins** — Any personal records or notable improvements

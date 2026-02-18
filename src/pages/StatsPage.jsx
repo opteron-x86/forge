@@ -25,16 +25,23 @@ export default function StatsPage() {
     workouts.forEach(w => w.exercises?.forEach(ex => ex.sets?.forEach(s => {
       if (!s.weight || !s.reps) return;
       const e = est1RM(s.weight, s.reps);
-      if (!map[ex.name] || (e && e > (map[ex.name].e1rm || 0)))
-        map[ex.name] = { weight: s.weight, reps: s.reps, e1rm: e, date: w.date };
+      const weight = parseFloat(s.weight) || 0;
+      if (!map[ex.name]) map[ex.name] = { byE1rm: null, byWeight: null };
+      if (e && (!map[ex.name].byE1rm || e > map[ex.name].byE1rm.e1rm))
+        map[ex.name].byE1rm = { weight: s.weight, reps: s.reps, e1rm: e, date: w.date };
+      if (!map[ex.name].byWeight || weight > parseFloat(map[ex.name].byWeight.weight || 0))
+        map[ex.name].byWeight = { weight: s.weight, reps: s.reps, e1rm: e, date: w.date };
     })));
     return map;
   }, [workouts]);
 
   const prList = useMemo(() => {
-    const entries = Object.entries(prs);
+    const entries = Object.entries(prs).map(([name, rec]) => {
+      const pr = prMode === "e1rm" ? rec.byE1rm : rec.byWeight;
+      return pr ? [name, pr] : null;
+    }).filter(Boolean);
     if (prMode === "e1rm") return entries.sort((a, b) => (b[1].e1rm || 0) - (a[1].e1rm || 0));
-    return entries.sort((a, b) => (b[1].weight || 0) - (a[1].weight || 0));
+    return entries.sort((a, b) => (parseFloat(b[1].weight) || 0) - (parseFloat(a[1].weight) || 0));
   }, [prs, prMode]);
 
   // Recent PRs (last 30 days)

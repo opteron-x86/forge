@@ -141,6 +141,7 @@ export default function SessionSummary({ summary, onDone, onReviewSaved }) {
         profile.goal ? `Goal: ${profile.goal}` : null,
         profile.weight ? `Weight: ${profile.weight} lbs` : null,
         profile.injuriesNotes ? `Injuries: ${profile.injuriesNotes}` : null,
+        `Intensity scale: ${profile.intensityScale === "rir" ? "RIR (Reps In Reserve — lower = harder, 0 = failure)" : "RPE (Rate of Perceived Exertion — higher = harder, 10 = failure)"}`,
       ].filter(Boolean).join(", ");
 
       const context = `USER: ${profileLines}

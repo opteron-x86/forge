@@ -168,6 +168,8 @@ const profileMigrations = [
   "ALTER TABLE profiles ADD COLUMN onboarding_complete INTEGER DEFAULT 0",
   "ALTER TABLE profiles ADD COLUMN rest_timer_enabled INTEGER DEFAULT 1",
   "ALTER TABLE profiles ADD COLUMN intensity_scale TEXT DEFAULT 'rpe'",
+  "ALTER TABLE profiles ADD COLUMN pinned_lifts TEXT",
+  "ALTER TABLE profiles ADD COLUMN notes TEXT",
 ];
 for (const sql of profileMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
@@ -632,6 +634,7 @@ app.get("/api/profile", requireAuth, (req, res) => {
     onboardingComplete: !!profile?.onboarding_complete,
     restTimerEnabled: profile?.rest_timer_enabled !== 0,
     intensityScale: profile?.intensity_scale || "rpe",
+    pinnedLifts: profile?.pinned_lifts ? JSON.parse(profile.pinned_lifts) : null,
     bioHistory,
   });
 });
@@ -640,12 +643,12 @@ app.put("/api/profile", requireAuth, (req, res) => {
   const { height, weight, bodyFat, restTimerCompound, restTimerIsolation,
     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
     targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId, onboardingComplete,
-    restTimerEnabled, intensityScale } = req.body;
+    restTimerEnabled, intensityScale, pinnedLifts } = req.body;
   db.prepare(
     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
      target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?, active_program_id = ?,
-     onboarding_complete = ?, rest_timer_enabled = ?, intensity_scale = ?,
+     onboarding_complete = ?, rest_timer_enabled = ?, intensity_scale = ?, pinned_lifts = ?,
      updated_at = datetime('now') WHERE user_id = ?`
   ).run(
     height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90,
@@ -653,12 +656,19 @@ app.put("/api/profile", requireAuth, (req, res) => {
     targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
     activeProgramId || null, onboardingComplete ? 1 : 0,
     restTimerEnabled !== false ? 1 : 0, intensityScale || "rpe",
+    pinnedLifts ? JSON.stringify(pinnedLifts) : null,
     req.user.id
   );
+  // Only log body weight if it actually changed from last entry
   if (weight) {
-    db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
-      req.user.id, new Date().toISOString().split("T")[0], weight, bodyFat || null
-    );
+    const lastEntry = db.prepare("SELECT weight FROM bio_history WHERE user_id = ? ORDER BY date DESC LIMIT 1").get(req.user.id);
+    const today = new Date().toISOString().split("T")[0];
+    const todayEntry = db.prepare("SELECT id FROM bio_history WHERE user_id = ? AND date = ?").get(req.user.id, today);
+    if (!todayEntry && (!lastEntry || Math.abs(lastEntry.weight - weight) > 0.01)) {
+      db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
+        req.user.id, today, weight, bodyFat || null
+      );
+    }
   }
   res.json({ ok: true });
 });
@@ -669,6 +679,28 @@ app.put("/api/profile/active-program", requireAuth, (req, res) => {
   db.prepare("UPDATE profiles SET active_program_id = ?, updated_at = datetime('now') WHERE user_id = ?")
     .run(activeProgramId || null, req.user.id);
   res.json({ ok: true });
+});
+
+// Manual body weight log
+app.post("/api/profile/weigh-in", requireAuth, (req, res) => {
+  const { weight, bodyFat } = req.body;
+  if (!weight) return res.status(400).json({ error: "Weight is required" });
+  const today = new Date().toISOString().split("T")[0];
+  // Upsert today's entry
+  const existing = db.prepare("SELECT id FROM bio_history WHERE user_id = ? AND date = ?").get(req.user.id, today);
+  if (existing) {
+    db.prepare("UPDATE bio_history SET weight = ?, body_fat = ? WHERE id = ?").run(weight, bodyFat || null, existing.id);
+  } else {
+    db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
+      req.user.id, today, weight, bodyFat || null
+    );
+  }
+  // Also update profile weight
+  db.prepare("UPDATE profiles SET weight = ?, body_fat = ?, updated_at = datetime('now') WHERE user_id = ?")
+    .run(weight, bodyFat || null, req.user.id);
+  // Return updated bio history
+  const bioHistory = db.prepare("SELECT * FROM bio_history WHERE user_id = ? ORDER BY date ASC").all(req.user.id);
+  res.json({ ok: true, bioHistory, weight });
 });
 
 // ===================== PROGRAMS =====================

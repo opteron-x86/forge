@@ -1,0 +1,930 @@
+diff --git a/server.js b/server.js
+index f081640..bb2dc8d 100644
+--- a/server.js
++++ b/server.js
+@@ -168,6 +168,8 @@ const profileMigrations = [
+   "ALTER TABLE profiles ADD COLUMN onboarding_complete INTEGER DEFAULT 0",
+   "ALTER TABLE profiles ADD COLUMN rest_timer_enabled INTEGER DEFAULT 1",
+   "ALTER TABLE profiles ADD COLUMN intensity_scale TEXT DEFAULT 'rpe'",
++  "ALTER TABLE profiles ADD COLUMN pinned_lifts TEXT",
++  "ALTER TABLE profiles ADD COLUMN notes TEXT",
+ ];
+ for (const sql of profileMigrations) {
+   try { db.exec(sql); } catch (e) { /* column already exists */ }
+@@ -632,6 +634,7 @@ app.get("/api/profile", requireAuth, (req, res) => {
+     onboardingComplete: !!profile?.onboarding_complete,
+     restTimerEnabled: profile?.rest_timer_enabled !== 0,
+     intensityScale: profile?.intensity_scale || "rpe",
++    pinnedLifts: profile?.pinned_lifts ? JSON.parse(profile.pinned_lifts) : null,
+     bioHistory,
+   });
+ });
+@@ -640,12 +643,12 @@ app.put("/api/profile", requireAuth, (req, res) => {
+   const { height, weight, bodyFat, restTimerCompound, restTimerIsolation,
+     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
+     targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId, onboardingComplete,
+-    restTimerEnabled, intensityScale } = req.body;
++    restTimerEnabled, intensityScale, pinnedLifts } = req.body;
+   db.prepare(
+     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
+      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
+      target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?, active_program_id = ?,
+-     onboarding_complete = ?, rest_timer_enabled = ?, intensity_scale = ?,
++     onboarding_complete = ?, rest_timer_enabled = ?, intensity_scale = ?, pinned_lifts = ?,
+      updated_at = datetime('now') WHERE user_id = ?`
+   ).run(
+     height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90,
+@@ -653,12 +656,19 @@ app.put("/api/profile", requireAuth, (req, res) => {
+     targetPrs ? JSON.stringify(targetPrs) : null, injuriesNotes || null, caloriesTarget || null, proteinTarget || null,
+     activeProgramId || null, onboardingComplete ? 1 : 0,
+     restTimerEnabled !== false ? 1 : 0, intensityScale || "rpe",
++    pinnedLifts ? JSON.stringify(pinnedLifts) : null,
+     req.user.id
+   );
++  // Only log body weight if it actually changed from last entry
+   if (weight) {
+-    db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
+-      req.user.id, new Date().toISOString().split("T")[0], weight, bodyFat || null
+-    );
++    const lastEntry = db.prepare("SELECT weight FROM bio_history WHERE user_id = ? ORDER BY date DESC LIMIT 1").get(req.user.id);
++    const today = new Date().toISOString().split("T")[0];
++    const todayEntry = db.prepare("SELECT id FROM bio_history WHERE user_id = ? AND date = ?").get(req.user.id, today);
++    if (!todayEntry && (!lastEntry || Math.abs(lastEntry.weight - weight) > 0.01)) {
++      db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
++        req.user.id, today, weight, bodyFat || null
++      );
++    }
+   }
+   res.json({ ok: true });
+ });
+@@ -671,6 +681,28 @@ app.put("/api/profile/active-program", requireAuth, (req, res) => {
+   res.json({ ok: true });
+ });
+ 
++// Manual body weight log
++app.post("/api/profile/weigh-in", requireAuth, (req, res) => {
++  const { weight, bodyFat } = req.body;
++  if (!weight) return res.status(400).json({ error: "Weight is required" });
++  const today = new Date().toISOString().split("T")[0];
++  // Upsert today's entry
++  const existing = db.prepare("SELECT id FROM bio_history WHERE user_id = ? AND date = ?").get(req.user.id, today);
++  if (existing) {
++    db.prepare("UPDATE bio_history SET weight = ?, body_fat = ? WHERE id = ?").run(weight, bodyFat || null, existing.id);
++  } else {
++    db.prepare("INSERT INTO bio_history (user_id, date, weight, body_fat) VALUES (?, ?, ?, ?)").run(
++      req.user.id, today, weight, bodyFat || null
++    );
++  }
++  // Also update profile weight
++  db.prepare("UPDATE profiles SET weight = ?, body_fat = ?, updated_at = datetime('now') WHERE user_id = ?")
++    .run(weight, bodyFat || null, req.user.id);
++  // Return updated bio history
++  const bioHistory = db.prepare("SELECT * FROM bio_history WHERE user_id = ? ORDER BY date ASC").all(req.user.id);
++  res.json({ ok: true, bioHistory, weight });
++});
++
+ // ===================== PROGRAMS =====================
+ 
+ // User's own programs only
+diff --git a/src/App.jsx b/src/App.jsx
+index 162008f..ef09593 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -29,7 +29,6 @@ import Login from "./components/Login";
+ import Onboarding from "./components/Onboarding";
+ import SettingsModal from "./components/SettingsModal";
+ import ProfileModal from "./components/ProfileModal";
+-import AccountModal from "./components/AccountModal";
+ import AvatarMenu from "./components/AvatarMenu";
+ import AdminPanel from "./components/AdminPanel";
+ import AnalyticsDashboard from "./components/AnalyticsDashboard";
+@@ -54,7 +53,6 @@ export default function App() {
+   const [currentWorkout, setCurrent] = useState(null);
+   const [showSettings, setShowSettings] = useState(false);
+   const [showProfile, setShowProfile] = useState(false);
+-  const [showAccount, setShowAccount] = useState(false);
+   const [showAdmin, setShowAdmin] = useState(false);
+   const [showAnalytics, setShowAnalytics] = useState(false);
+   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+@@ -488,7 +486,6 @@ export default function App() {
+                 <AvatarMenu
+                   onProfile={() => setShowProfile(true)}
+                   onSettings={() => setShowSettings(true)}
+-                  onAccount={() => setShowAccount(true)}
+                   onAdmin={() => setShowAdmin(true)}
+                   onAnalytics={() => setShowAnalytics(true)}
+                   onLogout={logout}
+@@ -513,11 +510,6 @@ export default function App() {
+             onClose={() => setShowProfile(false)}
+           />
+         )}
+-        {showAccount && (
+-          <AccountModal
+-            onClose={() => setShowAccount(false)}
+-          />
+-        )}
+         {showAdmin && (
+           <AdminPanel
+             onBack={() => setShowAdmin(false)}
+diff --git a/src/components/AvatarMenu.jsx b/src/components/AvatarMenu.jsx
+index 3d6bb3b..2517b7a 100644
+--- a/src/components/AvatarMenu.jsx
++++ b/src/components/AvatarMenu.jsx
+@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
+ import { useTalos } from "../context/TalosContext";
+ import S from "../lib/styles";
+ 
+-export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin, onAnalytics, onLogout, onClose }) {
++export default function AvatarMenu({ onProfile, onSettings, onAdmin, onAnalytics, onLogout, onClose }) {
+   const { user } = useTalos();
+   const menuRef = useRef(null);
+   const isAdmin = user.role === "admin";
+@@ -29,7 +29,6 @@ export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin,
+   const items = [
+     { label: "Profile", icon: "👤", action: onProfile },
+     { label: "Settings", icon: "⚙", action: onSettings },
+-    { label: "Account", icon: "🔑", action: onAccount },
+     ...(isAdmin ? [{ label: "Admin", icon: "🛡", action: onAdmin }] : []),
+     ...(isAdmin ? [{ label: "Analytics", icon: "📊", action: onAnalytics }] : []),
+     { label: "Log Out", icon: "→", action: onLogout, danger: true },
+diff --git a/src/components/ProfileModal.jsx b/src/components/ProfileModal.jsx
+index 3926659..8cb3617 100644
+--- a/src/components/ProfileModal.jsx
++++ b/src/components/ProfileModal.jsx
+@@ -1,21 +1,20 @@
+ // ═══════════════════════ PROFILE MODAL ═══════════════════════
+-// Bio & training profile editor, moved from StatsPage.
+-// Shows view mode by default, edit mode on tap.
++// Bio & training profile editor. Now includes name, intensity scale,
++// and rest timer settings (moved from Settings for better organization).
+ 
+ import { useState } from "react";
+ import { useTalos } from "../context/TalosContext";
+ import { est1RM } from "../lib/helpers";
++import api from "../lib/api";
+ import S from "../lib/styles";
+ 
+-// ── Form field styles (left-aligned, proper padding for iOS) ──
++// ── Form styles (left-aligned, uniform 44px height for iOS) ──
+ const fInput = {
+   background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 6,
+   padding: "8px 10px", color: "var(--text)", fontSize: 14, fontFamily: "inherit",
+-  width: "100%", boxSizing: "border-box", outline: "none", minHeight: 44,
+-};
+-const fSelect = {
+-  ...fInput, appearance: "auto", WebkitAppearance: "menulist",
++  width: "100%", boxSizing: "border-box", outline: "none", height: 44,
+ };
++const fSelect = { ...fInput, appearance: "auto", WebkitAppearance: "menulist" };
+ const fLabel = {
+   fontSize: 10, color: "var(--text-dim)", marginBottom: 4,
+   textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600,
+@@ -23,7 +22,7 @@ const fLabel = {
+ 
+ function Field({ label, suffix, children }) {
+   return (
+-    <div>
++    <div style={{ minWidth: 0 }}>
+       <div style={fLabel}>
+         {label}{suffix && <span style={{ fontWeight: 400, opacity: 0.6, marginLeft: 3 }}>({suffix})</span>}
+       </div>
+@@ -32,10 +31,22 @@ function Field({ label, suffix, children }) {
+   );
+ }
+ 
++function Toggle({ checked, onChange }) {
++  return (
++    <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, cursor: "pointer", flexShrink: 0 }}>
++      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
++      <span style={{ position: "absolute", inset: 0, borderRadius: 11, background: checked ? "var(--accent)" : "var(--surface2)", border: "1px solid var(--border2)", transition: "background 0.2s" }}>
++        <span style={{ position: "absolute", top: 2, left: checked ? 20 : 2, width: 16, height: 16, borderRadius: "50%", background: "var(--text-bright)", transition: "left 0.2s" }} />
++      </span>
++    </label>
++  );
++}
++
+ export default function ProfileModal({ onClose }) {
+-  const { workouts, profile, updateProfile } = useTalos();
++  const { workouts, profile, updateProfile, user, updateUser } = useTalos();
+   const [editing, setEditing] = useState(false);
+   const [tmp, setTmp] = useState({ ...profile });
++  const [tmpName, setTmpName] = useState(user.name);
+ 
+   // ── PRs (for target PR progress) ──
+   const prs = {};
+@@ -46,8 +57,18 @@ export default function ProfileModal({ onClose }) {
+       prs[ex.name] = { weight: s.weight, reps: s.reps, e1rm: e, date: w.date };
+   })));
+ 
+-  function save() {
+-    updateProfile(tmp);
++  async function save() {
++    if (tmpName !== user.name) {
++      await api.put("/auth/account", { name: tmpName, color: user.color, theme: user.theme });
++      updateUser({ name: tmpName });
++    }
++    await updateProfile(tmp);
++    setEditing(false);
++  }
++
++  function cancel() {
++    setTmp({ ...profile });
++    setTmpName(user.name);
+     setEditing(false);
+   }
+ 
+@@ -57,7 +78,7 @@ export default function ProfileModal({ onClose }) {
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+           <div style={S.label}>Profile & Bio</div>
+           <div style={{ display: "flex", gap: 6 }}>
+-            <button onClick={() => { if (editing) { setTmp({ ...profile }); } setEditing(!editing); }} style={S.sm()}>
++            <button onClick={() => editing ? cancel() : setEditing(true)} style={S.sm()}>
+               {editing ? "Cancel" : "Edit"}
+             </button>
+             <button onClick={onClose} style={S.sm()}>✕</button>
+@@ -66,7 +87,12 @@ export default function ProfileModal({ onClose }) {
+ 
+         {editing ? (
+           <div>
+-            {/* Row 1: Weight, Height, BF% — short numeric values, 3-col ok */}
++            {/* Name */}
++            <div style={{ marginBottom: 10 }}>
++              <div style={fLabel}>Name</div>
++              <input value={tmpName} onChange={e => setTmpName(e.target.value)} style={fInput} />
++            </div>
++            {/* Row 1: Weight, Height, BF% */}
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+               <Field label="Weight" suffix="lbs">
+                 <input type="number" inputMode="decimal" value={tmp.weight || ""} onChange={e => setTmp(p => ({ ...p, weight: Number(e.target.value) }))} style={fInput} placeholder="—" />
+@@ -78,7 +104,7 @@ export default function ProfileModal({ onClose }) {
+                 <input type="number" inputMode="decimal" value={tmp.bodyFat || ""} onChange={e => setTmp(p => ({ ...p, bodyFat: Number(e.target.value) }))} style={fInput} placeholder="—" />
+               </Field>
+             </div>
+-            {/* Row 2: Sex, DOB — DOB needs room for the date string */}
++            {/* Row 2: Sex, DOB */}
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
+               <Field label="Sex">
+                 <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={fSelect}>
+@@ -88,10 +114,10 @@ export default function ProfileModal({ onClose }) {
+                 </select>
+               </Field>
+               <Field label="Date of Birth">
+-                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={fInput} />
++                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...fInput, maxWidth: "100%", overflow: "hidden" }} />
+               </Field>
+             </div>
+-            {/* Row 3: Goal, Experience — 2-col so Experience doesn't truncate */}
++            {/* Row 3: Goal, Experience */}
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+               <Field label="Goal">
+                 <select value={tmp.goal || ""} onChange={e => setTmp(p => ({ ...p, goal: e.target.value }))} style={fSelect}>
+@@ -114,7 +140,7 @@ export default function ProfileModal({ onClose }) {
+             </div>
+             {/* Row 4: Intensity, Target Weight */}
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+-              <Field label="Intensity">
++              <Field label="Training Intensity">
+                 <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={fSelect}>
+                   <option value="">—</option>
+                   <option value="low">Low</option>
+@@ -150,15 +176,44 @@ export default function ProfileModal({ onClose }) {
+                 })}
+               </div>
+             </div>
+-            {/* Injuries/Notes */}
++            {/* Intensity Scale */}
++            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10, marginBottom: 10 }}>
++              <div style={fLabel}>Intensity Scale</div>
++              <div style={{ display: "flex", gap: 6 }}>
++                <button onClick={() => setTmp(p => ({ ...p, intensityScale: "rpe" }))} style={{ ...S.sm(tmp.intensityScale !== "rir" ? "primary" : "ghost"), flex: 1, padding: "8px 10px", fontSize: 11 }}>RPE (1–10)</button>
++                <button onClick={() => setTmp(p => ({ ...p, intensityScale: "rir" }))} style={{ ...S.sm(tmp.intensityScale === "rir" ? "primary" : "ghost"), flex: 1, padding: "8px 10px", fontSize: 11 }}>RIR (0–5)</button>
++              </div>
++              <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4 }}>
++                {tmp.intensityScale === "rir" ? "Reps In Reserve (0 = nothing left)" : "Rate of Perceived Exertion (10 = max effort)"}
++              </div>
++            </div>
++            {/* Rest Timer */}
++            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 10, marginBottom: 10 }}>
++              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
++                <div style={{ ...fLabel, marginBottom: 0 }}>Rest Timer</div>
++                <Toggle checked={tmp.restTimerEnabled !== false} onChange={v => setTmp(p => ({ ...p, restTimerEnabled: v }))} />
++              </div>
++              {tmp.restTimerEnabled !== false && (
++                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
++                  <Field label="Compound" suffix="sec">
++                    <input type="number" inputMode="numeric" value={tmp.restTimerCompound || 150} onChange={e => setTmp(p => ({ ...p, restTimerCompound: Number(e.target.value) }))} style={fInput} />
++                  </Field>
++                  <Field label="Isolation" suffix="sec">
++                    <input type="number" inputMode="numeric" value={tmp.restTimerIsolation || 90} onChange={e => setTmp(p => ({ ...p, restTimerIsolation: Number(e.target.value) }))} style={fInput} />
++                  </Field>
++                </div>
++              )}
++            </div>
++            {/* Notes */}
+             <div style={{ marginBottom: 14 }}>
+-              <div style={fLabel}>Injuries / Limitations</div>
+-              <textarea value={tmp.injuriesNotes || ""} onChange={e => setTmp(p => ({ ...p, injuriesNotes: e.target.value }))} style={{ ...S.input, minHeight: 44, resize: "vertical", fontSize: 13 }} placeholder="Hip bursitis, bad shoulder, etc." />
++              <div style={fLabel}>Notes</div>
++              <textarea value={tmp.injuriesNotes || ""} onChange={e => setTmp(p => ({ ...p, injuriesNotes: e.target.value }))} style={{ ...S.input, minHeight: 44, resize: "vertical", fontSize: 13 }} placeholder="Anything your AI coach should know" />
+             </div>
+             <button onClick={save} style={{ ...S.btn("primary"), width: "100%" }}>Save Profile</button>
+           </div>
+         ) : (
+           <div>
++            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text-bright)", marginBottom: 10 }}>{user.name}</div>
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 8 }}>
+               <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.height || "—"}</div><div style={S.statL}>Height</div></div>
+               <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.weight || "—"}</div><div style={S.statL}>Weight</div></div>
+@@ -176,6 +231,10 @@ export default function ProfileModal({ onClose }) {
+                 {profile.proteinTarget && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.proteinTarget}g</div><div style={S.statL}>Protein</div></div>}
+               </div>
+             )}
++            <div style={{ display: "flex", gap: 6, paddingTop: 8, marginTop: 8, borderTop: "1px solid var(--border)", flexWrap: "wrap" }}>
++              <span style={S.tag()}>{profile.intensityScale === "rir" ? "RIR" : "RPE"}</span>
++              <span style={S.tag()}>{profile.restTimerEnabled !== false ? `Rest: ${profile.restTimerCompound || 150}/${profile.restTimerIsolation || 90}s` : "Rest Timer Off"}</span>
++            </div>
+             {profile.targetPrs && Object.values(profile.targetPrs).some(v => v) && (
+               <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid var(--border)" }}>
+                 <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Target PRs</div>
+@@ -198,7 +257,7 @@ export default function ProfileModal({ onClose }) {
+             )}
+             {profile.injuriesNotes && (
+               <div style={{ paddingTop: 8, marginTop: 8, borderTop: "1px solid var(--border)" }}>
+-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Injuries / Limitations</div>
++                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "1px" }}>Notes</div>
+                 <div style={{ fontSize: 11, color: "var(--text-light)", lineHeight: 1.4 }}>{profile.injuriesNotes}</div>
+               </div>
+             )}
+diff --git a/src/components/SettingsModal.jsx b/src/components/SettingsModal.jsx
+index 765d02a..f07cb67 100644
+--- a/src/components/SettingsModal.jsx
++++ b/src/components/SettingsModal.jsx
+@@ -1,28 +1,25 @@
+ // ═══════════════════════ SETTINGS MODAL ═══════════════════════
+-// App preferences: theme, avatar color, rest timer config, RPE/RIR scale,
+-// AI config (admin only).
++// App preferences: theme, avatar color, AI config (admin only).
++// Account management: email, password change, data export.
+ 
+ import { useState, useEffect } from "react";
+ import { useTalos } from "../context/TalosContext";
+ import { USER_COLORS } from "../lib/helpers";
+-import { THEME_LIST, THEMES, applyTheme } from "../lib/themes";
++import { THEME_LIST, applyTheme } from "../lib/themes";
+ import api from "../lib/api";
+ import S from "../lib/styles";
+ 
+ export default function SettingsModal({ onClose }) {
+-  const { user, updateUser, profile, updateProfile } = useTalos();
+-  const [name, setName] = useState(user.name);
++  const { user, updateUser } = useTalos();
+   const [color, setColor] = useState(user.color);
+   const [theme, setTheme] = useState(user.theme || "talos");
+   const [originalTheme] = useState(user.theme || "talos");
+ 
+-  // Rest timer settings
+-  const [restTimerEnabled, setRestTimerEnabled] = useState(profile.restTimerEnabled !== false);
+-  const [restCompound, setRestCompound] = useState(profile.restTimerCompound || 150);
+-  const [restIsolation, setRestIsolation] = useState(profile.restTimerIsolation || 90);
+-
+-  // Intensity scale (RPE vs RIR)
+-  const [intensityScale, setIntensityScale] = useState(profile.intensityScale || "rpe");
++  // Password change
++  const [currentPassword, setCurrentPassword] = useState("");
++  const [newPassword, setNewPassword] = useState("");
++  const [confirmNewPassword, setConfirmNewPassword] = useState("");
++  const [passwordMsg, setPasswordMsg] = useState("");
+ 
+   // AI config (admin only)
+   const [showAI, setShowAI] = useState(false);
+@@ -56,19 +53,8 @@ export default function SettingsModal({ onClose }) {
+ 
+   async function save() {
+     try {
+-      // Save account settings (name, color, theme)
+-      await api.put("/auth/account", { name, color, theme });
+-      updateUser({ name, color, theme });
+-
+-      // Save profile settings (rest timer, intensity scale)
+-      await updateProfile({
+-        ...profile,
+-        restTimerEnabled,
+-        restTimerCompound: restCompound,
+-        restTimerIsolation: restIsolation,
+-        intensityScale,
+-      });
+-
++      await api.put("/auth/account", { name: user.name, color, theme });
++      updateUser({ color, theme });
+       onClose();
+     } catch (e) {
+       alert("Save failed: " + e.message);
+@@ -80,6 +66,28 @@ export default function SettingsModal({ onClose }) {
+     onClose();
+   }
+ 
++  async function changePassword() {
++    setPasswordMsg("");
++    if (newPassword.length < 8) { setPasswordMsg("Min 8 characters"); return; }
++    if (newPassword !== confirmNewPassword) { setPasswordMsg("Passwords don't match"); return; }
++    try {
++      await api.post("/auth/change-password", { currentPassword, newPassword });
++      setPasswordMsg("Password updated!");
++      setCurrentPassword(""); setNewPassword(""); setConfirmNewPassword("");
++    } catch (e) { setPasswordMsg(e.message); }
++  }
++
++  async function exportData() {
++    try {
++      const token = localStorage.getItem("talos_token");
++      const res = await fetch("/api/export", { headers: { "Authorization": `Bearer ${token}` } });
++      const blob = await res.blob();
++      const url = URL.createObjectURL(blob);
++      const a = document.createElement("a"); a.href = url; a.download = "talos-export.csv"; a.click();
++      URL.revokeObjectURL(url);
++    } catch (e) { alert("Export failed: " + e.message); }
++  }
++
+   async function saveAI() {
+     setAiStatus("Saving...");
+     try {
+@@ -99,10 +107,11 @@ export default function SettingsModal({ onClose }) {
+           <button onClick={handleClose} style={S.sm()}>✕</button>
+         </div>
+ 
+-        {/* Name */}
++        {/* Account info */}
+         <div style={{ marginBottom: 12 }}>
+-          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Name</div>
+-          <input value={name} onChange={e => setName(e.target.value)} style={S.input} />
++          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Email</div>
++          <div style={{ fontSize: 13, color: "var(--text-light)" }}>{user.email}</div>
++          {isAdmin && <span style={{ ...S.tag(), marginTop: 4, fontSize: 9, display: "inline-block" }}>ADMIN</span>}
+         </div>
+ 
+         {/* Theme selector */}
+@@ -112,18 +121,11 @@ export default function SettingsModal({ onClose }) {
+             {THEME_LIST.map(t => {
+               const active = theme === t.id;
+               return (
+-                <div
+-                  key={t.id}
+-                  onClick={() => selectTheme(t.id)}
+-                  style={{
+-                    padding: "8px 10px",
+-                    borderRadius: 8,
+-                    border: active ? "2px solid var(--accent)" : "1px solid var(--border2)",
+-                    background: active ? "var(--accent-bg)" : "transparent",
+-                    cursor: "pointer",
+-                    transition: "all 0.15s ease",
+-                  }}
+-                >
++                <div key={t.id} onClick={() => selectTheme(t.id)} style={{
++                  padding: "8px 10px", borderRadius: 8,
++                  border: active ? "2px solid var(--accent)" : "1px solid var(--border2)",
++                  background: active ? "var(--accent-bg)" : "transparent", cursor: "pointer",
++                }}>
+                   <div style={{ display: "flex", gap: 4, marginBottom: 5 }}>
+                     <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.bg, border: "1px solid rgba(128,128,128,0.3)" }} />
+                     <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.preview.surface, border: "1px solid rgba(128,128,128,0.3)" }} />
+@@ -145,82 +147,25 @@ export default function SettingsModal({ onClose }) {
+           </div>
+         </div>
+ 
+-        {/* Intensity Scale (RPE / RIR) */}
++        {/* Change Password */}
+         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
+-          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 6, textTransform: "uppercase" }}>Intensity Scale</div>
+-          <div style={{ display: "flex", gap: 6 }}>
+-            <button
+-              onClick={() => setIntensityScale("rpe")}
+-              style={{
+-                ...S.sm(intensityScale === "rpe" ? "primary" : "ghost"),
+-                flex: 1,
+-                padding: "8px 10px",
+-                fontSize: 11,
+-              }}
+-            >
+-              RPE (1–10)
+-            </button>
+-            <button
+-              onClick={() => setIntensityScale("rir")}
+-              style={{
+-                ...S.sm(intensityScale === "rir" ? "primary" : "ghost"),
+-                flex: 1,
+-                padding: "8px 10px",
+-                fontSize: 11,
+-              }}
+-            >
+-              RIR (0–5)
+-            </button>
++          <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase", marginBottom: 8 }}>Change Password</div>
++          <div style={{ marginBottom: 8 }}>
++            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="Current password" autoComplete="current-password" />
++          </div>
++          <div style={{ marginBottom: 8 }}>
++            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="New password" autoComplete="new-password" />
+           </div>
+-          <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4 }}>
+-            {intensityScale === "rpe" ? "Rate of Perceived Exertion (10 = max effort)" : "Reps In Reserve (0 = nothing left)"}
++          <div style={{ marginBottom: 8 }}>
++            <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} style={{ ...S.input, fontSize: 12 }} placeholder="Confirm new password" autoComplete="new-password" />
+           </div>
++          {passwordMsg && <div style={{ fontSize: 11, color: passwordMsg === "Password updated!" ? "#22c55e" : "#ef4444", marginBottom: 8 }}>{passwordMsg}</div>}
++          <button onClick={changePassword} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Update Password</button>
+         </div>
+ 
+-        {/* Rest Timer Toggle + Config */}
++        {/* Data Export */}
+         <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
+-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+-            <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>Rest Timer</div>
+-            <label style={{ position: "relative", display: "inline-block", width: 40, height: 22, cursor: "pointer" }}>
+-              <input
+-                type="checkbox"
+-                checked={restTimerEnabled}
+-                onChange={e => setRestTimerEnabled(e.target.checked)}
+-                style={{ opacity: 0, width: 0, height: 0 }}
+-              />
+-              <span style={{
+-                position: "absolute",
+-                inset: 0,
+-                borderRadius: 11,
+-                background: restTimerEnabled ? "var(--accent)" : "var(--surface2)",
+-                border: "1px solid var(--border2)",
+-                transition: "background 0.2s",
+-              }}>
+-                <span style={{
+-                  position: "absolute",
+-                  top: 2,
+-                  left: restTimerEnabled ? 20 : 2,
+-                  width: 16,
+-                  height: 16,
+-                  borderRadius: "50%",
+-                  background: "var(--text-bright)",
+-                  transition: "left 0.2s",
+-                }} />
+-              </span>
+-            </label>
+-          </div>
+-          {restTimerEnabled && (
+-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+-              <div>
+-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Compound (sec)</div>
+-                <input type="number" inputMode="numeric" value={restCompound} onChange={e => setRestCompound(Number(e.target.value))} style={S.smInput} />
+-              </div>
+-              <div>
+-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 3, textTransform: "uppercase" }}>Isolation (sec)</div>
+-                <input type="number" inputMode="numeric" value={restIsolation} onChange={e => setRestIsolation(Number(e.target.value))} style={S.smInput} />
+-              </div>
+-            </div>
+-          )}
++          <button onClick={exportData} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Export All Data (CSV)</button>
+         </div>
+ 
+         {/* AI Provider Config (admin only) */}
+@@ -231,7 +176,6 @@ export default function SettingsModal({ onClose }) {
+               <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
+             </div>
+             {aiStatus && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{aiStatus}</div>}
+-
+             {showAI && (
+               <div style={{ marginTop: 8 }}>
+                 <div style={{ marginBottom: 8 }}>
+diff --git a/src/pages/StatsPage.jsx b/src/pages/StatsPage.jsx
+index fb7d889..c23b408 100644
+--- a/src/pages/StatsPage.jsx
++++ b/src/pages/StatsPage.jsx
+@@ -1,7 +1,6 @@
+ // ═══════════════════════ STATS PAGE ═══════════════════════
+ // Training analytics: lifetime totals, streaks, volume trends,
+-// auto-detected top lifts, progress charts, and PRs with recency.
+-// Bio/profile editing collapsed by default to keep focus on data.
++// configurable top lifts, progress charts, PRs, and body weight tracking.
+ 
+ import { useState, useMemo } from "react";
+ import {
+@@ -10,14 +9,18 @@ import {
+ } from "recharts";
+ import { useTalos } from "../context/TalosContext";
+ import { est1RM } from "../lib/helpers";
++import api from "../lib/api";
+ import S from "../lib/styles";
+ 
+ export default function StatsPage() {
+-  const { workouts, profile, user } = useTalos();
+-  const [chartExercise, setChartExercise] = useState(null); // null = auto-detect
+-  const [prFilter, setPrFilter] = useState("all"); // all | recent
+-  const [prMode, setPrMode] = useState("e1rm"); // e1rm | actual
++  const { workouts, profile, updateProfile, user } = useTalos();
++  const [chartExercise, setChartExercise] = useState(null);
++  const [prFilter, setPrFilter] = useState("all");
++  const [prMode, setPrMode] = useState("actual"); // default to actual
+   const [showAllPrs, setShowAllPrs] = useState(false);
++  const [editingTopLifts, setEditingTopLifts] = useState(false);
++  const [weighInWeight, setWeighInWeight] = useState("");
++  const [weighInMsg, setWeighInMsg] = useState("");
+ 
+   // ── PRs ──
+   const prs = useMemo(() => {
+@@ -44,7 +47,6 @@ export default function StatsPage() {
+     return entries.sort((a, b) => (parseFloat(b[1].weight) || 0) - (parseFloat(a[1].weight) || 0));
+   }, [prs, prMode]);
+ 
+-  // Recent PRs (last 30 days)
+   const thirtyDaysAgo = new Date();
+   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+   const recentPrList = prList.filter(([, pr]) => new Date(pr.date + "T12:00:00") >= thirtyDaysAgo);
+@@ -72,7 +74,6 @@ export default function StatsPage() {
+     const dates = [...new Set(workouts.map(w => w.date))].sort();
+     let s = 0, ms = 0, ts = 1;
+     const today = new Date().toISOString().split("T")[0];
+-
+     for (let i = dates.length - 1; i >= 0; i--) {
+       const d = new Date(dates[i] + "T12:00:00");
+       const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T12:00:00") : new Date(today + "T12:00:00");
+@@ -85,27 +86,62 @@ export default function StatsPage() {
+     }
+     ms = Math.max(ms, ts);
+     if (dates.length === 0) { s = 0; ms = 0; }
+-
+     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+     const tw = workouts.filter(w => new Date(w.date + "T12:00:00") >= weekAgo).length;
+-
+     return { streak: s, maxStreak: ms, thisWeek: tw };
+   }, [workouts]);
+ 
+-  // ── Exercise names (sorted by frequency) ──
+-  const exerciseNames = useMemo(() => {
++  // ── Exercise names (sorted by frequency, pinned lifts first) ──
++  const allExerciseNames = useMemo(() => {
+     const freq = {};
+     workouts.forEach(w => w.exercises?.forEach(e => { freq[e.name] = (freq[e.name] || 0) + 1; }));
+     return Object.entries(freq).sort((a, b) => b[1] - a[1]).map(([name]) => name);
+   }, [workouts]);
+ 
+-  // Auto-detect chart exercise: most logged exercise
++  const pinnedLifts = profile.pinnedLifts || null;
++
++  // Exercise names with pinned lifts at top for the progress dropdown
++  const exerciseNames = useMemo(() => {
++    if (!pinnedLifts || pinnedLifts.length === 0) return allExerciseNames;
++    const pinSet = new Set(pinnedLifts);
++    const pinned = pinnedLifts.filter(n => allExerciseNames.includes(n));
++    const rest = allExerciseNames.filter(n => !pinSet.has(n));
++    return [...pinned, ...rest];
++  }, [allExerciseNames, pinnedLifts]);
++
+   const activeChartExercise = chartExercise || exerciseNames[0] || "Bench Press";
+ 
+-  // ── Top lifts (auto-detected from user's data by e1RM) ──
++  // ── Top lifts (user-configured or auto top 6) ──
+   const topLifts = useMemo(() => {
+-    return prList.slice(0, 6).map(([name, pr]) => ({ name, ...pr }));
+-  }, [prList]);
++    const names = pinnedLifts && pinnedLifts.length > 0
++      ? pinnedLifts.filter(n => prs[n])
++      : prList.slice(0, 6).map(([name]) => name);
++    return names.map(name => {
++      const rec = prs[name];
++      const pr = prMode === "e1rm" ? rec?.byE1rm : rec?.byWeight;
++      return pr ? { name, ...pr } : null;
++    }).filter(Boolean);
++  }, [pinnedLifts, prList, prs, prMode]);
++
++  // ── Top lift editor state ──
++  const [tmpPinned, setTmpPinned] = useState(pinnedLifts || []);
++
++  function openEditTopLifts() {
++    setTmpPinned(pinnedLifts || prList.slice(0, 6).map(([n]) => n));
++    setEditingTopLifts(true);
++  }
++
++  function togglePinnedLift(name) {
++    setTmpPinned(prev => prev.includes(name)
++      ? prev.filter(n => n !== name)
++      : prev.length < 8 ? [...prev, name] : prev
++    );
++  }
++
++  async function savePinnedLifts() {
++    await updateProfile({ ...profile, pinnedLifts: tmpPinned });
++    setEditingTopLifts(false);
++  }
+ 
+   // ── Progress chart data ──
+   const chartData = useMemo(() => {
+@@ -128,7 +164,6 @@ export default function StatsPage() {
+       weekStart.setHours(0, 0, 0, 0);
+       const weekEnd = new Date(weekStart);
+       weekEnd.setDate(weekStart.getDate() + 7);
+-
+       let vol = 0, sessions = 0;
+       workouts.forEach(w => {
+         const d = new Date(w.date + "T12:00:00");
+@@ -137,7 +172,6 @@ export default function StatsPage() {
+           w.exercises?.forEach(e => e.sets?.forEach(s => { vol += (s.weight || 0) * (s.reps || 0); }));
+         }
+       });
+-
+       const label = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
+       weeks.push({ label, volume: Math.round(vol / 1000), sessions });
+     }
+@@ -151,6 +185,30 @@ export default function StatsPage() {
+     profile.bioHistory?.map(h => ({ date: h.date.slice(5), weight: h.weight })) || [],
+   [profile.bioHistory]);
+ 
++  // Check if weigh-in is needed (no entry in last 7 days)
++  const lastWeighIn = profile.bioHistory?.length > 0
++    ? profile.bioHistory[profile.bioHistory.length - 1]
++    : null;
++  const daysSinceWeighIn = lastWeighIn
++    ? Math.floor((Date.now() - new Date(lastWeighIn.date + "T12:00:00").getTime()) / 86400000)
++    : Infinity;
++  const needsWeighIn = daysSinceWeighIn >= 7;
++
++  async function logWeighIn() {
++    const w = parseFloat(weighInWeight);
++    if (!w || w < 50 || w > 600) { setWeighInMsg("Enter a valid weight"); return; }
++    try {
++      await api.post("/profile/weigh-in", { weight: w });
++      // Re-save profile with updated weight to trigger full refresh
++      await updateProfile({ ...profile, weight: w });
++      setWeighInWeight("");
++      setWeighInMsg("Logged!");
++      setTimeout(() => setWeighInMsg(""), 2000);
++    } catch (e) {
++      setWeighInMsg("Error: " + e.message);
++    }
++  }
++
+   // ── Format helpers ──
+   function fmtVol(v) {
+     if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+@@ -162,7 +220,6 @@ export default function StatsPage() {
+     return Math.floor((new Date() - new Date(dateStr + "T12:00:00")) / 86400000);
+   }
+ 
+-  // Tooltip styling
+   const tooltipStyle = {
+     contentStyle: { background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 6, fontSize: 11, fontFamily: "inherit" },
+     itemStyle: { color: "var(--text)" },
+@@ -178,7 +235,7 @@ export default function StatsPage() {
+         </div>
+         <div style={S.stat}>
+           <div style={{ ...S.statV, fontSize: 20 }}>{fmtVol(lifetimeStats.volume)}</div>
+-          <div style={S.statL}>Volume (lbs)</div>
++          <div style={S.statL}>Volume</div>
+         </div>
+         <div style={S.stat}>
+           <div style={{ ...S.statV, fontSize: 20 }}>{lifetimeStats.sets}</div>
+@@ -215,36 +272,68 @@ export default function StatsPage() {
+         </div>
+       )}
+ 
+-      {/* ── Top Lifts (auto-detected) ── */}
+-      {topLifts.length > 0 && (
++      {/* ── Top Lifts ── */}
++      {(topLifts.length > 0 || editingTopLifts) && (
+         <div style={S.card}>
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+             <div style={S.label}>Top Lifts</div>
+             <div style={{ display: "flex", gap: 4 }}>
+-              <button onClick={() => setPrMode("e1rm")} style={{ ...S.sm(prMode === "e1rm" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Est 1RM</button>
+-              <button onClick={() => setPrMode("actual")} style={{ ...S.sm(prMode === "actual" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Actual</button>
++              {!editingTopLifts && (
++                <>
++                  <button onClick={() => setPrMode("e1rm")} style={{ ...S.sm(prMode === "e1rm" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Est 1RM</button>
++                  <button onClick={() => setPrMode("actual")} style={{ ...S.sm(prMode === "actual" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Actual</button>
++                  <button onClick={openEditTopLifts} style={{ ...S.sm("ghost"), fontSize: 9, padding: "3px 6px" }}>Edit</button>
++                </>
++              )}
++              {editingTopLifts && (
++                <>
++                  <button onClick={savePinnedLifts} style={{ ...S.sm("primary"), fontSize: 9, padding: "3px 6px" }}>Save</button>
++                  <button onClick={() => setEditingTopLifts(false)} style={{ ...S.sm("ghost"), fontSize: 9, padding: "3px 6px" }}>Cancel</button>
++                </>
++              )}
+             </div>
+           </div>
+-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+-            {topLifts.map(lift => {
+-              const isRecent = daysSince(lift.date) <= 30;
+-              const primary = prMode === "e1rm" ? (lift.e1rm || "—") : lift.weight;
+-              const secondary = prMode === "e1rm" ? `${lift.weight}×${lift.reps}` : `~${lift.e1rm || "?"} e1RM`;
+-              return (
+-                <div key={lift.name} style={{ background: "var(--surface2)", borderRadius: 8, padding: 10, border: "1px solid var(--border)" }}>
+-                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
+-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
+-                    <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-bright)" }}>{primary}</span>
+-                    {prMode === "actual" && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>×{lift.reps}</span>}
+-                    {isRecent && (
+-                      <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: "0.5px" }}>New</span>
+-                    )}
++
++          {editingTopLifts ? (
++            <div>
++              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 6 }}>Tap to toggle (max 8). Selected: {tmpPinned.length}</div>
++              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, maxHeight: 200, overflowY: "auto" }}>
++                {allExerciseNames.map(name => {
++                  const selected = tmpPinned.includes(name);
++                  return (
++                    <button key={name} onClick={() => togglePinnedLift(name)} style={{
++                      ...S.sm(selected ? "primary" : "ghost"),
++                      fontSize: 10, padding: "4px 8px",
++                      opacity: selected || tmpPinned.length < 8 ? 1 : 0.4,
++                    }}>
++                      {name}
++                    </button>
++                  );
++                })}
++              </div>
++            </div>
++          ) : (
++            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
++              {topLifts.map(lift => {
++                const isRecent = daysSince(lift.date) <= 30;
++                const primary = prMode === "e1rm" ? (lift.e1rm || "—") : lift.weight;
++                const secondary = prMode === "e1rm" ? `${lift.weight}×${lift.reps}` : `~${lift.e1rm || "?"} e1RM`;
++                return (
++                  <div key={lift.name} style={{ background: "var(--surface2)", borderRadius: 8, padding: 10, border: "1px solid var(--border)" }}>
++                    <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
++                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
++                      <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-bright)" }}>{primary}</span>
++                      {prMode === "actual" && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>×{lift.reps}</span>}
++                      {isRecent && (
++                        <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: "0.5px" }}>New</span>
++                      )}
++                    </div>
++                    <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{secondary}</div>
+                   </div>
+-                  <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{secondary}</div>
+-                </div>
+-              );
+-            })}
+-          </div>
++                );
++              })}
++            </div>
++          )}
+         </div>
+       )}
+ 
+@@ -257,7 +346,14 @@ export default function StatsPage() {
+             onChange={e => setChartExercise(e.target.value)}
+             style={{ ...S.input, fontSize: 12, marginBottom: 10, background: "var(--surface2)", height: 44 }}
+           >
+-            {exerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
++            {pinnedLifts && pinnedLifts.length > 0 && (
++              <optgroup label="Pinned">
++                {pinnedLifts.filter(n => allExerciseNames.includes(n)).map(n => <option key={`pin-${n}`} value={n}>{n}</option>)}
++              </optgroup>
++            )}
++            <optgroup label={pinnedLifts && pinnedLifts.length > 0 ? "All Exercises" : "Exercises"}>
++              {allExerciseNames.filter(n => !pinnedLifts?.includes(n)).map(n => <option key={n} value={n}>{n}</option>)}
++            </optgroup>
+           </select>
+           {chartData.length > 1 ? (
+             <ResponsiveContainer width="100%" height={180}>
+@@ -278,9 +374,12 @@ export default function StatsPage() {
+       )}
+ 
+       {/* ── Body Weight Trend ── */}
+-      {bwData.length > 1 && (
+-        <div style={S.card}>
++      <div style={S.card}>
++        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+           <div style={S.label}>Body Weight Trend</div>
++          {needsWeighIn && <span style={{ fontSize: 9, color: "var(--accent)", fontWeight: 600 }}>WEIGH IN DUE</span>}
++        </div>
++        {bwData.length > 1 ? (
+           <ResponsiveContainer width="100%" height={140}>
+             <LineChart data={bwData}>
+               <XAxis dataKey="date" tick={{ fill: "var(--text-dim)", fontSize: 10 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+@@ -289,8 +388,25 @@ export default function StatsPage() {
+               <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={{ fill: "#3b82f6", r: 3 }} name="Lbs" />
+             </LineChart>
+           </ResponsiveContainer>
++        ) : (
++          <div style={{ color: "var(--text-dim)", fontSize: 12, padding: 12, textAlign: "center" }}>
++            {bwData.length === 1 ? `Current: ${bwData[0].weight} lbs — log more to see trend` : "No weigh-ins yet"}
++          </div>
++        )}
++        {/* Weigh-in input */}
++        <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
++          <input
++            type="number" inputMode="decimal"
++            value={weighInWeight}
++            onChange={e => setWeighInWeight(e.target.value)}
++            placeholder={profile.weight ? `${profile.weight}` : "Weight"}
++            style={{ ...S.smInput, flex: 1, textAlign: "left", padding: "6px 10px", fontSize: 13 }}
++          />
++          <span style={{ fontSize: 11, color: "var(--text-dim)" }}>lbs</span>
++          <button onClick={logWeighIn} style={{ ...S.sm("primary"), padding: "6px 14px", fontSize: 11 }}>Log</button>
+         </div>
+-      )}
++        {weighInMsg && <div style={{ fontSize: 10, color: weighInMsg.startsWith("Error") ? "#ef4444" : "#22c55e", marginTop: 4 }}>{weighInMsg}</div>}
++      </div>
+ 
+       {/* ── All PRs ── */}
+       <div style={S.card}>

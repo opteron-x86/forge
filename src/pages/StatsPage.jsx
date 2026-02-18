@@ -1,7 +1,6 @@
 // ═══════════════════════ STATS PAGE ═══════════════════════
 // Training analytics: lifetime totals, streaks, volume trends,
-// auto-detected top lifts, progress charts, and PRs with recency.
-// Bio/profile editing collapsed by default to keep focus on data.
+// configurable top lifts, progress charts, PRs, and body weight tracking.
 
 import { useState, useMemo } from "react";
 import {
@@ -10,14 +9,18 @@ import {
 } from "recharts";
 import { useTalos } from "../context/TalosContext";
 import { est1RM } from "../lib/helpers";
+import api from "../lib/api";
 import S from "../lib/styles";
 
 export default function StatsPage() {
-  const { workouts, profile, user } = useTalos();
-  const [chartExercise, setChartExercise] = useState(null); // null = auto-detect
-  const [prFilter, setPrFilter] = useState("all"); // all | recent
-  const [prMode, setPrMode] = useState("e1rm"); // e1rm | actual
+  const { workouts, profile, updateProfile, user } = useTalos();
+  const [chartExercise, setChartExercise] = useState(null);
+  const [prFilter, setPrFilter] = useState("all");
+  const [prMode, setPrMode] = useState("actual"); // default to actual
   const [showAllPrs, setShowAllPrs] = useState(false);
+  const [editingTopLifts, setEditingTopLifts] = useState(false);
+  const [weighInWeight, setWeighInWeight] = useState("");
+  const [weighInMsg, setWeighInMsg] = useState("");
 
   // ── PRs ──
   const prs = useMemo(() => {
@@ -44,7 +47,6 @@ export default function StatsPage() {
     return entries.sort((a, b) => (parseFloat(b[1].weight) || 0) - (parseFloat(a[1].weight) || 0));
   }, [prs, prMode]);
 
-  // Recent PRs (last 30 days)
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const recentPrList = prList.filter(([, pr]) => new Date(pr.date + "T12:00:00") >= thirtyDaysAgo);
@@ -72,7 +74,6 @@ export default function StatsPage() {
     const dates = [...new Set(workouts.map(w => w.date))].sort();
     let s = 0, ms = 0, ts = 1;
     const today = new Date().toISOString().split("T")[0];
-
     for (let i = dates.length - 1; i >= 0; i--) {
       const d = new Date(dates[i] + "T12:00:00");
       const prev = i < dates.length - 1 ? new Date(dates[i + 1] + "T12:00:00") : new Date(today + "T12:00:00");
@@ -85,27 +86,62 @@ export default function StatsPage() {
     }
     ms = Math.max(ms, ts);
     if (dates.length === 0) { s = 0; ms = 0; }
-
     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
     const tw = workouts.filter(w => new Date(w.date + "T12:00:00") >= weekAgo).length;
-
     return { streak: s, maxStreak: ms, thisWeek: tw };
   }, [workouts]);
 
-  // ── Exercise names (sorted by frequency) ──
-  const exerciseNames = useMemo(() => {
+  // ── Exercise names (sorted by frequency, pinned lifts first) ──
+  const allExerciseNames = useMemo(() => {
     const freq = {};
     workouts.forEach(w => w.exercises?.forEach(e => { freq[e.name] = (freq[e.name] || 0) + 1; }));
     return Object.entries(freq).sort((a, b) => b[1] - a[1]).map(([name]) => name);
   }, [workouts]);
 
-  // Auto-detect chart exercise: most logged exercise
+  const pinnedLifts = profile.pinnedLifts || null;
+
+  // Exercise names with pinned lifts at top for the progress dropdown
+  const exerciseNames = useMemo(() => {
+    if (!pinnedLifts || pinnedLifts.length === 0) return allExerciseNames;
+    const pinSet = new Set(pinnedLifts);
+    const pinned = pinnedLifts.filter(n => allExerciseNames.includes(n));
+    const rest = allExerciseNames.filter(n => !pinSet.has(n));
+    return [...pinned, ...rest];
+  }, [allExerciseNames, pinnedLifts]);
+
   const activeChartExercise = chartExercise || exerciseNames[0] || "Bench Press";
 
-  // ── Top lifts (auto-detected from user's data by e1RM) ──
+  // ── Top lifts (user-configured or auto top 6) ──
   const topLifts = useMemo(() => {
-    return prList.slice(0, 6).map(([name, pr]) => ({ name, ...pr }));
-  }, [prList]);
+    const names = pinnedLifts && pinnedLifts.length > 0
+      ? pinnedLifts.filter(n => prs[n])
+      : prList.slice(0, 6).map(([name]) => name);
+    return names.map(name => {
+      const rec = prs[name];
+      const pr = prMode === "e1rm" ? rec?.byE1rm : rec?.byWeight;
+      return pr ? { name, ...pr } : null;
+    }).filter(Boolean);
+  }, [pinnedLifts, prList, prs, prMode]);
+
+  // ── Top lift editor state ──
+  const [tmpPinned, setTmpPinned] = useState(pinnedLifts || []);
+
+  function openEditTopLifts() {
+    setTmpPinned(pinnedLifts || prList.slice(0, 6).map(([n]) => n));
+    setEditingTopLifts(true);
+  }
+
+  function togglePinnedLift(name) {
+    setTmpPinned(prev => prev.includes(name)
+      ? prev.filter(n => n !== name)
+      : prev.length < 8 ? [...prev, name] : prev
+    );
+  }
+
+  async function savePinnedLifts() {
+    await updateProfile({ ...profile, pinnedLifts: tmpPinned });
+    setEditingTopLifts(false);
+  }
 
   // ── Progress chart data ──
   const chartData = useMemo(() => {
@@ -128,7 +164,6 @@ export default function StatsPage() {
       weekStart.setHours(0, 0, 0, 0);
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 7);
-
       let vol = 0, sessions = 0;
       workouts.forEach(w => {
         const d = new Date(w.date + "T12:00:00");
@@ -137,7 +172,6 @@ export default function StatsPage() {
           w.exercises?.forEach(e => e.sets?.forEach(s => { vol += (s.weight || 0) * (s.reps || 0); }));
         }
       });
-
       const label = `${weekStart.getMonth() + 1}/${weekStart.getDate()}`;
       weeks.push({ label, volume: Math.round(vol / 1000), sessions });
     }
@@ -151,6 +185,30 @@ export default function StatsPage() {
     profile.bioHistory?.map(h => ({ date: h.date.slice(5), weight: h.weight })) || [],
   [profile.bioHistory]);
 
+  // Check if weigh-in is needed (no entry in last 7 days)
+  const lastWeighIn = profile.bioHistory?.length > 0
+    ? profile.bioHistory[profile.bioHistory.length - 1]
+    : null;
+  const daysSinceWeighIn = lastWeighIn
+    ? Math.floor((Date.now() - new Date(lastWeighIn.date + "T12:00:00").getTime()) / 86400000)
+    : Infinity;
+  const needsWeighIn = daysSinceWeighIn >= 7;
+
+  async function logWeighIn() {
+    const w = parseFloat(weighInWeight);
+    if (!w || w < 50 || w > 600) { setWeighInMsg("Enter a valid weight"); return; }
+    try {
+      await api.post("/profile/weigh-in", { weight: w });
+      // Re-save profile with updated weight to trigger full refresh
+      await updateProfile({ ...profile, weight: w });
+      setWeighInWeight("");
+      setWeighInMsg("Logged!");
+      setTimeout(() => setWeighInMsg(""), 2000);
+    } catch (e) {
+      setWeighInMsg("Error: " + e.message);
+    }
+  }
+
   // ── Format helpers ──
   function fmtVol(v) {
     if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
@@ -162,7 +220,6 @@ export default function StatsPage() {
     return Math.floor((new Date() - new Date(dateStr + "T12:00:00")) / 86400000);
   }
 
-  // Tooltip styling
   const tooltipStyle = {
     contentStyle: { background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 6, fontSize: 11, fontFamily: "inherit" },
     itemStyle: { color: "var(--text)" },
@@ -178,7 +235,7 @@ export default function StatsPage() {
         </div>
         <div style={S.stat}>
           <div style={{ ...S.statV, fontSize: 20 }}>{fmtVol(lifetimeStats.volume)}</div>
-          <div style={S.statL}>Volume (lbs)</div>
+          <div style={S.statL}>Volume</div>
         </div>
         <div style={S.stat}>
           <div style={{ ...S.statV, fontSize: 20 }}>{lifetimeStats.sets}</div>
@@ -215,36 +272,68 @@ export default function StatsPage() {
         </div>
       )}
 
-      {/* ── Top Lifts (auto-detected) ── */}
-      {topLifts.length > 0 && (
+      {/* ── Top Lifts ── */}
+      {(topLifts.length > 0 || editingTopLifts) && (
         <div style={S.card}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={S.label}>Top Lifts</div>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => setPrMode("e1rm")} style={{ ...S.sm(prMode === "e1rm" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Est 1RM</button>
-              <button onClick={() => setPrMode("actual")} style={{ ...S.sm(prMode === "actual" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Actual</button>
+              {!editingTopLifts && (
+                <>
+                  <button onClick={() => setPrMode("e1rm")} style={{ ...S.sm(prMode === "e1rm" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Est 1RM</button>
+                  <button onClick={() => setPrMode("actual")} style={{ ...S.sm(prMode === "actual" ? "primary" : "ghost"), fontSize: 9, padding: "3px 6px" }}>Actual</button>
+                  <button onClick={openEditTopLifts} style={{ ...S.sm("ghost"), fontSize: 9, padding: "3px 6px" }}>Edit</button>
+                </>
+              )}
+              {editingTopLifts && (
+                <>
+                  <button onClick={savePinnedLifts} style={{ ...S.sm("primary"), fontSize: 9, padding: "3px 6px" }}>Save</button>
+                  <button onClick={() => setEditingTopLifts(false)} style={{ ...S.sm("ghost"), fontSize: 9, padding: "3px 6px" }}>Cancel</button>
+                </>
+              )}
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {topLifts.map(lift => {
-              const isRecent = daysSince(lift.date) <= 30;
-              const primary = prMode === "e1rm" ? (lift.e1rm || "—") : lift.weight;
-              const secondary = prMode === "e1rm" ? `${lift.weight}×${lift.reps}` : `~${lift.e1rm || "?"} e1RM`;
-              return (
-                <div key={lift.name} style={{ background: "var(--surface2)", borderRadius: 8, padding: 10, border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-                    <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-bright)" }}>{primary}</span>
-                    {prMode === "actual" && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>×{lift.reps}</span>}
-                    {isRecent && (
-                      <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: "0.5px" }}>New</span>
-                    )}
+
+          {editingTopLifts ? (
+            <div>
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 6 }}>Tap to toggle (max 8). Selected: {tmpPinned.length}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, maxHeight: 200, overflowY: "auto" }}>
+                {allExerciseNames.map(name => {
+                  const selected = tmpPinned.includes(name);
+                  return (
+                    <button key={name} onClick={() => togglePinnedLift(name)} style={{
+                      ...S.sm(selected ? "primary" : "ghost"),
+                      fontSize: 10, padding: "4px 8px",
+                      opacity: selected || tmpPinned.length < 8 ? 1 : 0.4,
+                    }}>
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {topLifts.map(lift => {
+                const isRecent = daysSince(lift.date) <= 30;
+                const primary = prMode === "e1rm" ? (lift.e1rm || "—") : lift.weight;
+                const secondary = prMode === "e1rm" ? `${lift.weight}×${lift.reps}` : `~${lift.e1rm || "?"} e1RM`;
+                return (
+                  <div key={lift.name} style={{ background: "var(--surface2)", borderRadius: 8, padding: 10, border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", lineHeight: 1.3 }}>{lift.name}</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
+                      <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-bright)" }}>{primary}</span>
+                      {prMode === "actual" && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>×{lift.reps}</span>}
+                      {isRecent && (
+                        <span style={{ fontSize: 8, fontWeight: 700, color: "#22c55e", textTransform: "uppercase", letterSpacing: "0.5px" }}>New</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{secondary}</div>
                   </div>
-                  <div style={{ fontSize: 10, color: "var(--text-dim)" }}>{secondary}</div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -257,7 +346,14 @@ export default function StatsPage() {
             onChange={e => setChartExercise(e.target.value)}
             style={{ ...S.input, fontSize: 12, marginBottom: 10, background: "var(--surface2)", height: 44 }}
           >
-            {exerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
+            {pinnedLifts && pinnedLifts.length > 0 && (
+              <optgroup label="Pinned">
+                {pinnedLifts.filter(n => allExerciseNames.includes(n)).map(n => <option key={`pin-${n}`} value={n}>{n}</option>)}
+              </optgroup>
+            )}
+            <optgroup label={pinnedLifts && pinnedLifts.length > 0 ? "All Exercises" : "Exercises"}>
+              {allExerciseNames.filter(n => !pinnedLifts?.includes(n)).map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
           </select>
           {chartData.length > 1 ? (
             <ResponsiveContainer width="100%" height={180}>
@@ -278,9 +374,12 @@ export default function StatsPage() {
       )}
 
       {/* ── Body Weight Trend ── */}
-      {bwData.length > 1 && (
-        <div style={S.card}>
+      <div style={S.card}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={S.label}>Body Weight Trend</div>
+          {needsWeighIn && <span style={{ fontSize: 9, color: "var(--accent)", fontWeight: 600 }}>WEIGH IN DUE</span>}
+        </div>
+        {bwData.length > 1 ? (
           <ResponsiveContainer width="100%" height={140}>
             <LineChart data={bwData}>
               <XAxis dataKey="date" tick={{ fill: "var(--text-dim)", fontSize: 10 }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
@@ -289,8 +388,25 @@ export default function StatsPage() {
               <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={{ fill: "#3b82f6", r: 3 }} name="Lbs" />
             </LineChart>
           </ResponsiveContainer>
+        ) : (
+          <div style={{ color: "var(--text-dim)", fontSize: 12, padding: 12, textAlign: "center" }}>
+            {bwData.length === 1 ? `Current: ${bwData[0].weight} lbs — log more to see trend` : "No weigh-ins yet"}
+          </div>
+        )}
+        {/* Weigh-in input */}
+        <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+          <input
+            type="number" inputMode="decimal"
+            value={weighInWeight}
+            onChange={e => setWeighInWeight(e.target.value)}
+            placeholder={profile.weight ? `${profile.weight}` : "Weight"}
+            style={{ ...S.smInput, flex: 1, textAlign: "left", padding: "6px 10px", fontSize: 13 }}
+          />
+          <span style={{ fontSize: 11, color: "var(--text-dim)" }}>lbs</span>
+          <button onClick={logWeighIn} style={{ ...S.sm("primary"), padding: "6px 14px", fontSize: 11 }}>Log</button>
         </div>
-      )}
+        {weighInMsg && <div style={{ fontSize: 10, color: weighInMsg.startsWith("Error") ? "#ef4444" : "#22c55e", marginTop: 4 }}>{weighInMsg}</div>}
+      </div>
 
       {/* ── All PRs ── */}
       <div style={S.card}>

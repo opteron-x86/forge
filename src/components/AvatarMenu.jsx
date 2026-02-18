@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 import { useTalos } from "../context/TalosContext";
 import S from "../lib/styles";
 
-export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin, onAnalytics, onLogout, onClose }) {
+export default function AvatarMenu({ onProfile, onSettings, onAdmin, onAnalytics, onLogout, onClose }) {
   const { user } = useTalos();
   const menuRef = useRef(null);
   const isAdmin = user.role === "admin";
@@ -29,7 +29,6 @@ export default function AvatarMenu({ onProfile, onSettings, onAccount, onAdmin, 
   const items = [
     { label: "Profile", icon: "👤", action: onProfile },
     { label: "Settings", icon: "⚙", action: onSettings },
-    { label: "Account", icon: "🔑", action: onAccount },
     ...(isAdmin ? [{ label: "Admin", icon: "🛡", action: onAdmin }] : []),
     ...(isAdmin ? [{ label: "Analytics", icon: "📊", action: onAnalytics }] : []),
     { label: "Log Out", icon: "→", action: onLogout, danger: true },

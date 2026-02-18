@@ -29,7 +29,6 @@ import Login from "./components/Login";
 import Onboarding from "./components/Onboarding";
 import SettingsModal from "./components/SettingsModal";
 import ProfileModal from "./components/ProfileModal";
-import AccountModal from "./components/AccountModal";
 import AvatarMenu from "./components/AvatarMenu";
 import AdminPanel from "./components/AdminPanel";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
@@ -54,7 +53,6 @@ export default function App() {
   const [currentWorkout, setCurrent] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
@@ -488,7 +486,6 @@ export default function App() {
                 <AvatarMenu
                   onProfile={() => setShowProfile(true)}
                   onSettings={() => setShowSettings(true)}
-                  onAccount={() => setShowAccount(true)}
                   onAdmin={() => setShowAdmin(true)}
                   onAnalytics={() => setShowAnalytics(true)}
                   onLogout={logout}
@@ -511,11 +508,6 @@ export default function App() {
         {showProfile && (
           <ProfileModal
             onClose={() => setShowProfile(false)}
-          />
-        )}
-        {showAccount && (
-          <AccountModal
-            onClose={() => setShowAccount(false)}
           />
         )}
         {showAdmin && (

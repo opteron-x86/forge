@@ -43,71 +43,95 @@ function getAudioCtx() {
 }
 
 /**
- * Play a short beep tone.
- * @param {number} freq    - Frequency in Hz (higher = higher pitch)
- * @param {number} dur     - Duration in seconds
- * @param {number} volume  - Gain 0–1
- * @param {"sine"|"triangle"|"square"} wave - Oscillator type
+ * Play a layered beep that cuts through music.
+ * Stacks a square wave + an octave-up triangle wave for harmonic
+ * richness. Square waves have odd harmonics that sit in the 1–4kHz
+ * presence range where music has less energy — much more audible
+ * than a pure sine.
  */
-function beep(freq = 660, dur = 0.12, volume = 1.0, wave = "sine") {
+function beep(freq = 1200, dur = 0.16, volume = 0.45) {
   try {
     const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const now = ctx.currentTime;
 
-    osc.type = wave;
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    // Layer 1: square wave (fundamental) — punchy, cuts through
+    const osc1 = ctx.createOscillator();
+    const g1 = ctx.createGain();
+    osc1.type = "square";
+    osc1.frequency.setValueAtTime(freq, now);
+    g1.gain.setValueAtTime(volume * 0.6, now);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc1.connect(g1);
+    g1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + dur + 0.01);
 
-    // Quick fade-out to avoid click/pop
-    gain.gain.setValueAtTime(volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + dur);
+    // Layer 2: triangle wave one octave up — adds shimmer/presence
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(freq * 2, now);
+    g2.gain.setValueAtTime(volume * 0.4, now);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.8);
+    osc2.connect(g2);
+    g2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + dur + 0.01);
   } catch (e) {
     // Silently fail — audio is a nice-to-have, not critical
   }
 }
 
-/** Countdown beep: short, subtle tick — ascending pitch for 3→2→1 */
+/** Countdown beep: double-tap pattern at 3, 2, 1 — ascending pitch */
 function countdownBeep(secondsLeft) {
-  // 3 = low, 2 = mid, 1 = high
-  const freqs = { 3: 520, 2: 660, 1: 880 };
-  beep(freqs[secondsLeft] || 660, 0.1, 0.12, "sine");
+  // Higher frequencies sit above most music content
+  const freqs = { 3: 1000, 2: 1300, 1: 1600 };
+  const f = freqs[secondsLeft] || 1200;
+  // Double-tap: two short beeps are far more noticeable than one
+  beep(f, 0.1, 0.5);
+  setTimeout(() => beep(f, 0.1, 0.5), 130);
 }
 
-/** Completion chime: pleasant two-note rising tone */
+/** Completion chime: three-note rising arpeggio, richer & longer */
 function completionChime() {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
+    const vol = 0.5;
 
-    // Note 1
-    const osc1 = ctx.createOscillator();
-    const g1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(660, now);
-    g1.gain.setValueAtTime(0.18, now);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    osc1.connect(g1);
-    g1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.25);
+    const notes = [
+      { freq: 1200, start: 0,    dur: 0.2  },  // root
+      { freq: 1500, start: 0.15, dur: 0.2  },  // third
+      { freq: 1800, start: 0.30, dur: 0.35 },  // fifth — held longer
+    ];
 
-    // Note 2 (higher, slight delay)
-    const osc2 = ctx.createOscillator();
-    const g2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(880, now + 0.15);
-    g2.gain.setValueAtTime(0.001, now);
-    g2.gain.setValueAtTime(0.18, now + 0.15);
-    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-    osc2.connect(g2);
-    g2.connect(ctx.destination);
-    osc2.start(now + 0.15);
-    osc2.stop(now + 0.45);
+    for (const n of notes) {
+      // Square layer
+      const osc1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      osc1.type = "square";
+      osc1.frequency.setValueAtTime(n.freq, now + n.start);
+      g1.gain.setValueAtTime(0.001, now);
+      g1.gain.setValueAtTime(vol * 0.5, now + n.start);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
+      osc1.connect(g1);
+      g1.connect(ctx.destination);
+      osc1.start(now + n.start);
+      osc1.stop(now + n.start + n.dur + 0.01);
+
+      // Triangle shimmer layer
+      const osc2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      osc2.type = "triangle";
+      osc2.frequency.setValueAtTime(n.freq * 2, now + n.start);
+      g2.gain.setValueAtTime(0.001, now);
+      g2.gain.setValueAtTime(vol * 0.35, now + n.start);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur * 0.7);
+      osc2.connect(g2);
+      g2.connect(ctx.destination);
+      osc2.start(now + n.start);
+      osc2.stop(now + n.start + n.dur + 0.01);
+    }
   } catch (e) {
     // Fail silently
   }

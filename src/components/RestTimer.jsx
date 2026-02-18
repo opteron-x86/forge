@@ -8,7 +8,10 @@
 // - Color shifts green → amber in last 15s
 // - Vibrates + shows "Done" state on completion
 // - Auto-dismisses 2s after finishing
-// - 3-2-1 countdown beeps + completion chime via Web Audio API
+// - 3-2-1 countdown chirps + completion chime via Web Audio API
+//   Uses sine wave chirps (frequency sweeps) at 2.2–3.8kHz —
+//   concentrated energy at one frequency pokes through music mixes
+//   better than harmonically rich waveforms which get compressed.
 //   (mixes over user's music — does NOT interrupt playback)
 //
 // Props: seconds (initial), onDone, onCancel
@@ -20,14 +23,21 @@ const RING_STROKE = 8;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-// ── Web Audio beep utilities ──────────────────────────────────
-// Using OscillatorNode instead of <audio> / new Audio() so that
-// sounds MIX with whatever the user is already playing (Spotify,
-// Apple Music, etc.) rather than ducking or pausing it.
+// ── Web Audio chirp utilities ──────────────────────────────────
+// Using single sine OscillatorNodes with frequency sweeps (chirps).
+//
+// Why sine chirps beat square/triangle waves over music:
+// Mobile browsers compress/limit Web Audio when media is playing.
+// A sine concentrates ALL energy at one frequency — a sharp spike
+// that pokes through. Square waves spread energy across harmonics
+// so no individual frequency is loud enough after compression.
+// The frequency sweep (chirp) exploits the auditory system's
+// sensitivity to pitch changes — far more noticeable than flat tones.
 //
 // AudioContext must be created/resumed during a user gesture on iOS,
 // which is satisfied because the rest timer is always triggered by
-// a tap (completing a set).
+// a tap (completing a set). All scheduling uses AudioContext time
+// instead of setTimeout for sample-accurate timing.
 
 let _audioCtx = null;
 
@@ -43,98 +53,124 @@ function getAudioCtx() {
 }
 
 /**
- * Play a layered beep that cuts through music.
- * Stacks a square wave + an octave-up triangle wave for harmonic
- * richness. Square waves have odd harmonics that sit in the 1–4kHz
- * presence range where music has less energy — much more audible
- * than a pure sine.
+ * Play a single piercing sine chirp.
+ * 
+ * Why sine and not square/triangle:
+ * Mobile browsers compress/limit Web Audio when media is playing.
+ * A sine wave concentrates ALL energy at one frequency — a sharp
+ * spike that pokes through the mix. Square waves spread energy
+ * across harmonics so no single frequency is loud enough.
+ * 
+ * The chirp (frequency sweep) is key: a rising tone grabs attention
+ * far better than a flat tone because the auditory system is wired
+ * to notice frequency changes.
+ *
+ * @param {number} startFreq - Start frequency in Hz
+ * @param {number} endFreq   - End frequency (sweep target)
+ * @param {number} dur       - Duration in seconds
+ * @param {number} volume    - Gain 0–1
  */
-function beep(freq = 1200, dur = 0.16, volume = 0.45) {
+function chirp(startFreq = 2400, endFreq = 3200, dur = 0.18, volume = 0.7) {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.linearRampToValueAtTime(endFreq, now + dur);
+
+    // Sharp attack, then fade — keeps it punchy
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.setValueAtTime(volume, now + dur * 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.01);
+  } catch (e) {}
+}
+
+/**
+ * Countdown beep at 3, 2, 1 — double chirp pattern, ascending.
+ * Two quick chirps are much more noticeable than one.
+ * All scheduling done via AudioContext time (no setTimeout).
+ */
+function countdownBeep(secondsLeft) {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
 
-    // Layer 1: square wave (fundamental) — punchy, cuts through
+    // Ascending base frequency: 3→low, 2→mid, 1→high
+    const bases = { 3: 2200, 2: 2600, 1: 3000 };
+    const base = bases[secondsLeft] || 2600;
+    const vol = 0.7;
+
+    // Chirp 1
     const osc1 = ctx.createOscillator();
     const g1 = ctx.createGain();
-    osc1.type = "square";
-    osc1.frequency.setValueAtTime(freq, now);
-    g1.gain.setValueAtTime(volume * 0.6, now);
-    g1.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(base, now);
+    osc1.frequency.linearRampToValueAtTime(base + 400, now + 0.1);
+    g1.gain.setValueAtTime(vol, now);
+    g1.gain.setValueAtTime(vol, now + 0.06);
+    g1.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
     osc1.connect(g1);
     g1.connect(ctx.destination);
     osc1.start(now);
-    osc1.stop(now + dur + 0.01);
+    osc1.stop(now + 0.12);
 
-    // Layer 2: triangle wave one octave up — adds shimmer/presence
+    // Chirp 2 (scheduled via AudioContext, not setTimeout)
     const osc2 = ctx.createOscillator();
     const g2 = ctx.createGain();
-    osc2.type = "triangle";
-    osc2.frequency.setValueAtTime(freq * 2, now);
-    g2.gain.setValueAtTime(volume * 0.4, now);
-    g2.gain.exponentialRampToValueAtTime(0.001, now + dur * 0.8);
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(base, now + 0.14);
+    osc2.frequency.linearRampToValueAtTime(base + 400, now + 0.24);
+    g2.gain.setValueAtTime(0.001, now);
+    g2.gain.setValueAtTime(vol, now + 0.14);
+    g2.gain.setValueAtTime(vol, now + 0.20);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
     osc2.connect(g2);
     g2.connect(ctx.destination);
-    osc2.start(now);
-    osc2.stop(now + dur + 0.01);
-  } catch (e) {
-    // Silently fail — audio is a nice-to-have, not critical
-  }
+    osc2.start(now + 0.14);
+    osc2.stop(now + 0.26);
+  } catch (e) {}
 }
 
-/** Countdown beep: double-tap pattern at 3, 2, 1 — ascending pitch */
-function countdownBeep(secondsLeft) {
-  // Higher frequencies sit above most music content
-  const freqs = { 3: 1000, 2: 1300, 1: 1600 };
-  const f = freqs[secondsLeft] || 1200;
-  // Double-tap: two short beeps are far more noticeable than one
-  beep(f, 0.1, 0.5);
-  setTimeout(() => beep(f, 0.1, 0.5), 130);
-}
-
-/** Completion chime: three-note rising arpeggio, richer & longer */
+/**
+ * Completion chime: three ascending chirps — each one a rising sweep.
+ * Single oscillators scheduled sequentially via AudioContext time.
+ */
 function completionChime() {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
-    const vol = 0.5;
+    const vol = 0.75;
 
     const notes = [
-      { freq: 1200, start: 0,    dur: 0.2  },  // root
-      { freq: 1500, start: 0.15, dur: 0.2  },  // third
-      { freq: 1800, start: 0.30, dur: 0.35 },  // fifth — held longer
+      { start: 0,    freq: 2400, end: 2800, dur: 0.16 },
+      { start: 0.18, freq: 2800, end: 3200, dur: 0.16 },
+      { start: 0.36, freq: 3200, end: 3800, dur: 0.28 },  // final note held longer
     ];
 
     for (const n of notes) {
-      // Square layer
-      const osc1 = ctx.createOscillator();
-      const g1 = ctx.createGain();
-      osc1.type = "square";
-      osc1.frequency.setValueAtTime(n.freq, now + n.start);
-      g1.gain.setValueAtTime(0.001, now);
-      g1.gain.setValueAtTime(vol * 0.5, now + n.start);
-      g1.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
-      osc1.connect(g1);
-      g1.connect(ctx.destination);
-      osc1.start(now + n.start);
-      osc1.stop(now + n.start + n.dur + 0.01);
-
-      // Triangle shimmer layer
-      const osc2 = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      osc2.type = "triangle";
-      osc2.frequency.setValueAtTime(n.freq * 2, now + n.start);
-      g2.gain.setValueAtTime(0.001, now);
-      g2.gain.setValueAtTime(vol * 0.35, now + n.start);
-      g2.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur * 0.7);
-      osc2.connect(g2);
-      g2.connect(ctx.destination);
-      osc2.start(now + n.start);
-      osc2.stop(now + n.start + n.dur + 0.01);
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(n.freq, now + n.start);
+      osc.frequency.linearRampToValueAtTime(n.end, now + n.start + n.dur);
+      g.gain.setValueAtTime(0.001, now);
+      g.gain.setValueAtTime(vol, now + n.start);
+      g.gain.setValueAtTime(vol, now + n.start + n.dur * 0.5);
+      g.gain.exponentialRampToValueAtTime(0.001, now + n.start + n.dur);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(now + n.start);
+      osc.stop(now + n.start + n.dur + 0.01);
     }
-  } catch (e) {
-    // Fail silently
-  }
+  } catch (e) {}
 }
 
 // ── Component ─────────────────────────────────────────────────

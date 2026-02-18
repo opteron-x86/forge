@@ -78,6 +78,14 @@ export default function CoachPage() {
     ].filter(Boolean).join(", ");
     const targetPrLines = profile.targetPrs && Object.keys(profile.targetPrs).length > 0
       ? `TARGET PRs:\n${Object.entries(profile.targetPrs).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lbs`).join("\n")}` : "";
+    const recentExNames = new Set();
+    workouts.slice(-10).forEach(w => w.exercises?.forEach(ex => recentExNames.add(ex.name)));
+
+    // Import EXERCISES from exercises.js
+    const exerciseMeta = [...recentExNames].slice(0, 20).map(name => {
+      const ex = EXERCISES.find(e => e.name === name);
+      return ex ? `${name} (${ex.muscle}, ${ex.equipment}, ${ex.type})` : name;
+    }).join("\n");
     const injuryLines = profile.injuriesNotes ? `INJURIES/LIMITATIONS: ${profile.injuriesNotes}` : "";
     return `USER: ${profileLines}
     ${injuryLines}

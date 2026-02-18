@@ -102,7 +102,7 @@ export default function Login({ onLogin }) {
         <img src="/talos-icon.svg" alt="" style={{ width: 32, height: 32, verticalAlign: "middle", marginRight: 8 }} />
         TALOS
       </div>
-      <div style={{ color: "var(--text-dim)", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}>Unyielding</div>
+      <div style={{ color: "var(--text-dim)", fontSize: 11, marginBottom: 40, letterSpacing: "2px", textTransform: "uppercase" }}></div>
 
       {/* ── LOGIN ── */}
       {mode === "login" && (

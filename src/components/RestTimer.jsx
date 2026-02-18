@@ -70,7 +70,7 @@ function getAudioCtx() {
  * @param {number} dur       - Duration in seconds
  * @param {number} volume    - Gain 0–1
  */
-function chirp(startFreq = 2000, endFreq = 2400, dur = 0.18, volume = 0.8) {
+function chirp(startFreq = 1400, endFreq = 1600, dur = 0.18, volume = 0.8) {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;

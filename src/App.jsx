@@ -410,9 +410,11 @@ export default function App() {
             ? "summary"
             : tab === "active" && currentWorkout
               ? "active"
-              : tab === "active"
-                ? "train"
-                : tab;
+              : tab === "train" && currentWorkout
+                ? "active"
+                : tab === "active"
+                  ? "train"
+                  : tab;
 
   // ── Context value ──
   const ctx = {
@@ -578,7 +580,7 @@ export default function App() {
 
         {/* Bottom nav */}
         <nav style={S.nav}>
-          {currentWorkout && (
+          {currentWorkout ? (
             <button
               onClick={() => setTab("active")}
               style={{
@@ -589,8 +591,9 @@ export default function App() {
             >
               ● Live
             </button>
+          ) : (
+            <button onClick={() => setTab("train")} style={S.navBtn(activeTab === "train")}>Train</button>
           )}
-          <button onClick={() => setTab("train")} style={S.navBtn(activeTab === "train")}>Train</button>
           <button onClick={() => setTab("history")} style={S.navBtn(activeTab === "history")}>Hist</button>
           <button onClick={() => setTab("stats")} style={S.navBtn(activeTab === "stats")}>Stats</button>
           <button onClick={() => setTab("programs")} style={S.navBtn(activeTab === "programs")}>

@@ -105,7 +105,7 @@ export default function ProfileModal({ onClose }) {
               </Field>
             </div>
             {/* Row 2: Sex, DOB */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
               <Field label="Sex">
                 <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={fSelect}>
                   <option value="">—</option>
@@ -114,7 +114,7 @@ export default function ProfileModal({ onClose }) {
                 </select>
               </Field>
               <Field label="Date of Birth">
-                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...fInput, maxWidth: "100%", overflow: "hidden" }} />
+                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...fInput, maxWidth: "100%", minWidth: 0, overflow: "hidden", WebkitAppearance: "none", MozAppearance: "none" }} />
               </Field>
             </div>
             {/* Row 3: Goal, Experience */}

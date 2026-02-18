@@ -1,0 +1,61 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index ef09593..0d11fe9 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -410,9 +410,11 @@ export default function App() {
+             ? "summary"
+             : tab === "active" && currentWorkout
+               ? "active"
+-              : tab === "active"
+-                ? "train"
+-                : tab;
++              : tab === "train" && currentWorkout
++                ? "active"
++                : tab === "active"
++                  ? "train"
++                  : tab;
+ 
+   // ── Context value ──
+   const ctx = {
+@@ -578,7 +580,7 @@ export default function App() {
+ 
+         {/* Bottom nav */}
+         <nav style={S.nav}>
+-          {currentWorkout && (
++          {currentWorkout ? (
+             <button
+               onClick={() => setTab("active")}
+               style={{
+@@ -589,8 +591,9 @@ export default function App() {
+             >
+               ● Live
+             </button>
++          ) : (
++            <button onClick={() => setTab("train")} style={S.navBtn(activeTab === "train")}>Train</button>
+           )}
+-          <button onClick={() => setTab("train")} style={S.navBtn(activeTab === "train")}>Train</button>
+           <button onClick={() => setTab("history")} style={S.navBtn(activeTab === "history")}>Hist</button>
+           <button onClick={() => setTab("stats")} style={S.navBtn(activeTab === "stats")}>Stats</button>
+           <button onClick={() => setTab("programs")} style={S.navBtn(activeTab === "programs")}>
+diff --git a/src/components/ProfileModal.jsx b/src/components/ProfileModal.jsx
+index 8cb3617..c221c1e 100644
+--- a/src/components/ProfileModal.jsx
++++ b/src/components/ProfileModal.jsx
+@@ -105,7 +105,7 @@ export default function ProfileModal({ onClose }) {
+               </Field>
+             </div>
+             {/* Row 2: Sex, DOB */}
+-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginBottom: 10 }}>
++            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+               <Field label="Sex">
+                 <select value={tmp.sex || ""} onChange={e => setTmp(p => ({ ...p, sex: e.target.value }))} style={fSelect}>
+                   <option value="">—</option>
+@@ -114,7 +114,7 @@ export default function ProfileModal({ onClose }) {
+                 </select>
+               </Field>
+               <Field label="Date of Birth">
+-                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...fInput, maxWidth: "100%", overflow: "hidden" }} />
++                <input type="date" value={tmp.dateOfBirth || ""} onChange={e => setTmp(p => ({ ...p, dateOfBirth: e.target.value }))} style={{ ...fInput, maxWidth: "100%", minWidth: 0, overflow: "hidden", WebkitAppearance: "none", MozAppearance: "none" }} />
+               </Field>
+             </div>
+             {/* Row 3: Goal, Experience */}

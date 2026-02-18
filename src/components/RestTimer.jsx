@@ -49,7 +49,7 @@ function getAudioCtx() {
  * @param {number} volume  - Gain 0–1
  * @param {"sine"|"triangle"|"square"} wave - Oscillator type
  */
-function beep(freq = 660, dur = 0.12, volume = 0.15, wave = "sine") {
+function beep(freq = 660, dur = 0.12, volume = 0.5, wave = "sine") {
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();

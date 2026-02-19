@@ -31,7 +31,7 @@ const TalosContext = createContext();
  * - editingProgram / setEditingProgram: program editor state
  * - setActiveProgramId(id): set the active program
  * - coachHistory / setCoachHistory: AI coach conversation messages (persisted)
- * - coachMode / setCoachMode: current coach tab mode (chat/program/weekly)
+ * - coachMode / setCoachMode: current coach tab mode (chat/analysis)
  */
 export function useTalos() {
   const ctx = useContext(TalosContext);

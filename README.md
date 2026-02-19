@@ -1,6 +1,6 @@
 # Δ TALOS
 
-Multi-user gym tracking app with AI coaching, built for self-hosting over Tailscale.
+Gym tracking app with AI coaching, built for self-hosting over Tailscale.
 
 ## Features
 

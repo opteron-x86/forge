@@ -1,7 +1,7 @@
 {
   "name": "talos",
   "version": "3.0.0",
-  "description": "Multi-user gym tracking app with AI coaching and JWT auth — the bronze guardian of your gains",
+  "description": "Gym tracking app with AI coaching",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite\"",

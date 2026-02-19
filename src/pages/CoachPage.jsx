@@ -87,6 +87,12 @@ export default function CoachPage() {
       profile.proteinTarget ? `Protein Target: ${profile.proteinTarget}g/day` : null,
       profile.equipmentPreference ? `Equipment: ${profile.equipmentPreference.replace('_', ' ')}` : null,
     ].filter(Boolean).join(", ");
+    const isRir = profile.intensityScale === "rir";
+    const scaleLabel = isRir ? "RIR" : "RPE";
+    const scaleExplain = isRir
+      ? "Intensity scale: RIR (Reps In Reserve — lower = harder/closer to failure, 0 = absolute failure)"
+      : "Intensity scale: RPE (Rate of Perceived Exertion — higher = harder, 10 = max effort)";
+    const fmtIntensity = (s) => s.rpe != null && s.rpe !== "" ? ` @${scaleLabel}:${s.rpe}` : "";
     const targetPrLines = profile.targetPrs && Object.keys(profile.targetPrs).length > 0
       ? `TARGET PRs:\n${Object.entries(profile.targetPrs).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lbs`).join("\n")}` : "";
     const recentExNames = new Set();
@@ -98,12 +104,13 @@ export default function CoachPage() {
     }).join("\n");
     const injuryLines = profile.injuriesNotes ? `INJURIES/LIMITATIONS: ${profile.injuriesNotes}` : "";
     return `USER: ${profileLines}
+    ${scaleExplain}
     ${injuryLines}
     ${targetPrLines}
     PROGRAMS:\n${programCtx || "None"}
     PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
     EXERCISE INFO:\n${exerciseMeta}
-    RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+    RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${fmtIntensity(s)}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
   }
 
   // ── Build deep analysis context (full history, volume trends, PR timeline) ──
@@ -127,6 +134,12 @@ export default function CoachPage() {
     const injuryLines = profile.injuriesNotes ? `INJURIES/LIMITATIONS: ${profile.injuriesNotes}` : "";
     const targetPrLines = profile.targetPrs && Object.keys(profile.targetPrs).length > 0
       ? `TARGET PRs:\n${Object.entries(profile.targetPrs).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lbs`).join("\n")}` : "";
+    const isRir = profile.intensityScale === "rir";
+    const scaleLabel = isRir ? "RIR" : "RPE";
+    const scaleExplain = isRir
+      ? "Intensity scale: RIR (Reps In Reserve — lower = harder/closer to failure, 0 = absolute failure)"
+      : "Intensity scale: RPE (Rate of Perceived Exertion — higher = harder, 10 = max effort)";
+    const fmtIntensity = (s) => s.rpe != null && s.rpe !== "" ? ` @${scaleLabel}:${s.rpe}` : "";
 
     // Programs
     const programCtx = programs.filter(p => p.user_id === user.id).map(p =>
@@ -205,7 +218,7 @@ export default function CoachPage() {
     const olderCondensed = deepWorkouts.filter(w => new Date(w.date + "T12:00:00") < thirtyDaysAgo);
 
     const recentLogs = recentDetailed.map(w =>
-      `${w.date} ${w.day_label || ""} (Feel:${w.feel || "?"}/5, Sleep:${w.sleep_hours || "?"}h, Duration:${w.duration || "?"}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${s.rpe ? ` @${s.rpe}` : ""}`).join(", ")}`).join("\n") || ""}`
+      `${w.date} ${w.day_label || ""} (Feel:${w.feel || "?"}/5, Sleep:${w.sleep_hours || "?"}h, Duration:${w.duration || "?"}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${fmtIntensity(s)}`).join(", ")}`).join("\n") || ""}`
     ).join("\n\n");
 
     const olderLogs = olderCondensed.map(w =>
@@ -213,6 +226,7 @@ export default function CoachPage() {
     ).join("\n");
 
     return `USER PROFILE: ${profileLines}
+${scaleExplain}
 ${injuryLines}
 ${targetPrLines}
 

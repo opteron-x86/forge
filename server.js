@@ -100,7 +100,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`
 ┌────────────────────────────────────────┐
 │                                        │
-│   Δ TALOS                             │
+│   Δ TALOS                              │
 │   Gym Tracker v3.1 (Decomposed)        │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│

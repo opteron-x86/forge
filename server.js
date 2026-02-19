@@ -170,6 +170,7 @@ const profileMigrations = [
   "ALTER TABLE profiles ADD COLUMN intensity_scale TEXT DEFAULT 'rpe'",
   "ALTER TABLE profiles ADD COLUMN pinned_lifts TEXT",
   "ALTER TABLE profiles ADD COLUMN notes TEXT",
+  "ALTER TABLE profiles ADD COLUMN equipment_preference TEXT",
 ];
 for (const sql of profileMigrations) {
   try { db.exec(sql); } catch (e) { /* column already exists */ }
@@ -645,6 +646,7 @@ app.get("/api/profile", requireAuth, (req, res) => {
     restTimerEnabled: profile?.rest_timer_enabled !== 0,
     intensityScale: profile?.intensity_scale || "rpe",
     pinnedLifts: profile?.pinned_lifts ? JSON.parse(profile.pinned_lifts) : null,
+    equipmentPreference: profile?.equipment_preference || null,
     bioHistory,
   });
 });
@@ -653,12 +655,13 @@ app.put("/api/profile", requireAuth, (req, res) => {
   const { height, weight, bodyFat, restTimerCompound, restTimerIsolation,
     sex, dateOfBirth, goal, targetWeight, experienceLevel, trainingIntensity,
     targetPrs, injuriesNotes, caloriesTarget, proteinTarget, activeProgramId, onboardingComplete,
-    restTimerEnabled, intensityScale, pinnedLifts } = req.body;
+    restTimerEnabled, intensityScale, pinnedLifts, equipmentPreference } = req.body;
   db.prepare(
     `UPDATE profiles SET height = ?, weight = ?, body_fat = ?, rest_timer_compound = ?, rest_timer_isolation = ?,
      sex = ?, date_of_birth = ?, goal = ?, target_weight = ?, experience_level = ?, training_intensity = ?,
      target_prs = ?, injuries_notes = ?, calories_target = ?, protein_target = ?, active_program_id = ?,
      onboarding_complete = ?, rest_timer_enabled = ?, intensity_scale = ?, pinned_lifts = ?,
+     equipment_preference = ?,
      updated_at = datetime('now') WHERE user_id = ?`
   ).run(
     height || null, weight || null, bodyFat || null, restTimerCompound || 150, restTimerIsolation || 90,
@@ -667,6 +670,7 @@ app.put("/api/profile", requireAuth, (req, res) => {
     activeProgramId || null, onboardingComplete ? 1 : 0,
     restTimerEnabled !== false ? 1 : 0, intensityScale || "rpe",
     pinnedLifts ? JSON.stringify(pinnedLifts) : null,
+    equipmentPreference || null,
     req.user.id
   );
   // Only log body weight if it actually changed from last entry

@@ -381,8 +381,7 @@ export default function App() {
       if (profileData.dateOfBirth) profileUpdates.dateOfBirth = profileData.dateOfBirth;
       if (profileData.height) profileUpdates.height = profileData.height;
       if (profileData.weight) profileUpdates.weight = profileData.weight;
-      // equipmentPreference could be stored for future use (AI coach context, template filtering)
-      // For now, we don't have a DB column for it — add if needed
+      if (profileData.equipmentPreference) profileUpdates.equipmentPreference = profileData.equipmentPreference;
     }
 
     // Save the selected program
@@ -413,6 +412,7 @@ export default function App() {
       if (profileData.dateOfBirth) profileUpdates.dateOfBirth = profileData.dateOfBirth;
       if (profileData.height) profileUpdates.height = profileData.height;
       if (profileData.weight) profileUpdates.weight = profileData.weight;
+      if (profileData.equipmentPreference) profileUpdates.equipmentPreference = profileData.equipmentPreference;
     }
 
     await updateProfile(profileUpdates);
@@ -426,6 +426,7 @@ export default function App() {
       <div style={S.app}>
         <Onboarding
           userName={user.name}
+          aiEnabled={aiConfig.enabled}
           onComplete={completeOnboarding}
           onSkip={skipOnboarding}
         />

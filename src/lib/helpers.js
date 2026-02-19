@@ -70,5 +70,6 @@ export const DEFAULT_PROFILE = {
   caloriesTarget: null,
   proteinTarget: null,
   activeProgramId: null,
+  equipmentPreference: null,
   bioHistory: [],
 };

@@ -76,6 +76,7 @@ export default function CoachPage() {
       profile.trainingIntensity ? `Training Intensity: ${profile.trainingIntensity}` : null,
       profile.caloriesTarget ? `Calorie Target: ${profile.caloriesTarget} kcal/day` : null,
       profile.proteinTarget ? `Protein Target: ${profile.proteinTarget}g/day` : null,
+      profile.equipmentPreference ? `Equipment: ${profile.equipmentPreference.replace('_', ' ')}` : null,
     ].filter(Boolean).join(", ");
     const targetPrLines = profile.targetPrs && Object.keys(profile.targetPrs).length > 0
       ? `TARGET PRs:\n${Object.entries(profile.targetPrs).filter(([, v]) => v).map(([k, v]) => `${k}: ${v} lbs`).join("\n")}` : "";

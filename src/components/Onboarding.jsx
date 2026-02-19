@@ -2,12 +2,14 @@
 // Multi-step new user flow:
 // 0. Welcome → 1. Quick Stats → 2. Equipment/Location →
 // 3. Experience → 4. Days → 5. Browse templates → 6. Preview
+// Alt path from step 5: 7. AI Setup → 8. AI Preview
 // Skippable at any point. Saves selected program, profile data,
 // and marks onboarding complete.
 
 import { useState, useMemo } from "react";
 import { STARTER_TEMPLATES, EQUIPMENT_OPTIONS } from "../lib/starterTemplates";
 import { genId } from "../lib/helpers";
+import api from "../lib/api";
 import S from "../lib/styles";
 
 const LEVELS = [
@@ -28,9 +30,16 @@ const SEX_OPTIONS = [
   { id: "female", label: "Female" },
 ];
 
-export default function Onboarding({ userName, onComplete, onSkip }) {
+const GOAL_OPTIONS = [
+  { id: "hypertrophy", label: "Build Muscle", desc: "Maximize muscle growth and size", icon: "💪" },
+  { id: "strength", label: "Get Stronger", desc: "Increase weights on the big lifts", icon: "🏋️" },
+  { id: "general", label: "General Fitness", desc: "Balanced strength, conditioning, and health", icon: "⚡" },
+];
+
+export default function Onboarding({ userName, aiEnabled, onComplete, onSkip }) {
   const [step, setStep] = useState(0);
   // Steps: 0=welcome, 1=quickStats, 2=equipment, 3=level, 4=days, 5=browse, 6=preview
+  //        7=aiSetup, 8=aiPreview (alt path from step 5)
 
   // Profile data collected during onboarding
   const [sex, setSex] = useState(null);
@@ -43,6 +52,14 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
   const [level, setLevel] = useState(null);
   const [days, setDays] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  // AI program builder state
+  const [goal, setGoal] = useState(null);
+  const [preferences, setPreferences] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiProgram, setAiProgram] = useState(null);
+  const [aiCommentary, setAiCommentary] = useState(null);
+  const [aiError, setAiError] = useState(null);
 
   // Filter templates based on all selections
   const filtered = useMemo(() => {
@@ -101,6 +118,80 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
     const profileData = getProfileData();
     const hasData = profileData.sex || profileData.dateOfBirth || profileData.height || profileData.weight;
     onSkip(hasData ? profileData : null);
+  }
+
+  // ── AI Program Builder ──
+  function buildAiPrompt() {
+    const equipLabel = EQUIPMENT_OPTIONS.find(e => e.id === equipment)?.label || "full gym";
+    const goalLabel = GOAL_OPTIONS.find(g => g.id === goal)?.label || "general fitness";
+    const parts = [
+      `Build me a ${days}-day per week ${goalLabel.toLowerCase()} program.`,
+      `Equipment available: ${equipLabel}.`,
+      `Experience level: ${level || "intermediate"}.`,
+    ];
+    if (sex) parts.push(`Sex: ${sex}.`);
+    if (weight) parts.push(`Body weight: ${weight} lbs.`);
+    if (height) parts.push(`Height: ${height}.`);
+    if (preferences.trim()) parts.push(`Additional preferences: ${preferences.trim()}`);
+    return parts.join(" ");
+  }
+
+  function buildMinimalContext() {
+    // New user — no workout history, but we have profile data
+    const age = dateOfBirth
+      ? Math.floor((Date.now() - new Date(dateOfBirth + "T12:00:00").getTime()) / 31557600000)
+      : null;
+    const lines = [
+      `Name: ${userName || "New User"}`,
+      sex ? `Sex: ${sex}` : null,
+      age ? `Age: ${age}` : null,
+      height ? `Height: ${height}` : null,
+      weight ? `Weight: ${weight} lbs` : null,
+      level ? `Experience: ${level}` : null,
+      equipment ? `Equipment: ${EQUIPMENT_OPTIONS.find(e => e.id === equipment)?.label}` : null,
+    ].filter(Boolean).join(", ");
+    return `USER: ${lines}\nNew user, no training history yet.\nPROGRAMS: None\nPRs: None\nRECENT: None`;
+  }
+
+  async function generateProgram() {
+    setAiLoading(true);
+    setAiError(null);
+    setAiProgram(null);
+    setAiCommentary(null);
+    try {
+      const data = await api.post("/coach/program", {
+        prompt: buildAiPrompt(),
+        context: buildMinimalContext(),
+      });
+      if (data.program) {
+        // Add IDs for frontend compatibility
+        data.program.days?.forEach(d => { if (!d.id) d.id = genId(); });
+        setAiProgram(data.program);
+        setAiCommentary(data.commentary || null);
+        setStep(8);
+      } else {
+        setAiError(data.commentary || "Could not generate a program. Try adjusting your preferences.");
+      }
+    } catch (e) {
+      setAiError("Failed to connect to AI coach. You can pick a template instead.");
+    }
+    setAiLoading(false);
+  }
+
+  function adoptAiProgram() {
+    if (!aiProgram) return;
+    const program = {
+      name: aiProgram.name || "Custom Program",
+      description: aiProgram.description || "",
+      days: aiProgram.days.map(d => ({
+        id: d.id || genId(),
+        label: d.label,
+        subtitle: d.subtitle || "",
+        exercises: (d.exercises || []).map(e => ({ ...e })),
+      })),
+      shared: false,
+    };
+    onComplete(program, level, getProfileData());
   }
 
   // ── Shared styles ──
@@ -385,6 +476,31 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
             </div>
           )}
 
+          {/* AI Program Builder card */}
+          {aiEnabled && (
+            <div
+              onClick={() => setStep(7)}
+              style={{
+                ...S.card,
+                cursor: "pointer",
+                border: "1px solid var(--accent)",
+                background: "linear-gradient(135deg, var(--accent-bg), var(--surface))",
+                marginBottom: 16,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 24 }}>✨</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--accent)" }}>Build a Custom Program</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
+                    Our AI coach will design a program tailored to your goals and equipment.
+                  </div>
+                </div>
+                <span style={{ color: "var(--accent)", fontSize: 18 }}>→</span>
+              </div>
+            </div>
+          )}
+
           {displayTemplates.map((t, i) => {
             const goalColors = { strength: "#ef4444", hypertrophy: "var(--accent)", general: "#22c55e" };
             const equipLabel = EQUIPMENT_OPTIONS.find(e => e.id === t.tags.equipment);
@@ -472,6 +588,147 @@ export default function Onboarding({ userName, onComplete, onSkip }) {
           </button>
           <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button onClick={() => setStep(5)} style={{ ...S.btn("ghost"), flex: 1 }}>Back to list</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════ STEP 7: AI Program Setup ══════════════
+  if (step === 7) {
+    const equipLabel = EQUIPMENT_OPTIONS.find(e => e.id === equipment)?.label || "your equipment";
+    return (
+      <div style={container}>
+        <div style={{ paddingTop: 32 }}>
+          <StepDots current={5} />
+          <div style={heading}>Build Your Program</div>
+          <div style={subtext}>
+            Our AI coach will create a personalized program for {days} days/week using {equipLabel.toLowerCase()}.
+          </div>
+
+          {/* Goal selection */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              What's your primary goal?
+            </div>
+            {GOAL_OPTIONS.map(g => (
+              <div key={g.id} onClick={() => setGoal(g.id)} style={card(goal === g.id)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 24 }}>{g.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: goal === g.id ? "var(--text-bright)" : "var(--text-secondary)" }}>{g.label}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{g.desc}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Optional preferences */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Anything else? <span style={{ textTransform: "none", fontStyle: "italic" }}>(optional)</span>
+            </div>
+            <textarea
+              value={preferences}
+              onChange={e => setPreferences(e.target.value)}
+              style={{ ...S.input, fontSize: 13, minHeight: 60, resize: "none", lineHeight: 1.5 }}
+              placeholder="e.g. bad shoulder — avoid overhead pressing, prefer machines over free weights, want extra arm work..."
+              rows={3}
+            />
+          </div>
+
+          {/* Error display */}
+          {aiError && (
+            <div style={{ ...S.card, border: "1px solid #ef4444", background: "#1c0707", marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: "#f87171" }}>{aiError}</div>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => { setAiError(null); setStep(5); }} style={{ ...S.btn("ghost"), flex: 1 }}>Back</button>
+            <button
+              onClick={generateProgram}
+              disabled={!goal || aiLoading}
+              style={{ ...S.btn("primary"), flex: 2, opacity: (!goal || aiLoading) ? 0.4 : 1 }}
+            >
+              {aiLoading ? "Building your program..." : "Build My Program"}
+            </button>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <button onClick={handleSkip} style={skipBtn}>Skip setup</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════ STEP 8: AI Program Preview ══════════════
+  if (step === 8 && aiProgram) {
+    const equipLabel = EQUIPMENT_OPTIONS.find(e => e.id === equipment);
+    return (
+      <div style={container}>
+        <div style={{ paddingTop: 32 }}>
+          <StepDots current={6} />
+
+          {/* AI badge */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: 10, color: "var(--accent)", background: "var(--accent-bg)",
+            padding: "4px 10px", borderRadius: 12, marginBottom: 12,
+            textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600,
+          }}>
+            ✨ AI Generated
+          </div>
+
+          <div style={heading}>{aiProgram.name}</div>
+          {aiProgram.description && (
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12, lineHeight: 1.5 }}>{aiProgram.description}</div>
+          )}
+
+          <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+            <span style={S.tag("#525252")}>{aiProgram.days?.length || days}x/week</span>
+            {level && <span style={S.tag("#525252")}>{level}</span>}
+            {goal && <span style={S.tag("#525252")}>{GOAL_OPTIONS.find(g => g.id === goal)?.label}</span>}
+            {equipLabel && <span style={S.tag("#6366f1")}>{equipLabel.label}</span>}
+          </div>
+
+          {aiProgram.days?.map((d, di) => (
+            <div key={di} style={{ ...S.card, padding: "10px 12px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)", marginBottom: 2 }}>{d.label}</div>
+              {d.subtitle && <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase" }}>{d.subtitle}</div>}
+              {d.exercises?.map((ex, ei) => (
+                <div key={ei} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  fontSize: 12, padding: "4px 0",
+                  borderTop: ei > 0 ? "1px solid var(--surface2)" : "none",
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                    {ex.notes && <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 1, fontStyle: "italic" }}>{ex.notes}</div>}
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, marginLeft: 8 }}>
+                    {ex.defaultSets}×{ex.targetReps}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+
+          {/* AI commentary */}
+          {aiCommentary && (
+            <div style={{ ...S.card, borderColor: "var(--accent)", background: "var(--accent-bg)" }}>
+              <div style={{ fontSize: 10, color: "var(--accent)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Coach Notes</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{aiCommentary}</div>
+            </div>
+          )}
+
+          <button onClick={adoptAiProgram} style={{ ...S.btn("primary"), width: "100%", padding: "14px 0", fontSize: 15, fontWeight: 700 }}>
+            Start with this program
+          </button>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={() => setStep(7)} style={{ ...S.btn("ghost"), flex: 1 }}>Adjust & regenerate</button>
+            <button onClick={() => setStep(5)} style={{ ...S.btn("ghost"), flex: 1 }}>Browse templates</button>
           </div>
         </div>
       </div>

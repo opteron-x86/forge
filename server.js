@@ -51,8 +51,10 @@ app.use(cors({
 
 // --- Security headers (S5 fix) ---
 app.use(helmet({
-  contentSecurityPolicy: false,       // CSP breaks inline styles (React SPA)
-  crossOriginEmbedderPolicy: false,   // Breaks some CDN resources
+  contentSecurityPolicy: false,          // CSP breaks inline styles (React SPA)
+  crossOriginEmbedderPolicy: false,      // Breaks some CDN resources
+  crossOriginOpenerPolicy: false,        // COOP "same-origin" breaks iOS Safari/PWA
+  crossOriginResourcePolicy: false,      // CORP "same-origin" can block resources on mobile WebKit
 }));
 
 // --- Body parsing ---

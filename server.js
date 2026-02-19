@@ -11,6 +11,7 @@ import jwt from "jsonwebtoken";
 import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "./ai-provider.js";
 import { EXERCISES } from "./src/lib/exercises.js";
 import { Resend } from "resend";
+import helmet from "helmet";
 
 dotenv.config();
 
@@ -192,6 +193,13 @@ for (const sql of userMigrations) {
 // Unique index on email (separate from ALTER TABLE — SQLite doesn't support ADD COLUMN ... UNIQUE)
 try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)"); } catch (e) { /* already exists */ }
 
+// Performance indexes (Phase 1 hardening audit)
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_workouts_user_date ON workouts(user_id, date)"); } catch (e) { /* exists */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_coach_messages_user ON coach_messages(user_id)"); } catch (e) { /* exists */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_workout_reviews_user ON workout_reviews(user_id)"); } catch (e) { /* exists */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_programs_user ON programs(user_id)"); } catch (e) { /* exists */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_bio_history_user ON bio_history(user_id)"); } catch (e) { /* exists */ }
+
 // --- Migrate programs table ---
 const programMigrations = [
   "ALTER TABLE programs ADD COLUMN forked_from TEXT",
@@ -291,6 +299,42 @@ setInterval(() => {
   }
 }, 600000);
 
+// --- Per-User AI Rate Limiting (S2 fix) ---
+const AI_DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT) || 50;
+const AI_MONTHLY_LIMIT = parseInt(process.env.AI_MONTHLY_LIMIT) || 500;
+
+function checkAIRateLimit(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = today.slice(0, 7) + "-01";
+
+  const dailyCount = db.prepare(
+    "SELECT COUNT(*) as c FROM analytics_events WHERE user_id = ? AND event LIKE 'coach_%' AND date(created_at) = date(?)"
+  ).get(userId, today).c;
+
+  if (dailyCount >= AI_DAILY_LIMIT) {
+    return { allowed: false, error: `Daily AI limit reached (${AI_DAILY_LIMIT}/day). Resets at midnight UTC.`, remaining: 0 };
+  }
+
+  const monthlyCount = db.prepare(
+    "SELECT COUNT(*) as c FROM analytics_events WHERE user_id = ? AND event LIKE 'coach_%' AND date(created_at) >= date(?)"
+  ).get(userId, monthStart).c;
+
+  if (monthlyCount >= AI_MONTHLY_LIMIT) {
+    return { allowed: false, error: `Monthly AI limit reached (${AI_MONTHLY_LIMIT}/month). Resets on the 1st.`, remaining: 0 };
+  }
+
+  return { allowed: true, remaining: Math.min(AI_DAILY_LIMIT - dailyCount, AI_MONTHLY_LIMIT - monthlyCount) };
+}
+
+function requireAIQuota(req, res, next) {
+  const check = checkAIRateLimit(req.user.id);
+  if (!check.allowed) {
+    return res.status(429).json({ error: check.error });
+  }
+  req.aiRemaining = check.remaining;
+  next();
+}
+
 // --- AI Provider ---
 function loadAIConfig() {
   const rows = db.prepare("SELECT key, value FROM ai_config").all();
@@ -327,7 +371,26 @@ EXERCISES.forEach(e => {
 });
 
 // --- Middleware ---
-app.use(cors());
+// S1 fix: Restrict CORS to actual app origin (was wide open)
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || process.env.APP_URL || "https://talos.fit")
+  .split(",").map(s => s.trim());
+app.use(cors({
+  origin: process.env.NODE_ENV === "production"
+    ? (origin, cb) => {
+        // Allow requests with no origin (mobile apps, curl, same-origin)
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+        cb(new Error("Not allowed by CORS"));
+      }
+    : true, // Allow all origins in development
+  credentials: true,
+}));
+
+// S5 fix: Security headers via Helmet
+app.use(helmet({
+  contentSecurityPolicy: false, // CSP breaks inline styles (React SPA)
+  crossOriginEmbedderPolicy: false, // Breaks some CDN resources
+}));
+
 app.use(express.json({ limit: "5mb" }));
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(join(__dirname, "dist")));
@@ -543,6 +606,7 @@ app.delete("/api/admin/users/:id", requireAuth, requireAdmin, (req, res) => {
   db.prepare("DELETE FROM profiles WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM programs WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(id);
+  db.prepare("DELETE FROM analytics_events WHERE user_id = ?").run(id);
   db.prepare("DELETE FROM users WHERE id = ?").run(id);
   res.json({ ok: true });
 });
@@ -816,6 +880,12 @@ app.post("/api/exercises", requireAuth, (req, res) => {
 });
 
 app.delete("/api/exercises/:id", requireAuth, (req, res) => {
+  // S8 fix: Only the creator or an admin can delete custom exercises
+  const exercise = db.prepare("SELECT id, created_by FROM custom_exercises WHERE id = ?").get(req.params.id);
+  if (!exercise) return res.status(404).json({ error: "Exercise not found" });
+  if (exercise.created_by !== req.user.id && req.user.role !== "admin") {
+    return res.status(403).json({ error: "You can only delete exercises you created" });
+  }
   db.prepare("DELETE FROM custom_exercises WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });
@@ -857,6 +927,12 @@ app.put("/api/ai/config", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true, enabled: !!aiProvider, providerName: aiProvider?.providerName || "" });
 });
 
+// AI usage quota check
+app.get("/api/ai/quota", requireAuth, (req, res) => {
+  const check = checkAIRateLimit(req.user.id);
+  res.json({ remaining: check.remaining, dailyLimit: AI_DAILY_LIMIT, monthlyLimit: AI_MONTHLY_LIMIT });
+});
+
 // ===================== AI COACH =====================
 
 const COACH_SYSTEM = `You are a knowledgeable, confident strength training coach with deep expertise in exercise science and program design. The user's profile includes biometric data, training goals, experience level, injury notes, and nutrition targets — use all available context to personalize your advice.
@@ -888,7 +964,7 @@ WHEN CHALLENGED ON A RECOMMENDATION:
 4. If you actually made a poor recommendation, acknowledge it and improve
 5. Never flip your position just because the user pushed back — only change when there's a genuine reason to`;
 
-app.post("/api/coach", requireAuth, async (req, res) => {
+app.post("/api/coach", requireAuth, requireAIQuota, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context, history } = req.body;
   try {
@@ -986,7 +1062,7 @@ const PROGRAM_TOOL = {
   },
 };
 
-app.post("/api/coach/program", requireAuth, async (req, res) => {
+app.post("/api/coach/program", requireAuth, requireAIQuota, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context } = req.body;
 
@@ -1061,7 +1137,7 @@ EXERCISE SELECTION — AVOID REAL REDUNDANCY:
 
 // ===================== AI SESSION ANALYSIS =====================
 
-app.post("/api/coach/analyze", requireAuth, async (req, res) => {
+app.post("/api/coach/analyze", requireAuth, requireAIQuota, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { workout, context, workout_id } = req.body;
 
@@ -1128,7 +1204,7 @@ const SUBSTITUTE_TOOL = {
   },
 };
 
-app.post("/api/coach/substitute", requireAuth, async (req, res) => {
+app.post("/api/coach/substitute", requireAuth, requireAIQuota, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { exercise, reason, context } = req.body;
 
@@ -1186,7 +1262,7 @@ ${exerciseLib}${customLib}`;
 
 // ===================== AI WEEKLY REPORT =====================
 
-app.post("/api/coach/weekly", requireAuth, async (req, res) => {
+app.post("/api/coach/weekly", requireAuth, requireAIQuota, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { context } = req.body;
 
@@ -1216,7 +1292,7 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
 
 // ── Deep Analysis (premium, higher token budget + richer prompt) ──
 
-app.post("/api/coach/analysis", requireAuth, async (req, res) => {
+app.post("/api/coach/analysis", requireAuth, requireAIQuota, async (req, res) => {
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { context } = req.body;
 
@@ -1463,3 +1539,12 @@ app.listen(PORT, "0.0.0.0", () => {
 │                                        │
 └────────────────────────────────────────┘`);
 });
+
+// --- Graceful Shutdown ---
+function shutdown(signal) {
+  console.log(`\n⏹  ${signal} received — shutting down gracefully...`);
+  try { db.close(); } catch (e) { /* already closed */ }
+  process.exit(0);
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

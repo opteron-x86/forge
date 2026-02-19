@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTalos } from "../context/TalosContext";
 import { est1RM, genId } from "../lib/helpers";
+import { EXERCISES } from "../lib/exercises";
 import api from "../lib/api";
 import MarkdownText from "../components/MarkdownText";
 import S from "../lib/styles";
@@ -92,6 +93,7 @@ export default function CoachPage() {
     ${targetPrLines}
     PROGRAMS:\n${programCtx || "None"}
     PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
+    EXERCISE INFO:\n${exerciseMeta}
     RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
   }
 

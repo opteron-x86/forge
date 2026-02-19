@@ -259,14 +259,277 @@ function BrowsePrograms({ onAdopt, onClose }) {
   );
 }
 
+// ── AI Guided Program Builder sub-view ──
+const BUILDER_GOALS = [
+  { id: "hypertrophy", label: "Build Muscle", icon: "💪" },
+  { id: "strength", label: "Get Stronger", icon: "🏋️" },
+  { id: "general", label: "General Fitness", icon: "⚡" },
+];
+const BUILDER_EQUIPMENT = [
+  { id: "full_gym", label: "Full Gym" },
+  { id: "dumbbells", label: "Dumbbells Only" },
+  { id: "minimal", label: "Minimal / Travel" },
+  { id: "bodyweight", label: "Bodyweight" },
+];
+
+function GuidedProgramBuilder({ onSave, onClose }) {
+  const { profile, user, workouts, programs } = useTalos();
+
+  // Pre-fill from profile
+  const [goal, setGoal] = useState(
+    profile.goal === "strength" ? "strength"
+      : profile.goal === "hypertrophy" || profile.goal === "bulk" ? "hypertrophy"
+      : "general"
+  );
+  const [days, setDays] = useState(
+    programs.length > 0 ? (programs[0].days?.length || 4) : 4
+  );
+  const [equipment, setEquipment] = useState(profile.equipmentPreference || "full_gym");
+  const [preferences, setPreferences] = useState(profile.injuriesNotes || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null); // { program, commentary }
+
+  function buildPrompt() {
+    const goalLabel = BUILDER_GOALS.find(g => g.id === goal)?.label || "general fitness";
+    const equipLabel = BUILDER_EQUIPMENT.find(e => e.id === equipment)?.label || "full gym";
+    const parts = [
+      `Build me a ${days}-day per week ${goalLabel.toLowerCase()} program.`,
+      `Equipment available: ${equipLabel}.`,
+      profile.experienceLevel ? `Experience level: ${profile.experienceLevel}.` : null,
+      profile.sex ? `Sex: ${profile.sex}.` : null,
+      profile.weight ? `Body weight: ${profile.weight} lbs.` : null,
+      profile.height ? `Height: ${profile.height}.` : null,
+      preferences.trim() ? `Additional preferences: ${preferences.trim()}` : null,
+    ];
+    return parts.filter(Boolean).join(" ");
+  }
+
+  function buildContext() {
+    const age = profile.dateOfBirth
+      ? Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000)
+      : null;
+    const lines = [
+      `Name: ${user.name}`,
+      profile.sex ? `Sex: ${profile.sex}` : null,
+      age ? `Age: ${age}` : null,
+      profile.height ? `Height: ${profile.height}` : null,
+      profile.weight ? `Weight: ${profile.weight} lbs` : null,
+      profile.experienceLevel ? `Experience: ${profile.experienceLevel}` : null,
+      equipment ? `Equipment: ${BUILDER_EQUIPMENT.find(e => e.id === equipment)?.label}` : null,
+      profile.injuriesNotes ? `Injuries/Limitations: ${profile.injuriesNotes}` : null,
+    ].filter(Boolean).join(", ");
+
+    // Include recent workout info if available
+    const recent = workouts.slice(-5);
+    const recentCtx = recent.length > 0
+      ? `\nRECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} — ${w.exercises?.map(e => e.name).join(", ") || "empty"}`).join("\n")}`
+      : "\nNo training history yet.";
+
+    const programCtx = programs.length > 0
+      ? `\nCURRENT PROGRAMS:\n${programs.map(p => `${p.name} (${p.days?.length || 0} days)`).join(", ")}`
+      : "\nNo existing programs.";
+
+    return `USER: ${lines}${programCtx}${recentCtx}`;
+  }
+
+  async function generate() {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const data = await api.post("/coach/program", {
+        prompt: buildPrompt(),
+        context: buildContext(),
+      });
+      if (data.program) {
+        data.program.days?.forEach(d => { if (!d.id) d.id = genId(); });
+        setResult(data);
+      } else {
+        setError(data.commentary || "Could not generate a program. Try adjusting your preferences.");
+      }
+    } catch (e) {
+      setError("Failed to connect to AI coach: " + e.message);
+    }
+    setLoading(false);
+  }
+
+  async function saveProgram() {
+    if (!result?.program) return;
+    const program = {
+      name: result.program.name || "AI Program",
+      description: result.program.description || "",
+      days: result.program.days.map(d => ({
+        id: d.id || genId(),
+        label: d.label,
+        subtitle: d.subtitle || "",
+        exercises: (d.exercises || []).map(e => ({ ...e })),
+      })),
+      shared: false,
+    };
+    await onSave(program);
+    onClose();
+  }
+
+  // ── Preview mode ──
+  if (result?.program) {
+    const p = result.program;
+    return (
+      <div style={{ padding: "0 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={S.label}>AI Program Preview</div>
+          <button onClick={onClose} style={S.sm()}>✕</button>
+        </div>
+
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 10, color: "var(--accent)", background: "var(--accent-bg)",
+          padding: "4px 10px", borderRadius: 12, marginBottom: 8,
+          textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600,
+        }}>
+          ✨ AI Generated
+        </div>
+
+        <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-bright)", marginBottom: 4 }}>{p.name}</div>
+        {p.description && <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12, lineHeight: 1.5 }}>{p.description}</div>}
+
+        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+          <span style={S.tag("#525252")}>{p.days?.length}x/week</span>
+          <span style={S.tag("#525252")}>{goal}</span>
+          <span style={S.tag("#6366f1")}>{BUILDER_EQUIPMENT.find(e => e.id === equipment)?.label}</span>
+        </div>
+
+        {p.days?.map((d, di) => (
+          <div key={di} style={{ ...S.card, padding: "10px 12px" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)", marginBottom: 2 }}>{d.label}</div>
+            {d.subtitle && <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 6, textTransform: "uppercase" }}>{d.subtitle}</div>}
+            {d.exercises?.map((ex, ei) => (
+              <div key={ei} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                fontSize: 12, padding: "4px 0",
+                borderTop: ei > 0 ? "1px solid var(--surface2)" : "none",
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                  {ex.notes && <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 1, fontStyle: "italic" }}>{ex.notes}</div>}
+                </div>
+                <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, marginLeft: 8 }}>
+                  {ex.defaultSets}×{ex.targetReps}
+                </span>
+              </div>
+            ))}
+          </div>
+        ))}
+
+        {result.commentary && (
+          <div style={{ ...S.card, borderColor: "var(--accent)", background: "var(--accent-bg)" }}>
+            <div style={{ fontSize: 10, color: "var(--accent)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Coach Notes</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{result.commentary}</div>
+          </div>
+        )}
+
+        <button onClick={saveProgram} style={{ ...S.btn("primary"), width: "100%", padding: "14px 0", fontSize: 15, fontWeight: 700 }}>
+          Save Program
+        </button>
+        <div style={{ display: "flex", gap: 8, marginTop: 8, marginBottom: 20 }}>
+          <button onClick={() => setResult(null)} style={{ ...S.btn("ghost"), flex: 1 }}>Adjust & regenerate</button>
+          <button onClick={onClose} style={{ ...S.btn("ghost"), flex: 1 }}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Setup form ──
+  return (
+    <div style={{ padding: "0 16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={S.label}>✨ AI Program Builder</div>
+        <button onClick={onClose} style={S.sm()}>✕</button>
+      </div>
+
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16, lineHeight: 1.5 }}>
+        Tell us your goal and preferences — the AI coach will design a program tailored to you.
+      </div>
+
+      {/* Goal */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Goal</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {BUILDER_GOALS.map(g => (
+            <button key={g.id} onClick={() => setGoal(g.id)} style={{
+              ...S.btn(goal === g.id ? "primary" : "ghost"),
+              flex: 1, fontSize: 11, padding: "10px 6px",
+            }}>
+              {g.icon} {g.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Days + Equipment */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Days / Week</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[3, 4, 5, 6].map(n => (
+              <button key={n} onClick={() => setDays(n)} style={{
+                ...S.btn(days === n ? "primary" : "ghost"),
+                flex: 1, padding: "10px 0", fontSize: 14, fontWeight: 700,
+              }}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Equipment</div>
+          <select value={equipment} onChange={e => setEquipment(e.target.value)} style={{ ...S.input, fontSize: 13, height: 42, padding: "0 10px" }}>
+            {BUILDER_EQUIPMENT.map(e => (
+              <option key={e.id} value={e.id}>{e.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Preferences */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: "var(--text-dim)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>
+          Preferences <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span>
+        </div>
+        <textarea
+          value={preferences}
+          onChange={e => setPreferences(e.target.value)}
+          style={{ ...S.input, fontSize: 13, minHeight: 56, resize: "none", lineHeight: 1.5 }}
+          placeholder="e.g. bad shoulder, prefer machines, want extra arm work..."
+          rows={3}
+        />
+      </div>
+
+      {error && (
+        <div style={{ ...S.card, border: "1px solid #ef4444", background: "#1c0707", marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: "#f87171" }}>{error}</div>
+        </div>
+      )}
+
+      <button onClick={generate} disabled={loading} style={{ ...S.btn("primary"), width: "100%", padding: "14px 0", fontSize: 15, fontWeight: 700, opacity: loading ? 0.5 : 1 }}>
+        {loading ? "Building your program..." : "✨ Generate Program"}
+      </button>
+      <div style={{ textAlign: "center", marginTop: 8, marginBottom: 20 }}>
+        <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-dim)", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════ MAIN PROGRAMS PAGE ═══════════════════════
 export default function ProgramsPage() {
-  const { user, programs, saveProgram, deleteProgram, adoptProgram, customExercises, editingProgram: editing, setEditingProgram: setEditing } = useTalos();
+  const { user, programs, saveProgram, deleteProgram, adoptProgram, customExercises, editingProgram: editing, setEditingProgram: setEditing, aiConfig } = useTalos();
   const [showPicker, setShowPicker] = useState(false);
   const [pickerDayIdx, setPickerDayIdx] = useState(null);
   const [replacingExIdx, setReplacingExIdx] = useState(null);
   const [collapsedDays, setCollapsedDays] = useState(new Set());
   const [browsing, setBrowsing] = useState(false);
+  const [aiBuilding, setAiBuilding] = useState(false);
 
   function toggleDayCollapse(dayId) {
     setCollapsedDays(prev => {
@@ -366,6 +629,16 @@ export default function ProgramsPage() {
       <BrowsePrograms
         onAdopt={adoptProgram}
         onClose={() => setBrowsing(false)}
+      />
+    );
+  }
+
+  // ── AI Program Builder view ──
+  if (aiBuilding) {
+    return (
+      <GuidedProgramBuilder
+        onSave={saveProgram}
+        onClose={() => setAiBuilding(false)}
       />
     );
   }
@@ -507,11 +780,16 @@ export default function ProgramsPage() {
       </div>
     ))}
 
-      <div style={{ padding: "8px 16px", display: "flex", gap: 8 }}>
+      <div style={{ padding: "8px 16px", display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={startNew} style={{ ...S.btn("primary"), flex: 1 }}>+ New Program</button>
         <button onClick={() => setBrowsing(true)} style={{ ...S.btn("ghost"), flex: 1 }}>
           Browse Programs
         </button>
+        {aiConfig?.enabled && (
+          <button onClick={() => setAiBuilding(true)} style={{ ...S.btn("ghost"), flex: "1 1 100%", borderColor: "var(--accent)", color: "var(--accent)" }}>
+            ✨ AI Program Builder
+          </button>
+        )}
       </div>
 
     </div>

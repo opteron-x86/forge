@@ -138,9 +138,18 @@ export default function ProfileModal({ onClose }) {
                 </select>
               </Field>
             </div>
-            {/* Row 4: Intensity, Target Weight */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-              <Field label="Training Intensity">
+            {/* Row 4: Equipment, Intensity, Target Weight */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+              <Field label="Equipment">
+                <select value={tmp.equipmentPreference || ""} onChange={e => setTmp(p => ({ ...p, equipmentPreference: e.target.value || null }))} style={fSelect}>
+                  <option value="">—</option>
+                  <option value="full_gym">Full Gym</option>
+                  <option value="dumbbells">Dumbbells</option>
+                  <option value="minimal">Minimal</option>
+                  <option value="bodyweight">Bodyweight</option>
+                </select>
+              </Field>
+              <Field label="Intensity">
                 <select value={tmp.trainingIntensity || ""} onChange={e => setTmp(p => ({ ...p, trainingIntensity: e.target.value }))} style={fSelect}>
                   <option value="">—</option>
                   <option value="low">Low</option>
@@ -148,7 +157,7 @@ export default function ProfileModal({ onClose }) {
                   <option value="high">High</option>
                 </select>
               </Field>
-              <Field label="Target Weight" suffix="lbs">
+              <Field label="Target Wt" suffix="lbs">
                 <input type="number" inputMode="decimal" value={tmp.targetWeight || ""} onChange={e => setTmp(p => ({ ...p, targetWeight: Number(e.target.value) }))} style={fInput} placeholder="—" />
               </Field>
             </div>
@@ -219,13 +228,14 @@ export default function ProfileModal({ onClose }) {
               <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.weight || "—"}</div><div style={S.statL}>Weight</div></div>
               <div style={S.stat}><div style={{ ...S.statV, fontSize: 18 }}>{profile.bodyFat || "—"}</div><div style={S.statL}>BF %</div></div>
             </div>
-            {(profile.sex || profile.goal || profile.experienceLevel || profile.targetWeight || profile.caloriesTarget || profile.proteinTarget) && (
+            {(profile.sex || profile.goal || profile.experienceLevel || profile.equipmentPreference || profile.targetWeight || profile.caloriesTarget || profile.proteinTarget) && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, paddingTop: 8, borderTop: "1px solid var(--border)" }}>
                 {profile.sex && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.sex === "male" ? "M" : "F"}</div><div style={S.statL}>Sex</div></div>}
                 {profile.dateOfBirth && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000)}</div><div style={S.statL}>Age</div></div>}
                 {profile.goal && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.goal}</div><div style={S.statL}>Goal</div></div>}
                 {profile.targetWeight && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.targetWeight}</div><div style={S.statL}>Target Wt</div></div>}
                 {profile.experienceLevel && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.experienceLevel}</div><div style={S.statL}>Level</div></div>}
+                {profile.equipmentPreference && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.equipmentPreference === "full_gym" ? "Full" : profile.equipmentPreference === "dumbbells" ? "DB" : profile.equipmentPreference === "minimal" ? "Min" : "BW"}</div><div style={S.statL}>Equip</div></div>}
                 {profile.trainingIntensity && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14, textTransform: "capitalize" }}>{profile.trainingIntensity}</div><div style={S.statL}>Intensity</div></div>}
                 {profile.caloriesTarget && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.caloriesTarget}</div><div style={S.statL}>Cal Target</div></div>}
                 {profile.proteinTarget && <div style={S.stat}><div style={{ ...S.statV, fontSize: 14 }}>{profile.proteinTarget}g</div><div style={S.statL}>Protein</div></div>}

@@ -1,0 +1,822 @@
+═══════════════════════════════════════════════════════════════
+  TALOS Hybrid Exercise Library — Build Report
+  Generated: 2026-02-20T00:33:09.355Z
+═══════════════════════════════════════════════════════════════
+
+SUMMARY
+  Original TALOS exercises:      350
+  Enriched (with instructions):  254
+  Kept as-is (no free-db match): 96
+  New from free-exercise-db:      429
+  TOTAL in new library:           779
+
+───────────────────────────────────────────────────────────────
+ENRICHED EXERCISES (existing TALOS → free-exercise-db data)
+───────────────────────────────────────────────────────────────
+  ✓ Ab Machine Crunch                          → Ab Crunch Machine [manual]
+  ✓ Ab Wheel Rollout                           → Ab Roller [manual]
+  ✓ Alternating DB Curl                        → Dumbbell Bicep Curl [manual]
+  ✓ Arnold Press                               → Arnold Dumbbell Press [manual]
+  ✓ Assisted Pull-up Machine                   → Band Assisted Pull-Up [manual]
+  ✓ Back Extension                             → Hyperextensions (Back Extensions) [manual]
+  ✓ Back Squat                                 → Barbell Squat [manual]
+  ✓ Barbell Bulgarian Split Squat              → Barbell Lunge [manual]
+  ✓ Barbell Curl                               → Barbell Curl [manual]
+  ✓ Barbell Drag Curl                          → Drag Curl [manual]
+  ✓ Barbell Front Raise                        → Standing Front Barbell Raise Over Head [manual]
+  ✓ Barbell Glute Bridge                       → Barbell Glute Bridge [manual]
+  ✓ Barbell Good Morning                       → Stiff Leg Barbell Good Morning [manual]
+  ✓ Barbell Hip Thrust                         → Barbell Hip Thrust [fuzzy(1.00)]
+  ✓ Barbell Lunge                              → Barbell Lunge [manual]
+  ✓ Barbell Overhead Extension                 → Standing Overhead Barbell Triceps Extension [manual]
+  ✓ Barbell Pullover                           → Bent-Arm Barbell Pullover [manual]
+  ✓ Barbell Rollout                            → Barbell Ab Rollout - On Knees [manual]
+  ✓ Barbell Row                                → Bent Over Barbell Row [manual]
+  ✓ Barbell Shrug                              → Barbell Shrug [manual]
+  ✓ Barbell Standing Calf Raise                → Standing Barbell Calf Raise [manual]
+  ✓ Barbell Step-up                            → Barbell Step Ups [manual]
+  ✓ Barbell Upright Row                        → Upright Barbell Row [manual]
+  ✓ Behind the Back Wrist Curl                 → Standing Palms-Up Barbell Behind The Back Wrist Curl [manual]
+  ✓ Behind the Neck Press                      → Push Press - Behind the Neck [manual]
+  ✓ Behind the Neck Pulldown                   → Wide-Grip Pulldown Behind The Neck [fuzzy(0.80)]
+  ✓ Bench Dips                                 → Bench Dips [manual]
+  ✓ Bench Press                                → Barbell Bench Press - Medium Grip [manual]
+  ✓ Bicycle Crunch                             → Air Bike [manual]
+  ✓ Bodyweight Calf Raise                      → Calf Raise On A Dumbbell [manual]
+  ✓ Bodyweight Lunge                           → Bodyweight Walking Lunge [manual]
+  ✓ Bodyweight Squat                           → Bodyweight Squat [manual]
+  ✓ Box Jump                                   → Box Jump (Multiple Response) [manual]
+  ✓ Box Squat                                  → Box Squat [manual]
+  ✓ Bradford Press                             → Bradford/Rocky Presses [manual]
+  ✓ Cable Chest Press                          → Cable Chest Press [manual]
+  ✓ Cable Crossover                            → Cable Crossover [manual]
+  ✓ Cable Crunch                               → Cable Crunch [manual]
+  ✓ Cable Curl                                 → Standing Biceps Cable Curl [manual]
+  ✓ Cable Front Raise                          → Front Cable Raise [manual]
+  ✓ Cable Hammer Curl                          → Cable Hammer Curls - Rope Attachment [manual]
+  ✓ Cable Kickback                             → One-Legged Cable Kickback [manual]
+  ✓ Cable Lateral Raise                        → Cable Seated Lateral Raise [manual]
+  ✓ Cable Preacher Curl                        → Cable Preacher Curl [manual]
+  ✓ Cable Pull-Through                         → Pull Through [manual]
+  ✓ Cable Rear Delt Fly                        → Cable Rear Delt Fly [manual]
+  ✓ Cable Romanian Deadlift                    → Romanian Deadlift [manual]
+  ✓ Cable Rope Curl                            → Cable Hammer Curls - Rope Attachment [manual]
+  ✓ Cable Rotation                             → Cable Internal Rotation [manual]
+  ✓ Cable Shrug                                → Cable Shrugs [manual]
+  ✓ Cable Upright Row                          → Upright Cable Row [manual]
+  ✓ Cable Wrist Curl                           → Cable Wrist Curl [manual]
+  ✓ Cable Y Raise                              → Front Cable Raise [manual]
+  ✓ Captain's Chair Leg Raise                  → Knee/Hip Raise On Parallel Bars [manual]
+  ✓ Chin-ups                                   → Chin-Up [manual]
+  ✓ Close Grip Barbell Curl                    → Close-Grip EZ Bar Curl [manual]
+  ✓ Close Grip Cable Row                       → Seated Cable Rows [manual]
+  ✓ Close Grip Lat Pulldown                    → Close-Grip Front Lat Pulldown [manual]
+  ✓ Close-Grip Bench                           → Close-Grip Barbell Bench Press [manual]
+  ✓ Close-Grip Bench Press                     → Close-Grip Barbell Bench Press [manual]
+  ✓ Concentration Curl                         → Concentration Curls [manual]
+  ✓ Conventional Deadlift                      → Barbell Deadlift [manual]
+  ✓ Cross-Body Cable Extension                 → Cable One Arm Tricep Extension [manual]
+  ✓ Cross-Body Hammer Curl                     → Cross Body Hammer Curl [manual]
+  ✓ Crunch                                     → Crunches [manual]
+  ✓ DB Bench Press                             → Dumbbell Bench Press [manual]
+  ✓ DB Bulgarian Split Squat                   → Dumbbell Lunges [manual]
+  ✓ DB Chest Supported Row                     → Dumbbell Incline Row [manual]
+  ✓ DB Close-Grip Press                        → Close-Grip Dumbbell Press [manual]
+  ✓ DB Curl                                    → Dumbbell Bicep Curl [manual]
+  ✓ DB Drag Curl                               → Drag Curl [manual]
+  ✓ DB Floor Press                             → Dumbbell Floor Press [manual]
+  ✓ DB Fly                                     → Dumbbell Flyes [manual]
+  ✓ DB Frog Pump                               → Butt Lift (Bridge) [manual]
+  ✓ DB Front Raise                             → Front Dumbbell Raise [manual]
+  ✓ DB Goblet Squat                            → Goblet Squat [manual]
+  ✓ DB Good Morning                            → Good Morning [manual]
+  ✓ DB Kickback                                → Tricep Dumbbell Kickback [manual]
+  ✓ DB Lateral Lunge                           → Dumbbell Lunges [manual]
+  ✓ DB Lateral Raise                           → Side Lateral Raise [manual]
+  ✓ DB Lunge                                   → Dumbbell Lunges [manual]
+  ✓ DB Overhead Extension                      → Standing One-Arm Dumbbell Triceps Extension [manual]
+  ✓ DB Pullover                                → Bent-Arm Dumbbell Pullover [manual]
+  ✓ DB Pullover (Back)                         → Bent-Arm Dumbbell Pullover [manual]
+  ✓ DB Reverse Curl                            → Standing Dumbbell Reverse Curl [manual]
+  ✓ DB Reverse Fly (Back)                      → Bent Over Dumbbell Rear Delt Raise With Head On Bench [manual]
+  ✓ DB Reverse Lunge                           → Dumbbell Rear Lunge [manual]
+  ✓ DB Reverse Wrist Curl                      → Seated Dumbbell Palms-Down Wrist Curl [manual]
+  ✓ DB Romanian Deadlift                       → Romanian Deadlift [manual]
+  ✓ DB Russian Twist                           → Russian Twist [manual]
+  ✓ DB Shrug                                   → Dumbbell Shrug [manual]
+  ✓ DB Shrug (Shoulders)                       → Dumbbell Shrug [manual]
+  ✓ DB Side Bend                               → Dumbbell Side Bend [manual]
+  ✓ DB Skull Crusher                           → Lying Triceps Press [manual]
+  ✓ DB Spider Curl                             → Spider Curl [manual]
+  ✓ DB Split Squat                             → Dumbbell Squat [manual]
+  ✓ DB Squat                                   → Dumbbell Squat [manual]
+  ✓ DB Squeeze Press                           → Close-Grip Dumbbell Press [manual]
+  ✓ DB Standing Calf Raise                     → Standing Dumbbell Calf Raise [manual]
+  ✓ DB Step-up                                 → Dumbbell Step Ups [manual]
+  ✓ DB Stiff-Leg Deadlift                      → Stiff-Legged Dumbbell Deadlift [manual]
+  ✓ DB Sumo Squat                              → Dumbbell Squat [manual]
+  ✓ DB Upright Row                             → Dumbbell One-Arm Upright Row [manual]
+  ✓ DB W Press                                 → Arnold Dumbbell Press [manual]
+  ✓ DB Walking Lunge                           → Bodyweight Walking Lunge [manual]
+  ✓ DB Wrist Curl                              → Seated Dumbbell Palms-Up Wrist Curl [manual]
+  ✓ Dead Bug                                   → Dead Bug [manual]
+  ✓ Decline Bench Press                        → Decline Barbell Bench Press [manual]
+  ✓ Decline DB Fly                             → Decline Dumbbell Flyes [manual]
+  ✓ Decline DB Press                           → Decline Dumbbell Bench Press [manual]
+  ✓ Decline Machine Press                      → Smith Machine Decline Press [manual]
+  ✓ Decline Push-ups                           → Decline Push-Up [manual]
+  ✓ Decline Sit-up                             → Decline Crunch [manual]
+  ✓ Deficit Deadlift                           → Deficit Deadlift [manual]
+  ✓ Dips (Chest)                               → Dips - Chest Version [manual]
+  ✓ Dips (Triceps)                             → Dips - Triceps Version [manual]
+  ✓ Donkey Calf Raise                          → Donkey Calf Raises [manual]
+  ✓ EZ-Bar Curl                                → EZ-Bar Curl [manual]
+  ✓ EZ-Bar Skull Crushers                      → Lying Triceps Press [manual]
+  ✓ EZ-Bar Spider Curl                         → Spider Curl [manual]
+  ✓ Face Pull                                  → Face Pull [manual]
+  ✓ Farmer's Walk                              → Farmer's Walk [manual]
+  ✓ Flat DB Press                              → Dumbbell Bench Press [manual]
+  ✓ Floor Press                                → Floor Press [manual]
+  ✓ Frog Pump                                  → Butt Lift (Bridge) [manual]
+  ✓ Front Squat                                → Front Barbell Squat [manual]
+  ✓ Glute Bridge                               → Barbell Glute Bridge [manual]
+  ✓ Glute-Ham Raise                            → Floor Glute-Ham Raise [manual]
+  ✓ Good Morning                               → Stiff Leg Barbell Good Morning [manual]
+  ✓ Guillotine Press                           → Barbell Guillotine Bench Press [manual]
+  ✓ Hack Squat                                 → Hack Squat [manual]
+  ✓ Hammer Curl                                → Alternate Hammer Curl [manual]
+  ✓ Handstand Push-ups                         → Handstand Push-Ups [manual]
+  ✓ Hanging Knee Raise                         → Knee/Hip Raise On Parallel Bars [manual]
+  ✓ Hanging Leg Raise                          → Hanging Leg Raise [manual]
+  ✓ High Cable Curl                            → High Cable Curls [manual]
+  ✓ Hip Thrust                                 → Barbell Hip Thrust [manual]
+  ✓ Hyperextension                             → Hyperextensions (Back Extensions) [manual]
+  ✓ Incline Bench Press                        → Barbell Incline Bench Press - Medium Grip [manual]
+  ✓ Incline DB Curl                            → Alternate Incline Dumbbell Curl [manual]
+  ✓ Incline DB Fly                             → Incline Dumbbell Flyes [manual]
+  ✓ Incline DB Press                           → Incline Dumbbell Press [manual]
+  ✓ Incline DB Row                             → Dumbbell Incline Row [manual]
+  ✓ Incline Machine Press                      → Smith Machine Incline Bench Press [manual]
+  ✓ Incline Push-ups                           → Incline Push-Up [manual]
+  ✓ Incline Reverse Fly                        → Bent Over Dumbbell Rear Delt Raise With Head On Bench [manual]
+  ✓ Inverted Row                               → Inverted Row [manual]
+  ✓ Iso-Lateral Chest Press                    → Leverage Chest Press [manual]
+  ✓ Iso-Lateral High Row                       → Leverage High Row [manual]
+  ✓ Iso-Lateral Incline Press                  → Leverage Incline Chest Press [manual]
+  ✓ Iso-Lateral Shoulder Press                 → Leverage Shoulder Press [manual]
+  ✓ JM Press                                   → JM Press [manual]
+  ✓ Jump Squat                                 → Freehand Jump Squat [manual]
+  ✓ Kettlebell Swing                           → One-Arm Kettlebell Swings [manual]
+  ✓ Leaning DB Lateral Raise                   → Side Lateral Raise [manual]
+  ✓ Leg Extension                              → Leg Extensions [manual]
+  ✓ Leg Press                                  → Leg Press [manual]
+  ✓ Leg Press Calf Raise                       → Calf Press On The Leg Press Machine [manual]
+  ✓ Leg Raise                                  → Flat Bench Lying Leg Raise [manual]
+  ✓ Lying Leg Curl                             → Lying Leg Curls [manual]
+  ✓ Machine Chest Press                        → Leverage Chest Press [manual]
+  ✓ Machine Curl                               → Machine Bicep Curl [manual]
+  ✓ Machine Dip                                → Dip Machine [manual]
+  ✓ Machine Preacher Curl                      → Machine Preacher Curls [manual]
+  ✓ Machine Row                                → Seated Cable Rows [manual]
+  ✓ Machine Shoulder Press                     → Machine Shoulder (Military) Press [manual]
+  ✓ Machine Tricep Extension                   → Machine Triceps Extension [manual]
+  ✓ Medicine Ball Russian Twist                → Medicine Ball Full Twist [manual]
+  ✓ Medicine Ball Slam                         → One-Arm Medicine Ball Slam [manual]
+  ✓ Mountain Climber                           → Mountain Climbers [manual]
+  ✓ Narrow Stance Leg Press                    → Narrow Stance Leg Press [manual]
+  ✓ Neutral Grip Cable Row                     → Seated Cable Rows [manual]
+  ✓ Neutral Grip Lat Pulldown                  → Close-Grip Front Lat Pulldown [manual]
+  ✓ One-Arm DB Row                             → One-Arm Dumbbell Row [manual]
+  ✓ Overhead Press                             → Barbell Shoulder Press [manual]
+  ✓ Overhead Rope Extension                    → Cable Rope Overhead Triceps Extension [manual]
+  ✓ Overhead Squat                             → Overhead Squat [manual]
+  ✓ Overhead Tricep Extension                  → Cable Rope Overhead Triceps Extension [manual]
+  ✓ Pallof Press                               → Pallof Press [manual]
+  ✓ Pec Deck Machine                           → Butterfly [manual]
+  ✓ Pistol Squat                               → Kettlebell Pistol Squat [manual]
+  ✓ Plank                                      → Plank [manual]
+  ✓ Plate Pinch Hold                           → Plate Pinch [manual]
+  ✓ Preacher Curl                              → Preacher Curl [manual]
+  ✓ Preacher Curl (DB)                         → Preacher Hammer Dumbbell Curl [manual]
+  ✓ Pull-ups                                   → Pullups [manual]
+  ✓ Push Press                                 → Push Press [manual]
+  ✓ Push-ups                                   → Pushups [manual]
+  ✓ Rack Pull                                  → Rack Pulls [manual]
+  ✓ Renegade Row                               → Alternating Renegade Row [manual]
+  ✓ Reverse Barbell Curl                       → Reverse Barbell Curl [manual]
+  ✓ Reverse Crunch                             → Reverse Crunch [manual]
+  ✓ Reverse Grip Lat Pulldown                  → Close-Grip Front Lat Pulldown [manual]
+  ✓ Reverse Grip Pushdown                      → Reverse Grip Triceps Pushdown [manual]
+  ✓ Reverse Hack Squat                         → Hack Squat [manual]
+  ✓ Reverse Pec Deck                           → Reverse Machine Flyes [manual]
+  ✓ RKC Plank                                  → Plank [manual]
+  ✓ Romanian Deadlift                          → Romanian Deadlift [manual]
+  ✓ Rope Pushdown                              → Triceps Pushdown - Rope Attachment [manual]
+  ✓ Seated Calf Raise                          → Barbell Seated Calf Raise [manual]
+  ✓ Seated DB Curl                             → Seated Dumbbell Curl [manual]
+  ✓ Seated DB Shoulder Press                   → Dumbbell Shoulder Press [manual]
+  ✓ Seated Leg Curl                            → Seated Leg Curl [manual]
+  ✓ Seated Reverse Fly                         → Bent Over Dumbbell Rear Delt Raise With Head On Bench [manual]
+  ✓ Side Plank                                 → Plank [manual]
+  ✓ Single-Arm Cable Curl                      → Standing One-Arm Cable Curl [manual]
+  ✓ Single-Arm Cable Fly                       → Single-Arm Cable Crossover [manual]
+  ✓ Single-Arm Cable Lateral Raise             → Cable Seated Lateral Raise [manual]
+  ✓ Single-Arm Cable Row                       → Seated Cable Rows [manual]
+  ✓ Single-Arm DB Bench Press                  → Dumbbell Bench Press [manual]
+  ✓ Single-Arm DB Lateral Raise                → Side Lateral Raise [manual]
+  ✓ Single-Arm DB Overhead Extension           → Standing One-Arm Dumbbell Triceps Extension [manual]
+  ✓ Single-Arm Lat Pulldown                    → Wide-Grip Lat Pulldown [manual]
+  ✓ Single-Arm Pushdown                        → Cable One Arm Tricep Extension [manual]
+  ✓ Single-Leg Extension                       → Single-Leg Leg Extension [manual]
+  ✓ Single-Leg Leg Press                       → Leg Press [manual]
+  ✓ Single-Leg Standing Calf Raise             → Standing Dumbbell Calf Raise [manual]
+  ✓ Sissy Squat                                → Weighted Sissy Squat [manual]
+  ✓ Sissy Squat Machine                        → Weighted Sissy Squat [manual]
+  ✓ Sit-up                                     → Sit-Up [manual]
+  ✓ Skull Crushers                             → Lying Triceps Press [manual]
+  ✓ Smith Machine Bench Press                  → Smith Machine Bench Press [fuzzy(1.00)]
+  ✓ Smith Machine Calf Raise                   → Smith Machine Calf Raise [manual]
+  ✓ Smith Machine Incline Press                → Smith Machine Incline Bench Press [fuzzy(0.80)]
+  ✓ Smith Machine Lunge                        → Smith Machine Squat [manual]
+  ✓ Smith Machine Overhead Press               → Smith Machine Overhead Shoulder Press [fuzzy(0.80)]
+  ✓ Smith Machine Row                          → Smith Machine Bent Over Row [manual]
+  ✓ Smith Machine Squat                        → Smith Machine Squat [manual]
+  ✓ Snatch Grip Deadlift                       → Snatch Deadlift [manual]
+  ✓ Standing Calf Raise Machine                → Standing Calf Raises [manual]
+  ✓ Standing DB Shoulder Press                 → Standing Dumbbell Press [manual]
+  ✓ Standing Leg Curl                          → Standing Leg Curl [manual]
+  ✓ Standing Reverse Fly                       → Bent Over Dumbbell Rear Delt Raise With Head On Bench [manual]
+  ✓ Stiff-Leg Deadlift                         → Stiff-Legged Barbell Deadlift [manual]
+  ✓ Straight Arm Pulldown                      → Straight-Arm Pulldown [manual]
+  ✓ Straight Bar Pushdown                      → Triceps Pushdown [manual]
+  ✓ Sumo Deadlift                              → Sumo Deadlift [fuzzy(1.00)]
+  ✓ Superman                                   → Superman [manual]
+  ✓ T-Bar Row                                  → Bent Over Two-Arm Long Bar Row [manual]
+  ✓ Tate Press                                 → Tate Press [fuzzy(1.00)]
+  ✓ Trap Bar Deadlift                          → Trap Bar Deadlift [fuzzy(1.00)]
+  ✓ V-Bar Pushdown                             → Triceps Pushdown - V-Bar Attachment [manual]
+  ✓ Walking Lunge (Barbell)                    → Barbell Walking Lunge [fuzzy(1.00)]
+  ✓ Weighted Chin-ups                          → Chin-Up [manual]
+  ✓ Weighted Dips (Chest)                      → Dips - Chest Version [manual]
+  ✓ Weighted Dips (Triceps)                    → Dips - Triceps Version [manual]
+  ✓ Weighted Pull-ups                          → Pullups [manual]
+  ✓ Wide Grip Barbell Curl                     → Wide-Grip Standing Barbell Curl [manual]
+  ✓ Wide Grip Cable Row                        → Seated Cable Rows [manual]
+  ✓ Wide Grip Lat Pulldown                     → Wide-Grip Lat Pulldown [manual]
+  ✓ Wide Push-ups                              → Push-Up Wide [manual]
+  ✓ Wide-Grip Bench Press                      → Wide-Grip Barbell Bench Press [manual]
+  ✓ Wrist Curl                                 → Palms-Up Barbell Wrist Curl Over A Bench [manual]
+  ✓ Zottman Curl                               → Zottman Curl [manual]
+
+───────────────────────────────────────────────────────────────
+UNMATCHED (kept as-is — TALOS specialty exercises)
+───────────────────────────────────────────────────────────────
+  ○ Assisted Dips Machine (triceps, machine)
+  ○ Banded Clamshell (glutes, other)
+  ○ Banded Hip Thrust (glutes, other)
+  ○ Banded Walk (glutes, other)
+  ○ Barbell 21s (biceps, barbell)
+  ○ Belt Squat (quads, machine)
+  ○ Bird Dog (core, bodyweight)
+  ○ Block Pull (back, barbell)
+  ○ Bus Driver Raise (shoulders, dumbbell)
+  ○ Cable Bayesian Curl (biceps, cable)
+  ○ Cable Fly (High to Low) (chest, cable)
+  ○ Cable Fly (Low to High) (chest, cable)
+  ○ Cable Fly (Mid) (chest, cable)
+  ○ Cable Hip Abduction (glutes, cable)
+  ○ Cable Leg Curl (hamstrings, cable)
+  ○ Cable Pullover (back, cable)
+  ○ Cable Side Bend (core, cable)
+  ○ Cable Tricep Kickback (triceps, cable)
+  ○ Cable Woodchop (core, cable)
+  ○ Clamshell (glutes, bodyweight)
+  ○ Close-Grip Push-ups (triceps, bodyweight)
+  ○ DB Hip Thrust (glutes, dumbbell)
+  ○ DB Pinch Hold (forearms, dumbbell)
+  ○ Dead Hang (forearms, other)
+  ○ Diamond Push-ups (chest, bodyweight)
+  ○ Donkey Kick (glutes, bodyweight)
+  ○ Dragon Flag (core, bodyweight)
+  ○ Fat Grip Hold (forearms, other)
+  ○ Fire Hydrant (glutes, bodyweight)
+  ○ Flutter Kick (core, bodyweight)
+  ○ Glute Drive Machine (glutes, machine)
+  ○ Gripper (forearms, other)
+  ○ Hack Squat Calf Raise (calves, machine)
+  ○ Helms Row (back, dumbbell)
+  ○ Hip Abduction Machine (glutes, machine)
+  ○ Hip Adduction Machine (glutes, machine)
+  ○ Hip Thrust Machine (glutes, machine)
+  ○ Hollow Body Hold (core, bodyweight)
+  ○ Iso-Lateral Low Row (back, machine)
+  ○ Iso-Lateral Row (back, machine)
+  ○ Kettlebell Sumo Squat (glutes, other)
+  ○ Kroc Row (back, dumbbell)
+  ○ L-Sit (core, bodyweight)
+  ○ Landmine Rotation (core, barbell)
+  ○ Larsen Press (chest, barbell)
+  ○ Lu Raise (shoulders, dumbbell)
+  ○ Machine Fly (chest, machine)
+  ○ Machine Lat Pulldown (back, machine)
+  ○ Machine Lateral Raise (shoulders, machine)
+  ○ Machine Shrug (back, machine)
+  ○ Machine Torso Rotation (core, machine)
+  ○ Meadows Row (back, barbell)
+  ○ Nordic Hamstring Curl (hamstrings, bodyweight)
+  ○ Pause Squat (quads, barbell)
+  ○ Pendlay Row (back, barbell)
+  ○ Pendulum Squat (quads, machine)
+  ○ Pike Push-ups (shoulders, bodyweight)
+  ○ Pin Press (chest, barbell)
+  ○ Pin Squat (quads, barbell)
+  ○ Prone Y Raise (shoulders, dumbbell)
+  ○ Pull-ups (Neutral Grip) (back, bodyweight)
+  ○ Pull-ups (Wide Grip) (back, bodyweight)
+  ○ Reverse Grip Bench Press (chest, barbell)
+  ○ Reverse Hyper (back, machine)
+  ○ Reverse Wrist Curl (forearms, barbell)
+  ○ Safety Bar Squat (quads, barbell)
+  ○ Scissor Kick (core, bodyweight)
+  ○ Seal Row (back, barbell)
+  ○ Single-Leg Bodyweight Calf Raise (calves, bodyweight)
+  ○ Single-Leg Curl (hamstrings, machine)
+  ○ Single-Leg DB RDL (hamstrings, dumbbell)
+  ○ Single-Leg Glute Bridge (hamstrings, bodyweight)
+  ○ Slider Leg Curl (hamstrings, bodyweight)
+  ○ Smith Machine Behind Neck Press (shoulders, machine)
+  ○ Smith Machine Front Squat (quads, machine)
+  ○ Spoto Press (chest, barbell)
+  ○ Stomach Vacuum (core, bodyweight)
+  ○ Suitcase Carry (core, dumbbell)
+  ○ Sumo Squat (glutes, barbell)
+  ○ Tempo Squat (quads, barbell)
+  ○ Tibialis Raise Machine (calves, machine)
+  ○ Toes to Bar (core, bodyweight)
+  ○ Towel Pull-up (forearms, other)
+  ○ Trap Bar Carry (forearms, other)
+  ○ Turkish Get-up (core, dumbbell)
+  ○ V-Squat Machine (quads, machine)
+  ○ V-up (core, bodyweight)
+  ○ Viking Press (shoulders, barbell)
+  ○ Waiter Curl (biceps, dumbbell)
+  ○ Wall Sit (quads, bodyweight)
+  ○ Weighted Sit-up (core, dumbbell)
+  ○ Wide Stance Leg Press (quads, machine)
+  ○ Windshield Wiper (core, bodyweight)
+  ○ Yates Row (back, barbell)
+  ○ Z Press (shoulders, barbell)
+  ○ Zercher Squat (quads, barbell)
+
+───────────────────────────────────────────────────────────────
+NEW EXERCISES ADDED (from free-exercise-db, grouped by muscle)
+───────────────────────────────────────────────────────────────
+  BACK (58 new):
+    + Alternating Kettlebell Row               ← Alternating Kettlebell Row
+    + Bent Over One-Arm Long Bar Row           ← Bent Over One-Arm Long Bar Row
+    + Bent Over Two-DB Row                     ← Bent Over Two-Dumbbell Row
+    + Bent Over Two-DB Row With Palms In       ← Bent Over Two-Dumbbell Row With Palms In
+    + Bodyweight Mid Row                       ← Bodyweight Mid Row
+    + Cable Incline Pushdown                   ← Cable Incline Pushdown
+    + Calf-Machine Shoulder Shrug              ← Calf-Machine Shoulder Shrug
+    + Deadlift with Bands                      ← Deadlift with Bands
+    + Deadlift with Chains                     ← Deadlift with Chains
+    + Elevated Cable Rows                      ← Elevated Cable Rows
+    + Full Range-Of-Motion Lat Pulldown        ← Full Range-Of-Motion Lat Pulldown
+    + Gironda Sternum Chins                    ← Gironda Sternum Chins
+    + Hyperextensions With No Hyperextension Bench ← Hyperextensions With No Hyperextension Bench
+    + Incline Bench Pull                       ← Incline Bench Pull
+    + Inverted Row with Straps                 ← Inverted Row with Straps
+    + KB Sumo High Pull                        ← Kettlebell Sumo High Pull
+    + Kipping Muscle Up                        ← Kipping Muscle Up
+    + Kneeling High Pulley Row                 ← Kneeling High Pulley Row
+    + Kneeling Single-Arm High Pulley Row      ← Kneeling Single-Arm High Pulley Row
+    + Leverage Iso Row                         ← Leverage Iso Row
+    + Leverage Shrug                           ← Leverage Shrug
+    + London Bridges                           ← London Bridges
+    + Lying Cambered Barbell Row               ← Lying Cambered Barbell Row
+    + Lying T-Bar Row                          ← Lying T-Bar Row
+    + Middle Back Shrug                        ← Middle Back Shrug
+    + Mixed Grip Chin                          ← Mixed Grip Chin
+    + Muscle Up                                ← Muscle Up
+    + One Arm Chin-Up                          ← One Arm Chin-Up
+    + One Arm Lat Pulldown                     ← One Arm Lat Pulldown
+    + One-Arm Kettlebell Row                   ← One-Arm Kettlebell Row
+    + One-Arm Long Bar Row                     ← One-Arm Long Bar Row
+    + Rack Pull with Bands                     ← Rack Pull with Bands
+    + Reverse Band Deadlift                    ← Reverse Band Deadlift
+    + Reverse Grip Bent-Over Rows              ← Reverse Grip Bent-Over Rows
+    + Rocky Pull-Ups/Pulldowns                 ← Rocky Pull-Ups/Pulldowns
+    + Rope Climb                               ← Rope Climb
+    + Rope Straight-Arm Pulldown               ← Rope Straight-Arm Pulldown
+    + Scapular Pull-Up                         ← Scapular Pull-Up
+    + Seated Good Mornings                     ← Seated Good Mornings
+    + Seated One-arm Cable Pulley Rows         ← Seated One-arm Cable Pulley Rows
+    + Shotgun Row                              ← Shotgun Row
+    + Shrug Behind The Back                    ← Barbell Shrug Behind The Back
+    + Side To Side Chins                       ← Side To Side Chins
+    + Sled Row                                 ← Sled Row
+    + Smith Machine Behind the Back Shrug      ← Smith Machine Behind the Back Shrug
+    + Smith Machine Upright Row                ← Smith Machine Upright Row
+    + Standing DB Upright Row                  ← Standing Dumbbell Upright Row
+    + Straight Bar Bench Mid Rows              ← Straight Bar Bench Mid Rows
+    + Suspended Row                            ← Suspended Row
+    + T-Bar Row with Handle                    ← T-Bar Row with Handle
+    + Two-Arm Kettlebell Row                   ← Two-Arm Kettlebell Row
+    + Underhand Cable Pulldowns                ← Underhand Cable Pulldowns
+    + Upright Row (Bands)                      ← Upright Row - With Bands
+    + V-Bar Pulldown                           ← V-Bar Pulldown
+    + V-Bar Pullup                             ← V-Bar Pullup
+    + Weighted Ball Hyperextension             ← Weighted Ball Hyperextension
+    + Weighted Pull Ups                        ← Weighted Pull Ups
+    + Wide-Grip Rear Pull-Up                   ← Wide-Grip Rear Pull-Up
+  BICEPS (25 new):
+    + Close-Grip EZ-Bar Curl with Band         ← Close-Grip EZ-Bar Curl with Band
+    + Close-Grip Standing Barbell Curl         ← Close-Grip Standing Barbell Curl
+    + Curls Lying Against An Incline           ← Barbell Curls Lying Against An Incline
+    + DB Alternating Bicep Curl                ← Dumbbell Alternate Bicep Curl
+    + DB Prone Incline Curl                    ← Dumbbell Prone Incline Curl
+    + Flexor Incline DB Curls                  ← Flexor Incline Dumbbell Curls
+    + Hammer Curls                             ← Hammer Curls
+    + Incline Hammer Curls                     ← Incline Hammer Curls
+    + Incline Inner Biceps Curl                ← Incline Inner Biceps Curl
+    + Lying Cable Curl                         ← Lying Cable Curl
+    + Lying Close-Grip Bar Curl On High Pulley ← Lying Close-Grip Bar Curl On High Pulley
+    + Lying High Bench Barbell Curl            ← Lying High Bench Barbell Curl
+    + Lying Supine DB Curl                     ← Lying Supine Dumbbell Curl
+    + One Arm DB Preacher Curl                 ← One Arm Dumbbell Preacher Curl
+    + Overhead Cable Curl                      ← Overhead Cable Curl
+    + Reverse Barbell Preacher Curls           ← Reverse Barbell Preacher Curls
+    + Reverse Cable Curl                       ← Reverse Cable Curl
+    + Reverse Plate Curls                      ← Reverse Plate Curls
+    + Seated Close-Grip Concentration Barbell Curl ← Seated Close-Grip Concentration Barbell Curl
+    + Seated DB Inner Biceps Curl              ← Seated Dumbbell Inner Biceps Curl
+    + Standing Concentration Curl              ← Standing Concentration Curl
+    + Standing Inner-Biceps Curl               ← Standing Inner-Biceps Curl
+    + Standing One-Arm DB Curl Over Incline Bench ← Standing One-Arm Dumbbell Curl Over Incline Bench
+    + Two-Arm DB Preacher Curl                 ← Two-Arm Dumbbell Preacher Curl
+    + Zottman Preacher Curl                    ← Zottman Preacher Curl
+  CALVES (6 new):
+    + Balance Board                            ← Balance Board
+    + Calf Press                               ← Calf Press
+    + Calf Raises (Bands)                      ← Calf Raises - With Bands
+    + DB Seated One-Leg Calf Raise             ← Dumbbell Seated One-Leg Calf Raise
+    + Rocking Standing Calf Raise              ← Rocking Standing Calf Raise
+    + Smith Machine Reverse Calf Raises        ← Smith Machine Reverse Calf Raises
+  CHEST (42 new):
+    + Alternating Floor Press                  ← Alternating Floor Press
+    + Around The Worlds                        ← Around The Worlds
+    + Bench Press (Bands)                      ← Bench Press - With Bands
+    + Bodyweight Flyes                         ← Bodyweight Flyes
+    + Cable Iron Cross                         ← Cable Iron Cross
+    + Chain Press                              ← Chain Press
+    + Clock Push-Up                            ← Clock Push-Up
+    + Cross Over (Bands)                       ← Cross Over - With Bands
+    + DB Bench Press with Neutral Grip         ← Dumbbell Bench Press with Neutral Grip
+    + Decline Smith Press                      ← Decline Smith Press
+    + Extended Range One-Arm Kettlebell Floor Press ← Extended Range One-Arm Kettlebell Floor Press
+    + Flat Bench Cable Flyes                   ← Flat Bench Cable Flyes
+    + Front Raise And Pullover                 ← Front Raise And Pullover
+    + Hammer Grip Incline DB Bench Press       ← Hammer Grip Incline DB Bench Press
+    + Incline Cable Chest Press                ← Incline Cable Chest Press
+    + Incline Cable Flye                       ← Incline Cable Flye
+    + Incline DB Bench With Palms Facing In    ← Incline Dumbbell Bench With Palms Facing In
+    + Incline DB Flyes - With A Twist          ← Incline Dumbbell Flyes - With A Twist
+    + Incline Push-Up Medium                   ← Incline Push-Up Medium
+    + Incline Push-Up Reverse Grip             ← Incline Push-Up Reverse Grip
+    + Incline Push-Up Wide                     ← Incline Push-Up Wide
+    + Isometric Wipers                         ← Isometric Wipers
+    + Leg-Over Floor Press                     ← Leg-Over Floor Press
+    + Leverage Decline Chest Press             ← Leverage Decline Chest Press
+    + Low Cable Crossover                      ← Low Cable Crossover
+    + Machine Bench Press                      ← Machine Bench Press
+    + Neck Press                               ← Neck Press
+    + One Arm DB Bench Press                   ← One Arm Dumbbell Bench Press
+    + One-Arm Flat Bench DB Flye               ← One-Arm Flat Bench Dumbbell Flye
+    + One-Arm Kettlebell Floor Press           ← One-Arm Kettlebell Floor Press
+    + Plyo Kettlebell Pushups                  ← Plyo Kettlebell Pushups
+    + Push Up to Side Plank                    ← Push Up to Side Plank
+    + Push-Ups With Feet Elevated              ← Push-Ups With Feet Elevated
+    + Push-Ups With Feet On An Exercise Ball   ← Push-Ups With Feet On An Exercise Ball
+    + Pushups (Close and Wide Hand Positions)  ← Pushups (Close and Wide Hand Positions)
+    + Single-Arm Push-Up                       ← Single-Arm Push-Up
+    + Standing Cable Chest Press               ← Standing Cable Chest Press
+    + Straight-Arm DB Pullover                 ← Straight-Arm Dumbbell Pullover
+    + Suspended Push-Up                        ← Suspended Push-Up
+    + Svend Press                              ← Svend Press
+    + Wide-Grip Decline Barbell Bench Press    ← Wide-Grip Decline Barbell Bench Press
+    + Wide-Grip Decline Barbell Pullover       ← Wide-Grip Decline Barbell Pullover
+  CORE (63 new):
+    + 3/4 Sit-Up                               ← 3/4 Sit-Up
+    + Ab Rollout                               ← Barbell Ab Rollout
+    + Advanced Kettlebell Windmill             ← Advanced Kettlebell Windmill
+    + Alternating Heel Touchers                ← Alternate Heel Touchers
+    + Bent Press                               ← Bent Press
+    + Bent-Knee Hip Raise                      ← Bent-Knee Hip Raise
+    + Bosu Ball Cable Crunch With Side Bends   ← Bosu Ball Cable Crunch With Side Bends
+    + Bottoms Up                               ← Bottoms Up
+    + Butt-Ups                                 ← Butt-Ups
+    + Cable Judo Flip                          ← Cable Judo Flip
+    + Cable Reverse Crunch                     ← Cable Reverse Crunch
+    + Cable Russian Twists                     ← Cable Russian Twists
+    + Cable Seated Crunch                      ← Cable Seated Crunch
+    + Cocoons                                  ← Cocoons
+    + Cross-Body Crunch                        ← Cross-Body Crunch
+    + Crunch - Hands Overhead                  ← Crunch - Hands Overhead
+    + Crunch - Legs On Exercise Ball           ← Crunch - Legs On Exercise Ball
+    + Decline Oblique Crunch                   ← Decline Oblique Crunch
+    + Decline Reverse Crunch                   ← Decline Reverse Crunch
+    + Double Kettlebell Windmill               ← Double Kettlebell Windmill
+    + Elbow to Knee                            ← Elbow to Knee
+    + Exercise Ball Crunch                     ← Exercise Ball Crunch
+    + Exercise Ball Pull-In                    ← Exercise Ball Pull-In
+    + Flat Bench Leg Pull-In                   ← Flat Bench Leg Pull-In
+    + Frog Sit-Ups                             ← Frog Sit-Ups
+    + Gorilla Chin/Crunch                      ← Gorilla Chin/Crunch
+    + Hanging Pike                             ← Hanging Pike
+    + Jackknife Sit-Up                         ← Jackknife Sit-Up
+    + Janda Sit-Up                             ← Janda Sit-Up
+    + KB Figure 8                              ← Kettlebell Figure 8
+    + KB Pass Between The Legs                 ← Kettlebell Pass Between The Legs
+    + KB Windmill                              ← Kettlebell Windmill
+    + Kneeling Cable Crunch With Alternating Oblique Twists ← Kneeling Cable Crunch With Alternating Oblique Twists
+    + Landmine 180's                           ← Landmine 180's
+    + Leg Pull-In                              ← Leg Pull-In
+    + Oblique Crunches                         ← Oblique Crunches
+    + Oblique Crunches - On The Floor          ← Oblique Crunches - On The Floor
+    + One-Arm High-Pulley Cable Side Bends     ← One-Arm High-Pulley Cable Side Bends
+    + Otis-Up                                  ← Otis-Up
+    + Pallof Press With Rotation               ← Pallof Press With Rotation
+    + Plate Twist                              ← Plate Twist
+    + Press Sit-Up                             ← Press Sit-Up
+    + Rollout from Bench                       ← Barbell Rollout from Bench
+    + Rope Crunch                              ← Rope Crunch
+    + Seated Barbell Twist                     ← Seated Barbell Twist
+    + Seated Flat Bench Leg Pull-In            ← Seated Flat Bench Leg Pull-In
+    + Seated Leg Tucks                         ← Seated Leg Tucks
+    + Side Bend                                ← Barbell Side Bend
+    + Side Bridge                              ← Side Bridge
+    + Side Jackknife                           ← Side Jackknife
+    + Smith Machine Hip Raise                  ← Smith Machine Hip Raise
+    + Spell Caster                             ← Spell Caster
+    + Spider Crawl                             ← Spider Crawl
+    + Standing Cable Lift                      ← Standing Cable Lift
+    + Standing Cable Wood Chop                 ← Standing Cable Wood Chop
+    + Standing Rope Crunch                     ← Standing Rope Crunch
+    + Suspended Fallout                        ← Suspended Fallout
+    + Suspended Reverse Crunch                 ← Suspended Reverse Crunch
+    + Tuck Crunch                              ← Tuck Crunch
+    + Weighted Ball Side Bend                  ← Weighted Ball Side Bend
+    + Weighted Crunches                        ← Weighted Crunches
+    + Weighted Sit-Ups (Bands)                 ← Weighted Sit-Ups - With Bands
+    + Wind Sprints                             ← Wind Sprints
+  FOREARMS (15 new):
+    + Bottoms-Up Clean From The Hang Position  ← Bottoms-Up Clean From The Hang Position
+    + DB Lying Pronation                       ← Dumbbell Lying Pronation
+    + DB Lying Supination                      ← Dumbbell Lying Supination
+    + Finger Curls                             ← Finger Curls
+    + Palms-Down DB Wrist Curl Over A Bench    ← Palms-Down Dumbbell Wrist Curl Over A Bench
+    + Palms-Down Wrist Curl Over A Bench       ← Palms-Down Wrist Curl Over A Bench
+    + Palms-Up DB Wrist Curl Over A Bench      ← Palms-Up Dumbbell Wrist Curl Over A Bench
+    + Seated One-Arm DB Palms-Down Wrist Curl  ← Seated One-Arm Dumbbell Palms-Down Wrist Curl
+    + Seated One-Arm DB Palms-Up Wrist Curl    ← Seated One-Arm Dumbbell Palms-Up Wrist Curl
+    + Seated Palm-Up Barbell Wrist Curl        ← Seated Palm-Up Barbell Wrist Curl
+    + Seated Palms-Down Barbell Wrist Curl     ← Seated Palms-Down Barbell Wrist Curl
+    + Seated Two-Arm Palms-Up Low-Pulley Wrist Curl ← Seated Two-Arm Palms-Up Low-Pulley Wrist Curl
+    + Standing Olympic Plate Hand Squeeze      ← Standing Olympic Plate Hand Squeeze
+    + Wrist Roller                             ← Wrist Roller
+    + Wrist Rotations with Straight Bar        ← Wrist Rotations with Straight Bar
+  GLUTES (14 new):
+    + Band Hip Adductions                      ← Band Hip Adductions
+    + Downward Facing Balance                  ← Downward Facing Balance
+    + Flutter Kicks                            ← Flutter Kicks
+    + Glute Kickback                           ← Glute Kickback
+    + Hip Extension with Bands                 ← Hip Extension with Bands
+    + Hip Lift with Band                       ← Hip Lift with Band
+    + Kneeling Squat                           ← Kneeling Squat
+    + Leg Lift                                 ← Leg Lift
+    + Monster Walk                             ← Monster Walk
+    + Physioball Hip Bridge                    ← Physioball Hip Bridge
+    + Single Leg Glute Bridge                  ← Single Leg Glute Bridge
+    + Step-up with Knee Raise                  ← Step-up with Knee Raise
+    + Thigh Abductor                           ← Thigh Abductor
+    + Thigh Adductor                           ← Thigh Adductor
+  HAMSTRINGS (28 new):
+    + Alternating Hang Clean                   ← Alternating Hang Clean
+    + Ball Leg Curl                            ← Ball Leg Curl
+    + Band Good Morning                        ← Band Good Morning
+    + Band Good Morning (Pull Through)         ← Band Good Morning (Pull Through)
+    + DB Clean                                 ← Dumbbell Clean
+    + Double Kettlebell Alternating Hang Clean ← Double Kettlebell Alternating Hang Clean
+    + Glute Ham Raise                          ← Glute Ham Raise
+    + Good Morning off Pins                    ← Good Morning off Pins
+    + Hanging Bar Good Morning                 ← Hanging Bar Good Morning
+    + KB Dead Clean                            ← Kettlebell Dead Clean
+    + KB Hang Clean                            ← Kettlebell Hang Clean
+    + KB One-Legged Deadlift                   ← Kettlebell One-Legged Deadlift
+    + Lunge Pass Through                       ← Lunge Pass Through
+    + Natural Glute Ham Raise                  ← Natural Glute Ham Raise
+    + One-Arm Kettlebell Clean                 ← One-Arm Kettlebell Clean
+    + One-Arm Open Palm Kettlebell Clean       ← One-Arm Open Palm Kettlebell Clean
+    + Open Palm Kettlebell Clean               ← Open Palm Kettlebell Clean
+    + Platform Hamstring Slides                ← Platform Hamstring Slides
+    + Power Clean                              ← Power Clean
+    + Prone Manual Hamstring                   ← Prone Manual Hamstring
+    + Reverse Band Sumo Deadlift               ← Reverse Band Sumo Deadlift
+    + Reverse Hyperextension                   ← Reverse Hyperextension
+    + Seated Band Hamstring Curl               ← Seated Band Hamstring Curl
+    + Smith Machine Hang Power Clean           ← Smith Machine Hang Power Clean
+    + Smith Machine Stiff-Legged Deadlift      ← Smith Machine Stiff-Legged Deadlift
+    + Snatch Pull                              ← Snatch Pull
+    + Sumo Deadlift with Bands                 ← Sumo Deadlift with Bands
+    + Sumo Deadlift with Chains                ← Sumo Deadlift with Chains
+  QUADS (43 new):
+    + Box Squat with Bands                     ← Box Squat with Bands
+    + Box Squat with Chains                    ← Box Squat with Chains
+    + Cable Deadlifts                          ← Cable Deadlifts
+    + Cable Hip Adduction                      ← Cable Hip Adduction
+    + Chair Squat                              ← Chair Squat
+    + DB Squat To A Bench                      ← Dumbbell Squat To A Bench
+    + Elevated Back Lunge                      ← Elevated Back Lunge
+    + Front Barbell Squat To A Bench           ← Front Barbell Squat To A Bench
+    + Front Squat (Clean Grip)                 ← Front Squat (Clean Grip)
+    + Front Squats With Two Kettlebells        ← Front Squats With Two Kettlebells
+    + Full Squat                               ← Barbell Full Squat
+    + Hip Flexion with Band                    ← Hip Flexion with Band
+    + Jefferson Squats                         ← Jefferson Squats
+    + Leverage Deadlift                        ← Leverage Deadlift
+    + Lunge Sprint                             ← Lunge Sprint
+    + Lying Machine Squat                      ← Lying Machine Squat
+    + Narrow Stance Hack Squats                ← Narrow Stance Hack Squats
+    + Narrow Stance Squats                     ← Narrow Stance Squats
+    + One Leg Barbell Squat                    ← One Leg Barbell Squat
+    + One-Arm Overhead Kettlebell Squats       ← One-Arm Overhead Kettlebell Squats
+    + One-Arm Side Deadlift                    ← One-Arm Side Deadlift
+    + Plie DB Squat                            ← Plie Dumbbell Squat
+    + Reverse Band Box Squat                   ← Reverse Band Box Squat
+    + Reverse Band Power Squat                 ← Reverse Band Power Squat
+    + Side Split Squat                         ← Barbell Side Split Squat
+    + Single-Leg High Box Squat                ← Single-Leg High Box Squat
+    + Smith Machine Leg Press                  ← Smith Machine Leg Press
+    + Smith Machine Pistol Squat               ← Smith Machine Pistol Squat
+    + Smith Single-Leg Split Squat             ← Smith Single-Leg Split Squat
+    + Speed Box Squat                          ← Speed Box Squat
+    + Speed Squats                             ← Speed Squats
+    + Split Squat with Dumbbells               ← Split Squat with Dumbbells
+    + Squat Jerk                               ← Squat Jerk
+    + Squat To A Bench                         ← Barbell Squat To A Bench
+    + Squat with Bands                         ← Squat with Bands
+    + Squat with Chains                        ← Squat with Chains
+    + Squat with Plate Movers                  ← Squat with Plate Movers
+    + Squats (Bands)                           ← Squats - With Bands
+    + Suspended Split Squat                    ← Suspended Split Squat
+    + Weighted Jump Squat                      ← Weighted Jump Squat
+    + Weighted Squat                           ← Weighted Squat
+    + Wide Stance Barbell Squat                ← Wide Stance Barbell Squat
+    + Zercher Squats                           ← Zercher Squats
+  SHOULDERS (88 new):
+    + Alternating Cable Shoulder Press         ← Alternating Cable Shoulder Press
+    + Alternating Deltoid Raise                ← Alternating Deltoid Raise
+    + Alternating Kettlebell Press             ← Alternating Kettlebell Press
+    + Anti-Gravity Press                       ← Anti-Gravity Press
+    + Back Flyes (Bands)                       ← Back Flyes - With Bands
+    + Band Pull Apart                          ← Band Pull Apart
+    + Battling Ropes                           ← Battling Ropes
+    + Bent Over Low-Pulley Side Lateral        ← Bent Over Low-Pulley Side Lateral
+    + Cable Rope Rear-Delt Rows                ← Cable Rope Rear-Delt Rows
+    + Cable Shoulder Press                     ← Cable Shoulder Press
+    + Car Drivers                              ← Car Drivers
+    + Clean and Press                          ← Clean and Press
+    + Cuban Press                              ← Cuban Press
+    + DB Incline Shoulder Raise                ← Dumbbell Incline Shoulder Raise
+    + DB Lying One-Arm Rear Lateral Raise      ← Dumbbell Lying One-Arm Rear Lateral Raise
+    + DB Lying Rear Lateral Raise              ← Dumbbell Lying Rear Lateral Raise
+    + DB One-Arm Shoulder Press                ← Dumbbell One-Arm Shoulder Press
+    + DB Raise                                 ← Dumbbell Raise
+    + DB Scaption                              ← Dumbbell Scaption
+    + Double Kettlebell Jerk                   ← Double Kettlebell Jerk
+    + Double Kettlebell Push Press             ← Double Kettlebell Push Press
+    + Double Kettlebell Snatch                 ← Double Kettlebell Snatch
+    + External Rotation                        ← External Rotation
+    + External Rotation with Band              ← External Rotation with Band
+    + External Rotation with Cable             ← External Rotation with Cable
+    + Front Incline DB Raise                   ← Front Incline Dumbbell Raise
+    + Front Plate Raise                        ← Front Plate Raise
+    + Front Two-DB Raise                       ← Front Two-Dumbbell Raise
+    + Incline Shoulder Raise                   ← Barbell Incline Shoulder Raise
+    + Internal Rotation with Band              ← Internal Rotation with Band
+    + Iron Cross                               ← Iron Cross
+    + Isometric Neck Exercise - Front And Back ← Isometric Neck Exercise - Front And Back
+    + Isometric Neck Exercise - Sides          ← Isometric Neck Exercise - Sides
+    + KB Arnold Press                          ← Kettlebell Arnold Press
+    + KB Pirate Ships                          ← Kettlebell Pirate Ships
+    + KB Seated Press                          ← Kettlebell Seated Press
+    + KB Seesaw Press                          ← Kettlebell Seesaw Press
+    + KB Thruster                              ← Kettlebell Thruster
+    + KB Turkish Get-Up (Lunge style)          ← Kettlebell Turkish Get-Up (Lunge style)
+    + KB Turkish Get-Up (Squat style)          ← Kettlebell Turkish Get-Up (Squat style)
+    + Landmine Linear Jammer                   ← Landmine Linear Jammer
+    + Lateral Raise (Bands)                    ← Lateral Raise - With Bands
+    + Low Pulley Row To Neck                   ← Low Pulley Row To Neck
+    + Lying Face Down Plate Neck Resistance    ← Lying Face Down Plate Neck Resistance
+    + Lying Face Up Plate Neck Resistance      ← Lying Face Up Plate Neck Resistance
+    + Lying One-Arm Lateral Raise              ← Lying One-Arm Lateral Raise
+    + Lying Rear Delt Raise                    ← Lying Rear Delt Raise
+    + One-Arm Incline Lateral Raise            ← One-Arm Incline Lateral Raise
+    + One-Arm Kettlebell Clean and Jerk        ← One-Arm Kettlebell Clean and Jerk
+    + One-Arm Kettlebell Jerk                  ← One-Arm Kettlebell Jerk
+    + One-Arm Kettlebell Military Press To The Side ← One-Arm Kettlebell Military Press To The Side
+    + One-Arm Kettlebell Para Press            ← One-Arm Kettlebell Para Press
+    + One-Arm Kettlebell Push Press            ← One-Arm Kettlebell Push Press
+    + One-Arm Kettlebell Snatch                ← One-Arm Kettlebell Snatch
+    + One-Arm Kettlebell Split Jerk            ← One-Arm Kettlebell Split Jerk
+    + One-Arm Kettlebell Split Snatch          ← One-Arm Kettlebell Split Snatch
+    + One-Arm Side Laterals                    ← One-Arm Side Laterals
+    + Power Partials                           ← Power Partials
+    + Rear Delt Row                            ← Barbell Rear Delt Row
+    + Reverse Flyes                            ← Reverse Flyes
+    + Reverse Flyes With External Rotation     ← Reverse Flyes With External Rotation
+    + Seated Barbell Military Press            ← Seated Barbell Military Press
+    + Seated Bent-Over Rear Delt Raise         ← Seated Bent-Over Rear Delt Raise
+    + Seated Cable Shoulder Press              ← Seated Cable Shoulder Press
+    + Seated DB Press                          ← Seated Dumbbell Press
+    + Seated Head Harness Neck Resistance      ← Seated Head Harness Neck Resistance
+    + Seated Side Lateral Raise                ← Seated Side Lateral Raise
+    + See-Saw Press (Alternating Side Press)   ← See-Saw Press (Alternating Side Press)
+    + Shoulder Press (Bands)                   ← Shoulder Press - With Bands
+    + Side Laterals to Front Raise             ← Side Laterals to Front Raise
+    + Single DB Raise                          ← Single Dumbbell Raise
+    + Single-Arm Linear Jammer                 ← Single-Arm Linear Jammer
+    + Sled Overhead Backward Walk              ← Sled Overhead Backward Walk
+    + Sled Reverse Flye                        ← Sled Reverse Flye
+    + Smith Incline Shoulder Raise             ← Smith Incline Shoulder Raise
+    + Smith Machine One-Arm Upright Row        ← Smith Machine One-Arm Upright Row
+    + Standing Alternating DB Press            ← Standing Alternating Dumbbell Press
+    + Standing Barbell Press Behind Neck       ← Standing Barbell Press Behind Neck
+    + Standing Bradford Press                  ← Standing Bradford Press
+    + Standing DB Straight-Arm Front Delt Raise Above Head ← Standing Dumbbell Straight-Arm Front Delt Raise Above Head
+    + Standing Low-Pulley Deltoid Raise        ← Standing Low-Pulley Deltoid Raise
+    + Standing Military Press                  ← Standing Military Press
+    + Standing Palm-In One-Arm DB Press        ← Standing Palm-In One-Arm Dumbbell Press
+    + Standing Palms-In DB Press               ← Standing Palms-In Dumbbell Press
+    + Straight Raises on Incline Bench         ← Straight Raises on Incline Bench
+    + Two-Arm Kettlebell Clean                 ← Two-Arm Kettlebell Clean
+    + Two-Arm Kettlebell Jerk                  ← Two-Arm Kettlebell Jerk
+    + Two-Arm Kettlebell Military Press        ← Two-Arm Kettlebell Military Press
+  TRICEPS (47 new):
+    + Band Skull Crusher                       ← Band Skull Crusher
+    + Bench Press - Powerlifting               ← Bench Press - Powerlifting
+    + Bench Press with Chains                  ← Bench Press with Chains
+    + Board Press                              ← Board Press
+    + Body Tricep Press                        ← Body Tricep Press
+    + Body-Up                                  ← Body-Up
+    + Cable Incline Triceps Extension          ← Cable Incline Triceps Extension
+    + Cable Lying Triceps Extension            ← Cable Lying Triceps Extension
+    + Chain Handle Extension                   ← Chain Handle Extension
+    + Close-Grip EZ-Bar Press                  ← Close-Grip EZ-Bar Press
+    + Close-Grip Push-Up off of a DB           ← Close-Grip Push-Up off of a Dumbbell
+    + DB One-Arm Triceps Extension             ← Dumbbell One-Arm Triceps Extension
+    + DB Tricep Extension -Pronated Grip       ← Dumbbell Tricep Extension -Pronated Grip
+    + Decline Close-Grip Bench To Skull Crusher ← Decline Close-Grip Bench To Skull Crusher
+    + Decline DB Triceps Extension             ← Decline Dumbbell Triceps Extension
+    + Decline EZ Bar Triceps Extension         ← Decline EZ Bar Triceps Extension
+    + EZ-Bar Skullcrusher                      ← EZ-Bar Skullcrusher
+    + Floor Press with Chains                  ← Floor Press with Chains
+    + Incline Barbell Triceps Extension        ← Incline Barbell Triceps Extension
+    + Incline Push-Up Close-Grip               ← Incline Push-Up Close-Grip
+    + Kneeling Cable Triceps Extension         ← Kneeling Cable Triceps Extension
+    + Low Cable Triceps Extension              ← Low Cable Triceps Extension
+    + Lying Close-Grip Barbell Triceps Extension Behind The Head ← Lying Close-Grip Barbell Triceps Extension Behind The Head
+    + Lying Close-Grip Barbell Triceps Press To Chin ← Lying Close-Grip Barbell Triceps Press To Chin
+    + Lying DB Tricep Extension                ← Lying Dumbbell Tricep Extension
+    + One Arm Floor Press                      ← One Arm Floor Press
+    + One Arm Pronated DB Triceps Extension    ← One Arm Pronated Dumbbell Triceps Extension
+    + One Arm Supinated DB Triceps Extension   ← One Arm Supinated Dumbbell Triceps Extension
+    + Parallel Bar Dip                         ← Parallel Bar Dip
+    + Pin Presses                              ← Pin Presses
+    + Push-Ups - Close Triceps Position        ← Push-Ups - Close Triceps Position
+    + Reverse Band Bench Press                 ← Reverse Band Bench Press
+    + Reverse Triceps Bench Press              ← Reverse Triceps Bench Press
+    + Ring Dips                                ← Ring Dips
+    + Seated Bent-Over One-Arm DB Triceps Extension ← Seated Bent-Over One-Arm Dumbbell Triceps Extension
+    + Seated Bent-Over Two-Arm DB Triceps Extension ← Seated Bent-Over Two-Arm Dumbbell Triceps Extension
+    + Seated Triceps Press                     ← Seated Triceps Press
+    + Sled Overhead Triceps Extension          ← Sled Overhead Triceps Extension
+    + Smith Machine Close-Grip Bench Press     ← Smith Machine Close-Grip Bench Press
+    + Speed Band Overhead Triceps              ← Speed Band Overhead Triceps
+    + Standing Bent-Over One-Arm DB Triceps Extension ← Standing Bent-Over One-Arm Dumbbell Triceps Extension
+    + Standing Bent-Over Two-Arm DB Triceps Extension ← Standing Bent-Over Two-Arm Dumbbell Triceps Extension
+    + Standing DB Triceps Extension            ← Standing Dumbbell Triceps Extension
+    + Standing Low-Pulley One-Arm Triceps Extension ← Standing Low-Pulley One-Arm Triceps Extension
+    + Standing Towel Triceps Extension         ← Standing Towel Triceps Extension
+    + Triceps Overhead Extension with Rope     ← Triceps Overhead Extension with Rope
+    + Weighted Bench Dip                       ← Weighted Bench Dip
+
+───────────────────────────────────────────────────────────────
+SERVER IMPACT: NONE
+  server/ai.js reads only .name and .muscle — unchanged
+  server/routes/coach.js — unchanged
+  SUBSTITUTIONS map — unchanged
+  Starter templates — unchanged
+  Workout history — unchanged (same exercise names)
+───────────────────────────────────────────────────────────────

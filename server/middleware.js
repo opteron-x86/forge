@@ -1,13 +1,14 @@
 // ═══════════════════════════════════════════════════════════════
 //  TALOS — Middleware
 //  Extracted from server.js monolith (Phase 2 audit, commit 7e055db)
+//  + PostgreSQL migration: async database layer
 //
 //  Handles: JWT auth, admin guard, IP rate limiting, AI quota.
 // ═══════════════════════════════════════════════════════════════
 
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import db from "./db.js";
+import { getDb } from "./db.js";
 
 // --- JWT Config ---
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
@@ -40,16 +41,18 @@ export function verifyToken(token) {
  * Require a valid JWT Bearer token.
  * Attaches req.user with { id, name, email, role, color, theme, is_active }.
  */
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Authentication required" });
   }
   try {
     const payload = verifyToken(header.slice(7));
-    const user = db.prepare(
-      "SELECT id, name, email, role, color, theme, is_active FROM users WHERE id = ?"
-    ).get(payload.id);
+    const db = getDb();
+    const user = await db.get(
+      "SELECT id, name, email, role, color, theme, is_active FROM users WHERE id = $1",
+      [payload.id]
+    );
     if (!user) return res.status(401).json({ error: "User not found" });
     if (!user.is_active) return res.status(403).json({ error: "Account deactivated" });
     req.user = user;
@@ -109,38 +112,45 @@ export function rateLimit(max, windowMs) {
  * Check per-user AI rate limits (daily + monthly).
  * Returns { allowed, remaining, reason }.
  */
-export function checkAIRateLimit(userId) {
+export async function checkAIRateLimit(userId) {
+  const db = getDb();
   const today = new Date().toISOString().split("T")[0];
   const monthStart = today.slice(0, 7) + "-01";
 
-  const dailyCount = db.prepare(`
-    SELECT COUNT(*) as count FROM analytics_events
-    WHERE user_id = ? AND event LIKE 'coach_%' AND created_at >= ?
-  `).get(userId, today + "T00:00:00").count;
+  const daily = await db.get(
+    "SELECT COUNT(*) as count FROM analytics_events WHERE user_id = $1 AND event LIKE 'coach_%' AND created_at >= $2",
+    [userId, today + "T00:00:00"]
+  );
 
-  const monthlyCount = db.prepare(`
-    SELECT COUNT(*) as count FROM analytics_events
-    WHERE user_id = ? AND event LIKE 'coach_%' AND created_at >= ?
-  `).get(userId, monthStart + "T00:00:00").count;
+  const monthly = await db.get(
+    "SELECT COUNT(*) as count FROM analytics_events WHERE user_id = $1 AND event LIKE 'coach_%' AND created_at >= $2",
+    [userId, monthStart + "T00:00:00"]
+  );
 
-  if (dailyCount >= AI_DAILY_LIMIT) {
+  if (daily.count >= AI_DAILY_LIMIT) {
     return { allowed: false, remaining: 0, reason: `Daily AI limit reached (${AI_DAILY_LIMIT}/day)` };
   }
-  if (monthlyCount >= AI_MONTHLY_LIMIT) {
+  if (monthly.count >= AI_MONTHLY_LIMIT) {
     return { allowed: false, remaining: 0, reason: `Monthly AI limit reached (${AI_MONTHLY_LIMIT}/month)` };
   }
-  return { allowed: true, remaining: AI_DAILY_LIMIT - dailyCount };
+  return { allowed: true, remaining: AI_DAILY_LIMIT - daily.count };
 }
 
 /**
  * Express middleware that blocks requests if AI quota is exceeded.
  */
-export function requireAIQuota(req, res, next) {
-  const check = checkAIRateLimit(req.user.id);
-  if (!check.allowed) {
-    return res.status(429).json({ error: check.reason, remaining: 0 });
+export async function requireAIQuota(req, res, next) {
+  try {
+    const check = await checkAIRateLimit(req.user.id);
+    if (!check.allowed) {
+      return res.status(429).json({ error: check.reason, remaining: 0 });
+    }
+    next();
+  } catch (e) {
+    console.error("AI quota check error:", e.message);
+    // Fail open — don't block the request if quota check fails
+    next();
   }
-  next();
 }
 
 // ===================== ROUTE ERROR WRAPPER =====================
@@ -148,21 +158,11 @@ export function requireAIQuota(req, res, next) {
 /**
  * Wraps an async (or sync) route handler in try/catch.
  * Catches thrown errors and sends a 500 JSON response.
- * (Audit item #10: Wrap route handlers in try/catch)
  */
 export function handler(fn) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     try {
-      const result = fn(req, res, next);
-      // Handle async handlers (Promises)
-      if (result && typeof result.catch === "function") {
-        result.catch((err) => {
-          console.error(`Route error [${req.method} ${req.path}]:`, err.message);
-          if (!res.headersSent) {
-            res.status(500).json({ error: "Internal server error" });
-          }
-        });
-      }
+      await fn(req, res, next);
     } catch (err) {
       console.error(`Route error [${req.method} ${req.path}]:`, err.message);
       if (!res.headersSent) {

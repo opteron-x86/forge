@@ -4,21 +4,24 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { Router } from "express";
-import db from "../db.js";
+import { getDb } from "../db.js";
 import { requireAuth, handler } from "../middleware.js";
 
 const router = Router();
 
-router.get("/", requireAuth, handler((req, res) => {
-  const workouts = db.prepare(
-    "SELECT * FROM workouts WHERE user_id = ? ORDER BY date ASC"
-  ).all(req.user.id);
+router.get("/", requireAuth, handler(async (req, res) => {
+  const db = getDb();
+  const workouts = await db.all(
+    "SELECT * FROM workouts WHERE user_id = $1 ORDER BY date ASC",
+    [req.user.id]
+  );
 
   // Build CSV
   const rows = [["Date", "Day", "Exercise", "Set", "Weight", "Reps", "RPE", "Notes", "Duration", "Feel"]];
 
   for (const w of workouts) {
-    const exercises = JSON.parse(w.exercises || "[]");
+    // Cross-compat: SQLite returns string, PG returns parsed object
+    const exercises = typeof w.exercises === "string" ? JSON.parse(w.exercises || "[]") : (w.exercises || []);
     if (exercises.length === 0) {
       rows.push([w.date, w.day_label || "", "", "", "", "", "", w.notes || "", w.duration || "", w.feel || ""]);
     } else {

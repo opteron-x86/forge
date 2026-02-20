@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 //  Δ TALOS — Server Entry Point
 //  Phase 2 decomposition (audit commit 7e055db)
+//  + PostgreSQL migration: async database layer
 //
 //  This file is the slim orchestrator. All business logic lives
 //  in server/ modules and server/routes/ route handlers.
@@ -15,11 +16,11 @@ import { dirname, join } from "path";
 
 dotenv.config();
 
-// --- Database (initializes schema, migrations, indexes on import) ---
-import db, { DB_PATH } from "./server/db.js";
+// --- Database (async init — must await before server starts) ---
+import { initDatabase, getDb, DB_PATH } from "./server/db.js";
 
-// --- AI provider (initializes on import) ---
-import { aiProvider } from "./server/ai.js";
+// --- AI provider (will be initialized after DB is ready) ---
+import { initAI, getAIProvider } from "./server/ai.js";
 
 // --- Route modules ---
 import authRoutes from "./server/routes/auth.js";
@@ -79,10 +80,11 @@ app.use("/api/export",           exportRoutes);
 
 // ===================== HEALTH & SPA FALLBACK =====================
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
   try {
-    db.prepare("SELECT 1").get();
-    res.json({ status: "ok", db: "connected" });
+    const db = getDb();
+    await db.get("SELECT 1 AS ok");
+    res.json({ status: "ok", db: "connected", type: db.type });
   } catch (e) {
     res.status(503).json({ status: "error", db: "disconnected" });
   }
@@ -92,31 +94,51 @@ if (process.env.NODE_ENV === "production") {
   app.get("*", (req, res) => res.sendFile(join(__dirname, "dist", "index.html")));
 }
 
-// ===================== STARTUP =====================
+// ===================== STARTUP (ASYNC) =====================
 
-app.listen(PORT, "0.0.0.0", () => {
-  const aiStatus = aiProvider ? `✅ ${aiProvider.providerName} (${aiProvider.modelName})` : "❌ Not configured";
-  const authStatus = process.env.ADMIN_EMAIL ? `Admin: ${process.env.ADMIN_EMAIL}` : "No admin email set";
-  console.log(`
+(async () => {
+  try {
+    // Initialize database (schema + migrations)
+    const db = await initDatabase();
+
+    // Initialize AI provider (needs DB for config)
+    await initAI();
+    const aiProvider = getAIProvider();
+
+    // Start server
+    const aiStatus = aiProvider ? `✅ ${aiProvider.providerName} (${aiProvider.modelName})` : "❌ Not configured";
+    const authStatus = process.env.ADMIN_EMAIL ? `Admin: ${process.env.ADMIN_EMAIL}` : "No admin email set";
+    const userCount = await db.get("SELECT COUNT(*) as c FROM users");
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`
 ┌────────────────────────────────────────┐
 │                                        │
 │   Δ TALOS                              │
-│   Gym Tracker v3.1 (Decomposed)        │
+│   Gym Tracker v3.2 (PG-Ready)         │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│
-│   DB: ${DB_PATH.padEnd(33)}│
+│   DB: ${String(DB_PATH).padEnd(33)}│
 │   AI: ${aiStatus.padEnd(33)}│
-│   Users: ${String(db.prepare("SELECT COUNT(*) as c FROM users").get().c).padEnd(29)}│
+│   Users: ${String(userCount.c).padEnd(29)}│
 │   Auth: ${authStatus.padEnd(30)}│
 │                                        │
 └────────────────────────────────────────┘`);
-});
+    });
+  } catch (err) {
+    console.error("Fatal startup error:", err);
+    process.exit(1);
+  }
+})();
 
 // ===================== GRACEFUL SHUTDOWN =====================
 
-function shutdown(signal) {
+async function shutdown(signal) {
   console.log(`\n⏹  ${signal} received — shutting down gracefully...`);
-  try { db.close(); } catch (e) { /* already closed */ }
+  try {
+    const db = getDb();
+    await db.close();
+  } catch (e) { /* already closed or not initialized */ }
   process.exit(0);
 }
 process.on("SIGTERM", () => shutdown("SIGTERM"));

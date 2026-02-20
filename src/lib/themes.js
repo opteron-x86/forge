@@ -32,9 +32,9 @@ export const THEMES = {
     },
   },
 
-  breeze: {
-    id: "breeze",
-    name: "Breeze",
+  frost: {
+    id: "frost",
+    name: "Frost",
     description: "Cool light theme with blue accent",
     preview: { bg: "#f5f7fa", accent: "#2563eb", surface: "#ffffff" },
     vars: {
@@ -61,9 +61,9 @@ export const THEMES = {
     },
   },
 
-  "breeze-dark": {
-    id: "breeze-dark",
-    name: "Breeze Dark",
+  "nord": {
+    id: "nord",
+    name: "Nord",
     description: "Cool dark theme with blue accent",
     preview: { bg: "#0f172a", accent: "#3b82f6", surface: "#1e293b" },
     vars: {

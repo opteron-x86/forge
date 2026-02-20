@@ -1,7 +1,7 @@
 ═══════════════════════════════════════════════════════════════
   TALOS Exercise Library — Build Report
-  Generated: 2026-02-20T19:56:08.847Z
-  Mode: FULL APPLY
+  Generated: 2026-02-20T20:58:12.906Z
+  Mode: DB ONLY
 ═══════════════════════════════════════════════════════════════
 
 SUMMARY

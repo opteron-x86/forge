@@ -9,6 +9,8 @@ import ExercisePicker from "../components/ExercisePicker";
 import RestTimer from "../components/RestTimer";
 import api from "../lib/api";
 import S from "../lib/styles";
+import useExerciseInfo from "../components/useExerciseInfo";
+import ExerciseInfoBtn from "../components/ExerciseInfoBtn";
 
 export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard }) {
   const { workouts, profile, customExercises, aiConfig } = useTalos();
@@ -17,6 +19,27 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
   const [showPicker, setShowPicker] = useState(false);
   const [pickerTarget, setPickerTarget] = useState(null);
   const [subModal, setSubModal] = useState(null);
+
+  // Exercise info modal — shows images, instructions, muscles, substitutions
+  const { showInfo, infoModal } = useExerciseInfo({
+    onSwap: (oldName, newName) => {
+      const ei = workout.exercises.findIndex(e => e.name === oldName);
+      if (ei === -1) return;
+      const last = getLastPerformance(newName);
+      setWorkout(p => {
+        const n = JSON.parse(JSON.stringify(p));
+        n.exercises[ei].name = newName;
+        n.exercises[ei].notes = `(subbed for ${oldName})`;
+        if (last?.sets) {
+          n.exercises[ei].sets = n.exercises[ei].sets.map((s, i) => ({
+            ...s,
+            weight: last.sets[Math.min(i, last.sets.length - 1)]?.weight || s.weight,
+          }));
+        }
+        return n;
+      });
+    }
+  });
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.round((Date.now() - workout.startTime) / 60000)), 10000);
@@ -265,7 +288,10 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
           <div key={ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
+                  <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
+                </div>
                 {last && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
                 {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 2 }}>{ex.notes}</div>}
               </div>
@@ -323,6 +349,9 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
           onCancel={() => setRestTimer(null)}
         />
       )}
+
+      {/* Exercise info modal (images, instructions, swap) */}
+      {infoModal}
     </div>
   );
 }

@@ -1,0 +1,3141 @@
+{
+  "summary": {
+    "talos_total": 350,
+    "freeDb_total": 541,
+    "matched": 172,
+    "unmatched_talos": 178,
+    "new_from_freeDb": 0,
+    "substitution_pairs": 400
+  },
+  "matches": [
+    {
+      "talos_name": "Bench Press",
+      "freeDb_name": "Barbell Bench Press - Medium Grip",
+      "freeDb_id": "Barbell_Bench_Press_-_Medium_Grip",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Incline Bench Press",
+      "freeDb_name": "Barbell Incline Bench Press - Medium Grip",
+      "freeDb_id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Decline Bench Press",
+      "freeDb_name": "Decline Barbell Bench Press",
+      "freeDb_id": "Decline_Barbell_Bench_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Close-Grip Bench",
+      "freeDb_name": "Close-Grip Barbell Bench Press",
+      "freeDb_id": "Close-Grip_Barbell_Bench_Press",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Wide-Grip Bench Press",
+      "freeDb_name": "Wide-Grip Barbell Bench Press",
+      "freeDb_id": "Wide-Grip_Barbell_Bench_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Floor Press",
+      "freeDb_name": "Dumbbell Floor Press",
+      "freeDb_id": "Dumbbell_Floor_Press",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Pin Press",
+      "freeDb_name": "Pin Presses",
+      "freeDb_id": "Pin_Presses",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Guillotine Press",
+      "freeDb_name": "Barbell Guillotine Bench Press",
+      "freeDb_id": "Barbell_Guillotine_Bench_Press",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Bench Press",
+      "freeDb_name": "Dumbbell Bench Press",
+      "freeDb_id": "Dumbbell_Bench_Press",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Flat DB Press",
+      "freeDb_name": "Standing Dumbbell Press",
+      "freeDb_id": "Standing_Dumbbell_Press",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Incline DB Press",
+      "freeDb_name": "Incline Dumbbell Press",
+      "freeDb_id": "Incline_Dumbbell_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Decline DB Press",
+      "freeDb_name": "Decline Dumbbell Bench Press",
+      "freeDb_id": "Decline_Dumbbell_Bench_Press",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Floor Press",
+      "freeDb_name": "Floor Press",
+      "freeDb_id": "Floor_Press",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Fly",
+      "freeDb_name": "Dumbbell Flyes",
+      "freeDb_id": "Dumbbell_Flyes",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Incline DB Fly",
+      "freeDb_name": "Incline Dumbbell Flyes",
+      "freeDb_id": "Incline_Dumbbell_Flyes",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Decline DB Fly",
+      "freeDb_name": "Decline Dumbbell Flyes",
+      "freeDb_id": "Decline_Dumbbell_Flyes",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Pullover",
+      "freeDb_name": "Bent-Arm Dumbbell Pullover",
+      "freeDb_id": "Bent-Arm_Dumbbell_Pullover",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Cable Fly (Mid)",
+      "freeDb_name": "Cable Crossover",
+      "freeDb_id": "Cable_Crossover",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Cable Crossover",
+      "freeDb_name": "Single-Arm Cable Crossover",
+      "freeDb_id": "Single-Arm_Cable_Crossover",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Cable Chest Press",
+      "freeDb_name": "Cable Chest Press",
+      "freeDb_id": "Cable_Chest_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Decline Machine Press",
+      "freeDb_name": "Smith Machine Decline Press",
+      "freeDb_id": "Smith_Machine_Decline_Press",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": null
+      }
+    },
+    {
+      "talos_name": "Pec Deck Machine",
+      "freeDb_name": "Butterfly",
+      "freeDb_id": "Butterfly",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Machine Fly",
+      "freeDb_name": "Reverse Machine Flyes",
+      "freeDb_id": "Reverse_Machine_Flyes",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Smith Machine Bench Press",
+      "freeDb_name": "Smith Machine Bench Press",
+      "freeDb_id": "Smith_Machine_Bench_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Smith Machine Incline Press",
+      "freeDb_name": "Smith Machine Incline Bench Press",
+      "freeDb_id": "Smith_Machine_Incline_Bench_Press",
+      "score": 0.8,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Push-ups",
+      "freeDb_name": "Pushups",
+      "freeDb_id": "Pushups",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Incline Push-ups",
+      "freeDb_name": "Incline Push-Up",
+      "freeDb_id": "Incline_Push-Up",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Decline Push-ups",
+      "freeDb_name": "Decline Push-Up",
+      "freeDb_id": "Decline_Push-Up",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Dips (Chest)",
+      "freeDb_name": "Dips - Chest Version",
+      "freeDb_id": "Dips_-_Chest_Version",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Conventional Deadlift",
+      "freeDb_name": "Barbell Deadlift",
+      "freeDb_id": "Barbell_Deadlift",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Sumo Deadlift",
+      "freeDb_name": "Sumo Deadlift",
+      "freeDb_id": "Sumo_Deadlift",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Trap Bar Deadlift",
+      "freeDb_name": "Trap Bar Deadlift",
+      "freeDb_id": "Trap_Bar_Deadlift",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Deficit Deadlift",
+      "freeDb_name": "Deficit Deadlift",
+      "freeDb_id": "Deficit_Deadlift",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Rack Pull",
+      "freeDb_name": "Rack Pulls",
+      "freeDb_id": "Rack_Pulls",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Row",
+      "freeDb_name": "Bent Over Barbell Row",
+      "freeDb_id": "Bent_Over_Barbell_Row",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "T-Bar Row",
+      "freeDb_name": "Lying T-Bar Row",
+      "freeDb_id": "Lying_T-Bar_Row",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Shrug",
+      "freeDb_name": "Barbell Shrug",
+      "freeDb_id": "Barbell_Shrug",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Pullover",
+      "freeDb_name": "Bent-Arm Barbell Pullover",
+      "freeDb_id": "Bent-Arm_Barbell_Pullover",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Good Morning",
+      "freeDb_name": "Good Morning",
+      "freeDb_id": "Good_Morning",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "One-Arm DB Row",
+      "freeDb_name": "One-Arm Dumbbell Row",
+      "freeDb_id": "One-Arm_Dumbbell_Row",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Incline DB Row",
+      "freeDb_name": "Dumbbell Incline Row",
+      "freeDb_id": "Dumbbell_Incline_Row",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Shrug",
+      "freeDb_name": "Dumbbell Shrug",
+      "freeDb_id": "Dumbbell_Shrug",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Renegade Row",
+      "freeDb_name": "Alternating Renegade Row",
+      "freeDb_id": "Alternating_Renegade_Row",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Behind the Neck Pulldown",
+      "freeDb_name": "Wide-Grip Pulldown Behind The Neck",
+      "freeDb_id": "Wide-Grip_Pulldown_Behind_The_Neck",
+      "score": 0.8,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Shrug",
+      "freeDb_name": "Cable Shrugs",
+      "freeDb_id": "Cable_Shrugs",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Face Pull",
+      "freeDb_name": "Face Pull",
+      "freeDb_id": "Face_Pull",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Smith Machine Row",
+      "freeDb_name": "Smith Machine Upright Row",
+      "freeDb_id": "Smith_Machine_Upright_Row",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Reverse Hyper",
+      "freeDb_name": "Reverse Hyperextension",
+      "freeDb_id": "Reverse_Hyperextension",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Pull-ups",
+      "freeDb_name": "Pullups",
+      "freeDb_id": "Pullups",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Chin-ups",
+      "freeDb_name": "Chin-Up",
+      "freeDb_id": "Chin-Up",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Inverted Row",
+      "freeDb_name": "Inverted Row",
+      "freeDb_id": "Inverted_Row",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Back Extension",
+      "freeDb_name": "Hyperextensions Back Extensions",
+      "freeDb_id": "Hyperextensions_Back_Extensions",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Hyperextension",
+      "freeDb_name": "Hyperextensions With No Hyperextension Bench",
+      "freeDb_id": "Hyperextensions_With_No_Hyperextension_Bench",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Overhead Press",
+      "freeDb_name": "Barbell Shoulder Press",
+      "freeDb_id": "Barbell_Shoulder_Press",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Push Press",
+      "freeDb_name": "Push Press",
+      "freeDb_id": "Push_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": false,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Behind the Neck Press",
+      "freeDb_name": "Neck Press",
+      "freeDb_id": "Neck_Press",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Bradford Press",
+      "freeDb_name": "Standing Bradford Press",
+      "freeDb_id": "Standing_Bradford_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Front Raise",
+      "freeDb_name": "Standing Front Barbell Raise Over Head",
+      "freeDb_id": "Standing_Front_Barbell_Raise_Over_Head",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Upright Row",
+      "freeDb_name": "Upright Barbell Row",
+      "freeDb_id": "Upright_Barbell_Row",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Seated DB Shoulder Press",
+      "freeDb_name": "Dumbbell Shoulder Press",
+      "freeDb_id": "Dumbbell_Shoulder_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Arnold Press",
+      "freeDb_name": "Arnold Dumbbell Press",
+      "freeDb_id": "Arnold_Dumbbell_Press",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Front Raise",
+      "freeDb_name": "Front Dumbbell Raise",
+      "freeDb_id": "Front_Dumbbell_Raise",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Seated Reverse Fly",
+      "freeDb_name": "Reverse Flyes",
+      "freeDb_id": "Reverse_Flyes",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Standing Reverse Fly",
+      "freeDb_name": "Reverse Flyes With External Rotation",
+      "freeDb_id": "Reverse_Flyes_With_External_Rotation",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Upright Row",
+      "freeDb_name": "Dumbbell One-Arm Upright Row",
+      "freeDb_id": "Dumbbell_One-Arm_Upright_Row",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Lateral Raise",
+      "freeDb_name": "Cable Seated Lateral Raise",
+      "freeDb_id": "Cable_Seated_Lateral_Raise",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Front Raise",
+      "freeDb_name": "Front Cable Raise",
+      "freeDb_id": "Front_Cable_Raise",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Cable Rear Delt Fly",
+      "freeDb_name": "Cable Rear Delt Fly",
+      "freeDb_id": "Cable_Rear_Delt_Fly",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Upright Row",
+      "freeDb_name": "Upright Cable Row",
+      "freeDb_id": "Upright_Cable_Row",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Machine Shoulder Press",
+      "freeDb_name": "Machine Shoulder Military Press",
+      "freeDb_id": "Machine_Shoulder_Military_Press",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Smith Machine Overhead Press",
+      "freeDb_name": "Smith Machine Overhead Shoulder Press",
+      "freeDb_id": "Smith_Machine_Overhead_Shoulder_Press",
+      "score": 0.8,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Handstand Push-ups",
+      "freeDb_name": "Handstand Push-Ups",
+      "freeDb_id": "Handstand_Push-Ups",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Back Squat",
+      "freeDb_name": "Barbell Squat",
+      "freeDb_id": "Barbell_Squat",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Front Squat",
+      "freeDb_name": "Front Barbell Squat",
+      "freeDb_id": "Front_Barbell_Squat",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Box Squat",
+      "freeDb_name": "Box Squat",
+      "freeDb_id": "Box_Squat",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Pause Squat",
+      "freeDb_name": "Bodyweight Squat",
+      "freeDb_id": "Bodyweight_Squat",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Zercher Squat",
+      "freeDb_name": "Zercher Squats",
+      "freeDb_id": "Zercher_Squats",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Lunge",
+      "freeDb_name": "Barbell Lunge",
+      "freeDb_id": "Barbell_Lunge",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Walking Lunge (Barbell)",
+      "freeDb_name": "Barbell Walking Lunge",
+      "freeDb_id": "Barbell_Walking_Lunge",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Step-up",
+      "freeDb_name": "Barbell Step Ups",
+      "freeDb_id": "Barbell_Step_Ups",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Overhead Squat",
+      "freeDb_name": "Overhead Squat",
+      "freeDb_id": "Overhead_Squat",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Goblet Squat",
+      "freeDb_name": "Goblet Squat",
+      "freeDb_id": "Goblet_Squat",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Lunge",
+      "freeDb_name": "Dumbbell Lunges",
+      "freeDb_id": "Dumbbell_Lunges",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Walking Lunge",
+      "freeDb_name": "Bodyweight Walking Lunge",
+      "freeDb_id": "Bodyweight_Walking_Lunge",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Squat",
+      "freeDb_name": "Dumbbell Squat",
+      "freeDb_id": "Dumbbell_Squat",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Leg Press",
+      "freeDb_name": "Leg Press",
+      "freeDb_id": "Leg_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Narrow Stance Leg Press",
+      "freeDb_name": "Narrow Stance Leg Press",
+      "freeDb_id": "Narrow_Stance_Leg_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Hack Squat",
+      "freeDb_name": "Hack Squat",
+      "freeDb_id": "Hack_Squat",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Leg Extension",
+      "freeDb_name": "Leg Extensions",
+      "freeDb_id": "Leg_Extensions",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Smith Machine Squat",
+      "freeDb_name": "Smith Machine Squat",
+      "freeDb_id": "Smith_Machine_Squat",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Bodyweight Squat",
+      "freeDb_name": "Bodyweight Squat",
+      "freeDb_id": "Bodyweight_Squat",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Pistol Squat",
+      "freeDb_name": "Kettlebell Pistol Squat",
+      "freeDb_id": "Kettlebell_Pistol_Squat",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Sissy Squat",
+      "freeDb_name": "Weighted Sissy Squat",
+      "freeDb_id": "Weighted_Sissy_Squat",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Jump Squat",
+      "freeDb_name": "Freehand Jump Squat",
+      "freeDb_id": "Freehand_Jump_Squat",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Bodyweight Lunge",
+      "freeDb_name": "Dumbbell Rear Lunge",
+      "freeDb_id": "Dumbbell_Rear_Lunge",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Box Jump",
+      "freeDb_name": "Box Jump Multiple Response",
+      "freeDb_id": "Box_Jump_Multiple_Response",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Romanian Deadlift",
+      "freeDb_name": "Romanian Deadlift",
+      "freeDb_id": "Romanian_Deadlift",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Good Morning",
+      "freeDb_name": "Stiff Leg Barbell Good Morning",
+      "freeDb_id": "Stiff_Leg_Barbell_Good_Morning",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Hip Thrust",
+      "freeDb_name": "Barbell Hip Thrust",
+      "freeDb_id": "Barbell_Hip_Thrust",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Cable Leg Curl",
+      "freeDb_name": "Seated Leg Curl",
+      "freeDb_id": "Seated_Leg_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Seated Leg Curl",
+      "freeDb_name": "Standing Leg Curl",
+      "freeDb_id": "Standing_Leg_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Lying Leg Curl",
+      "freeDb_name": "Lying Leg Curls",
+      "freeDb_id": "Lying_Leg_Curls",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Standing Leg Curl",
+      "freeDb_name": "Barbell Curl",
+      "freeDb_id": "Barbell_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Glute-Ham Raise",
+      "freeDb_name": "Floor Glute-Ham Raise",
+      "freeDb_id": "Floor_Glute-Ham_Raise",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Single-Leg Glute Bridge",
+      "freeDb_name": "Barbell Glute Bridge",
+      "freeDb_id": "Barbell_Glute_Bridge",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Kettlebell Swing",
+      "freeDb_name": "One-Arm Kettlebell Swings",
+      "freeDb_id": "One-Arm_Kettlebell_Swings",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": false,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Glute Bridge",
+      "freeDb_name": "Single Leg Glute Bridge",
+      "freeDb_id": "Single_Leg_Glute_Bridge",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Cable Kickback",
+      "freeDb_name": "One-Legged Cable Kickback",
+      "freeDb_id": "One-Legged_Cable_Kickback",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Curl",
+      "freeDb_name": "Barbell Curl",
+      "freeDb_id": "Barbell_Curl",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "EZ-Bar Curl",
+      "freeDb_name": "Barbell Curl",
+      "freeDb_id": "Barbell_Curl",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Reverse Barbell Curl",
+      "freeDb_name": "Reverse Barbell Curl",
+      "freeDb_id": "Reverse_Barbell_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "EZ-Bar Spider Curl",
+      "freeDb_name": "Spider Curl",
+      "freeDb_id": "Spider_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Drag Curl",
+      "freeDb_name": "Drag Curl",
+      "freeDb_id": "Drag_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Curl",
+      "freeDb_name": "Seated Dumbbell Curl",
+      "freeDb_id": "Seated_Dumbbell_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Hammer Curl",
+      "freeDb_name": "Alternate Hammer Curl",
+      "freeDb_id": "Alternate_Hammer_Curl",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Incline DB Curl",
+      "freeDb_name": "Alternate Incline Dumbbell Curl",
+      "freeDb_id": "Alternate_Incline_Dumbbell_Curl",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Preacher Curl (DB)",
+      "freeDb_name": "Preacher Curl",
+      "freeDb_id": "Preacher_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Concentration Curl",
+      "freeDb_name": "Standing Concentration Curl",
+      "freeDb_id": "Standing_Concentration_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Zottman Curl",
+      "freeDb_name": "Zottman Curl",
+      "freeDb_id": "Zottman_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Seated DB Curl",
+      "freeDb_name": "Preacher Hammer Dumbbell Curl",
+      "freeDb_id": "Preacher_Hammer_Dumbbell_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Reverse Curl",
+      "freeDb_name": "Standing Dumbbell Reverse Curl",
+      "freeDb_id": "Standing_Dumbbell_Reverse_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Curl",
+      "freeDb_name": "Standing Biceps Cable Curl",
+      "freeDb_id": "Standing_Biceps_Cable_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Hammer Curl",
+      "freeDb_name": "Cable Hammer Curls - Rope Attachment",
+      "freeDb_id": "Cable_Hammer_Curls_-_Rope_Attachment",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "High Cable Curl",
+      "freeDb_name": "High Cable Curls",
+      "freeDb_id": "High_Cable_Curls",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Preacher Curl",
+      "freeDb_name": "Cable Preacher Curl",
+      "freeDb_id": "Cable_Preacher_Curl",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Preacher Curl",
+      "freeDb_name": "Preacher Curl",
+      "freeDb_id": "Preacher_Curl",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Machine Preacher Curl",
+      "freeDb_name": "Machine Preacher Curls",
+      "freeDb_id": "Machine_Preacher_Curls",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Skull Crushers",
+      "freeDb_name": "Lying Triceps Press",
+      "freeDb_id": "Lying_Triceps_Press",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Close-Grip Bench Press",
+      "freeDb_name": "Smith Machine Close-Grip Bench Press",
+      "freeDb_id": "Smith_Machine_Close-Grip_Bench_Press",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "JM Press",
+      "freeDb_name": "JM Press",
+      "freeDb_id": "JM_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Overhead Extension",
+      "freeDb_name": "Triceps Overhead Extension with Rope",
+      "freeDb_id": "Triceps_Overhead_Extension_with_Rope",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Kickback",
+      "freeDb_name": "Tricep Dumbbell Kickback",
+      "freeDb_id": "Tricep_Dumbbell_Kickback",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Tate Press",
+      "freeDb_name": "Tate Press",
+      "freeDb_id": "Tate_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Close-Grip Press",
+      "freeDb_name": "Close-Grip Dumbbell Press",
+      "freeDb_id": "Close-Grip_Dumbbell_Press",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Reverse Grip Pushdown",
+      "freeDb_name": "Reverse Grip Triceps Pushdown",
+      "freeDb_id": "Reverse_Grip_Triceps_Pushdown",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Machine Dip",
+      "freeDb_name": "Dip Machine",
+      "freeDb_id": "Dip_Machine",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Dips (Triceps)",
+      "freeDb_name": "Dips - Triceps Version",
+      "freeDb_id": "Dips_-_Triceps_Version",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Bench Dips",
+      "freeDb_name": "Bench Dips",
+      "freeDb_id": "Bench_Dips",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Seated Calf Raise",
+      "freeDb_name": "Barbell Seated Calf Raise",
+      "freeDb_id": "Barbell_Seated_Calf_Raise",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Standing Calf Raise Machine",
+      "freeDb_name": "Standing Barbell Calf Raise",
+      "freeDb_id": "Standing_Barbell_Calf_Raise",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Donkey Calf Raise",
+      "freeDb_name": "Donkey Calf Raises",
+      "freeDb_id": "Donkey_Calf_Raises",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Smith Machine Calf Raise",
+      "freeDb_name": "Smith Machine Calf Raise",
+      "freeDb_id": "Smith_Machine_Calf_Raise",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "DB Standing Calf Raise",
+      "freeDb_name": "Standing Dumbbell Calf Raise",
+      "freeDb_id": "Standing_Dumbbell_Calf_Raise",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Barbell Standing Calf Raise",
+      "freeDb_name": "Standing Calf Raises",
+      "freeDb_id": "Standing_Calf_Raises",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Bodyweight Calf Raise",
+      "freeDb_name": "Calf Raise On A Dumbbell",
+      "freeDb_id": "Calf_Raise_On_A_Dumbbell",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Crunch",
+      "freeDb_name": "Crunches",
+      "freeDb_id": "Crunches",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Sit-up",
+      "freeDb_name": "Sit-Up",
+      "freeDb_id": "Sit-Up",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Reverse Crunch",
+      "freeDb_name": "Reverse Crunch",
+      "freeDb_id": "Reverse_Crunch",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Leg Raise",
+      "freeDb_name": "Flat Bench Lying Leg Raise",
+      "freeDb_id": "Flat_Bench_Lying_Leg_Raise",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Hanging Leg Raise",
+      "freeDb_name": "Hanging Leg Raise",
+      "freeDb_id": "Hanging_Leg_Raise",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Plank",
+      "freeDb_name": "Plank",
+      "freeDb_id": "Plank",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "static"
+      }
+    },
+    {
+      "talos_name": "Side Plank",
+      "freeDb_name": "Push Up to Side Plank",
+      "freeDb_id": "Push_Up_to_Side_Plank",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "push"
+      }
+    },
+    {
+      "talos_name": "Mountain Climber",
+      "freeDb_name": "Mountain Climbers",
+      "freeDb_id": "Mountain_Climbers",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Dead Bug",
+      "freeDb_name": "Dead Bug",
+      "freeDb_id": "Dead_Bug",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Flutter Kick",
+      "freeDb_name": "Flutter Kicks",
+      "freeDb_id": "Flutter_Kicks",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Superman",
+      "freeDb_name": "Superman",
+      "freeDb_id": "Superman",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "static"
+      }
+    },
+    {
+      "talos_name": "Ab Wheel Rollout",
+      "freeDb_name": "Ab Roller",
+      "freeDb_id": "Ab_Roller",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Crunch",
+      "freeDb_name": "Cable Crunch",
+      "freeDb_id": "Cable_Crunch",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Pallof Press",
+      "freeDb_name": "Pallof Press",
+      "freeDb_id": "Pallof_Press",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Cable Side Bend",
+      "freeDb_name": "One-Arm High-Pulley Cable Side Bends",
+      "freeDb_id": "One-Arm_High-Pulley_Cable_Side_Bends",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Ab Machine Crunch",
+      "freeDb_name": "Ab Crunch Machine",
+      "freeDb_id": "Ab_Crunch_Machine",
+      "score": 1,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Side Bend",
+      "freeDb_name": "Dumbbell Side Bend",
+      "freeDb_id": "Dumbbell_Side_Bend",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Russian Twist",
+      "freeDb_name": "Russian Twist",
+      "freeDb_id": "Russian_Twist",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Barbell Rollout",
+      "freeDb_name": "Barbell Ab Rollout - On Knees",
+      "freeDb_id": "Barbell_Ab_Rollout_-_On_Knees",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "expert",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Medicine Ball Slam",
+      "freeDb_name": "One-Arm Medicine Ball Slam",
+      "freeDb_id": "One-Arm_Medicine_Ball_Slam",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Medicine Ball Russian Twist",
+      "freeDb_name": "Seated Barbell Twist",
+      "freeDb_id": "Seated_Barbell_Twist",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Wrist Curl",
+      "freeDb_name": "Palms-Up Barbell Wrist Curl Over A Bench",
+      "freeDb_id": "Palms-Up_Barbell_Wrist_Curl_Over_A_Bench",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Behind the Back Wrist Curl",
+      "freeDb_name": "Standing Palms-Up Barbell Behind The Back Wrist Curl",
+      "freeDb_id": "Standing_Palms-Up_Barbell_Behind_The_Back_Wrist_Curl",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "DB Wrist Curl",
+      "freeDb_name": "Seated Dumbbell Palms-Up Wrist Curl",
+      "freeDb_id": "Seated_Dumbbell_Palms-Up_Wrist_Curl",
+      "score": 0.75,
+      "type": "fuzzy",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Farmer's Walk",
+      "freeDb_name": "Farmers Walk",
+      "freeDb_id": "Farmers_Walk",
+      "score": 1,
+      "type": "exact",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": null
+      }
+    },
+    {
+      "talos_name": "Cable Wrist Curl",
+      "freeDb_name": "Cable Wrist Curl",
+      "freeDb_id": "Cable_Wrist_Curl",
+      "score": 1,
+      "type": "manual",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "beginner",
+        "force": "pull"
+      }
+    },
+    {
+      "talos_name": "Plate Pinch Hold",
+      "freeDb_name": "Plate Pinch",
+      "freeDb_id": "Plate_Pinch",
+      "score": 0.9,
+      "type": "contains",
+      "enrichment": {
+        "has_instructions": true,
+        "has_images": true,
+        "level": "intermediate",
+        "force": "static"
+      }
+    }
+  ],
+  "unmatched_talos": [
+    {
+      "name": "Larsen Press",
+      "muscle": "chest",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Spoto Press",
+      "muscle": "chest",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Reverse Grip Bench Press",
+      "muscle": "chest",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Squeeze Press",
+      "muscle": "chest",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Single-Arm DB Bench Press",
+      "muscle": "chest",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Cable Fly (High to Low)",
+      "muscle": "chest",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cable Fly (Low to High)",
+      "muscle": "chest",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Arm Cable Fly",
+      "muscle": "chest",
+      "equipment": "cable"
+    },
+    {
+      "name": "Machine Chest Press",
+      "muscle": "chest",
+      "equipment": "machine"
+    },
+    {
+      "name": "Incline Machine Press",
+      "muscle": "chest",
+      "equipment": "machine"
+    },
+    {
+      "name": "Iso-Lateral Chest Press",
+      "muscle": "chest",
+      "equipment": "machine"
+    },
+    {
+      "name": "Iso-Lateral Incline Press",
+      "muscle": "chest",
+      "equipment": "machine"
+    },
+    {
+      "name": "Diamond Push-ups",
+      "muscle": "chest",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Wide Push-ups",
+      "muscle": "chest",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Weighted Dips (Chest)",
+      "muscle": "chest",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Block Pull",
+      "muscle": "back",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Pendlay Row",
+      "muscle": "back",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Meadows Row",
+      "muscle": "back",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Seal Row",
+      "muscle": "back",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Yates Row",
+      "muscle": "back",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Snatch Grip Deadlift",
+      "muscle": "back",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Chest Supported Row",
+      "muscle": "back",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Kroc Row",
+      "muscle": "back",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Pullover (Back)",
+      "muscle": "back",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Reverse Fly (Back)",
+      "muscle": "back",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Helms Row",
+      "muscle": "back",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Neutral Grip Cable Row",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Wide Grip Cable Row",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Close Grip Cable Row",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Arm Cable Row",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Wide Grip Lat Pulldown",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Close Grip Lat Pulldown",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Neutral Grip Lat Pulldown",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Reverse Grip Lat Pulldown",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Arm Lat Pulldown",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Straight Arm Pulldown",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cable Pullover",
+      "muscle": "back",
+      "equipment": "cable"
+    },
+    {
+      "name": "Machine Row",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Iso-Lateral Row",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Iso-Lateral High Row",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Iso-Lateral Low Row",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Machine Lat Pulldown",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Assisted Pull-up Machine",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Machine Shrug",
+      "muscle": "back",
+      "equipment": "machine"
+    },
+    {
+      "name": "Pull-ups (Neutral Grip)",
+      "muscle": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Pull-ups (Wide Grip)",
+      "muscle": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Weighted Pull-ups",
+      "muscle": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Weighted Chin-ups",
+      "muscle": "back",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Z Press",
+      "muscle": "shoulders",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Viking Press",
+      "muscle": "shoulders",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Standing DB Shoulder Press",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Lateral Raise",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Incline Reverse Fly",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Shrug (Shoulders)",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Lu Raise",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Prone Y Raise",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Leaning DB Lateral Raise",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB W Press",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Single-Arm DB Lateral Raise",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Bus Driver Raise",
+      "muscle": "shoulders",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Cable Y Raise",
+      "muscle": "shoulders",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Arm Cable Lateral Raise",
+      "muscle": "shoulders",
+      "equipment": "cable"
+    },
+    {
+      "name": "Iso-Lateral Shoulder Press",
+      "muscle": "shoulders",
+      "equipment": "machine"
+    },
+    {
+      "name": "Machine Lateral Raise",
+      "muscle": "shoulders",
+      "equipment": "machine"
+    },
+    {
+      "name": "Reverse Pec Deck",
+      "muscle": "shoulders",
+      "equipment": "machine"
+    },
+    {
+      "name": "Smith Machine Behind Neck Press",
+      "muscle": "shoulders",
+      "equipment": "machine"
+    },
+    {
+      "name": "Pike Push-ups",
+      "muscle": "shoulders",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Pin Squat",
+      "muscle": "quads",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Tempo Squat",
+      "muscle": "quads",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Safety Bar Squat",
+      "muscle": "quads",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Barbell Bulgarian Split Squat",
+      "muscle": "quads",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Reverse Lunge",
+      "muscle": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Bulgarian Split Squat",
+      "muscle": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Step-up",
+      "muscle": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Split Squat",
+      "muscle": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Lateral Lunge",
+      "muscle": "quads",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Single-Leg Leg Press",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Wide Stance Leg Press",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Reverse Hack Squat",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "V-Squat Machine",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Single-Leg Extension",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Smith Machine Front Squat",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Smith Machine Lunge",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Belt Squat",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Pendulum Squat",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Sissy Squat Machine",
+      "muscle": "quads",
+      "equipment": "machine"
+    },
+    {
+      "name": "Wall Sit",
+      "muscle": "quads",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Stiff-Leg Deadlift",
+      "muscle": "hamstrings",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Romanian Deadlift",
+      "muscle": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Stiff-Leg Deadlift",
+      "muscle": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Single-Leg DB RDL",
+      "muscle": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Good Morning",
+      "muscle": "hamstrings",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Cable Pull-Through",
+      "muscle": "hamstrings",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cable Romanian Deadlift",
+      "muscle": "hamstrings",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Leg Curl",
+      "muscle": "hamstrings",
+      "equipment": "machine"
+    },
+    {
+      "name": "Nordic Hamstring Curl",
+      "muscle": "hamstrings",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Slider Leg Curl",
+      "muscle": "hamstrings",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Hip Thrust",
+      "muscle": "glutes",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Sumo Squat",
+      "muscle": "glutes",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Hip Thrust",
+      "muscle": "glutes",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Frog Pump",
+      "muscle": "glutes",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Sumo Squat",
+      "muscle": "glutes",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Cable Hip Abduction",
+      "muscle": "glutes",
+      "equipment": "cable"
+    },
+    {
+      "name": "Hip Thrust Machine",
+      "muscle": "glutes",
+      "equipment": "machine"
+    },
+    {
+      "name": "Glute Drive Machine",
+      "muscle": "glutes",
+      "equipment": "machine"
+    },
+    {
+      "name": "Hip Abduction Machine",
+      "muscle": "glutes",
+      "equipment": "machine"
+    },
+    {
+      "name": "Hip Adduction Machine",
+      "muscle": "glutes",
+      "equipment": "machine"
+    },
+    {
+      "name": "Glute Bridge",
+      "muscle": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Donkey Kick",
+      "muscle": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Fire Hydrant",
+      "muscle": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Clamshell",
+      "muscle": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Frog Pump",
+      "muscle": "glutes",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Banded Walk",
+      "muscle": "glutes",
+      "equipment": "other"
+    },
+    {
+      "name": "Banded Clamshell",
+      "muscle": "glutes",
+      "equipment": "other"
+    },
+    {
+      "name": "Banded Hip Thrust",
+      "muscle": "glutes",
+      "equipment": "other"
+    },
+    {
+      "name": "Kettlebell Sumo Squat",
+      "muscle": "glutes",
+      "equipment": "other"
+    },
+    {
+      "name": "Wide Grip Barbell Curl",
+      "muscle": "biceps",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Close Grip Barbell Curl",
+      "muscle": "biceps",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Barbell 21s",
+      "muscle": "biceps",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Cross-Body Hammer Curl",
+      "muscle": "biceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Spider Curl",
+      "muscle": "biceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Alternating DB Curl",
+      "muscle": "biceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Drag Curl",
+      "muscle": "biceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Waiter Curl",
+      "muscle": "biceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Cable Rope Curl",
+      "muscle": "biceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cable Bayesian Curl",
+      "muscle": "biceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Arm Cable Curl",
+      "muscle": "biceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Machine Curl",
+      "muscle": "biceps",
+      "equipment": "machine"
+    },
+    {
+      "name": "EZ-Bar Skull Crushers",
+      "muscle": "triceps",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Overhead Extension",
+      "muscle": "triceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Single-Arm DB Overhead Extension",
+      "muscle": "triceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Skull Crusher",
+      "muscle": "triceps",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Rope Pushdown",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Straight Bar Pushdown",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "V-Bar Pushdown",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Single-Arm Pushdown",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Overhead Tricep Extension",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Overhead Rope Extension",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cable Tricep Kickback",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cross-Body Cable Extension",
+      "muscle": "triceps",
+      "equipment": "cable"
+    },
+    {
+      "name": "Machine Tricep Extension",
+      "muscle": "triceps",
+      "equipment": "machine"
+    },
+    {
+      "name": "Assisted Dips Machine",
+      "muscle": "triceps",
+      "equipment": "machine"
+    },
+    {
+      "name": "Weighted Dips (Triceps)",
+      "muscle": "triceps",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Close-Grip Push-ups",
+      "muscle": "triceps",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Leg Press Calf Raise",
+      "muscle": "calves",
+      "equipment": "machine"
+    },
+    {
+      "name": "Hack Squat Calf Raise",
+      "muscle": "calves",
+      "equipment": "machine"
+    },
+    {
+      "name": "Tibialis Raise Machine",
+      "muscle": "calves",
+      "equipment": "machine"
+    },
+    {
+      "name": "Single-Leg Standing Calf Raise",
+      "muscle": "calves",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Single-Leg Bodyweight Calf Raise",
+      "muscle": "calves",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Decline Sit-up",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Bicycle Crunch",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Hanging Knee Raise",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Captain's Chair Leg Raise",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Toes to Bar",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Windshield Wiper",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "RKC Plank",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Bird Dog",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Hollow Body Hold",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "V-up",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Stomach Vacuum",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Scissor Kick",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Dragon Flag",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "L-Sit",
+      "muscle": "core",
+      "equipment": "bodyweight"
+    },
+    {
+      "name": "Cable Woodchop",
+      "muscle": "core",
+      "equipment": "cable"
+    },
+    {
+      "name": "Cable Rotation",
+      "muscle": "core",
+      "equipment": "cable"
+    },
+    {
+      "name": "Machine Torso Rotation",
+      "muscle": "core",
+      "equipment": "machine"
+    },
+    {
+      "name": "Weighted Sit-up",
+      "muscle": "core",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Turkish Get-up",
+      "muscle": "core",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Suitcase Carry",
+      "muscle": "core",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Landmine Rotation",
+      "muscle": "core",
+      "equipment": "barbell"
+    },
+    {
+      "name": "Reverse Wrist Curl",
+      "muscle": "forearms",
+      "equipment": "barbell"
+    },
+    {
+      "name": "DB Reverse Wrist Curl",
+      "muscle": "forearms",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "DB Pinch Hold",
+      "muscle": "forearms",
+      "equipment": "dumbbell"
+    },
+    {
+      "name": "Fat Grip Hold",
+      "muscle": "forearms",
+      "equipment": "other"
+    },
+    {
+      "name": "Dead Hang",
+      "muscle": "forearms",
+      "equipment": "other"
+    },
+    {
+      "name": "Gripper",
+      "muscle": "forearms",
+      "equipment": "other"
+    },
+    {
+      "name": "Towel Pull-up",
+      "muscle": "forearms",
+      "equipment": "other"
+    },
+    {
+      "name": "Trap Bar Carry",
+      "muscle": "forearms",
+      "equipment": "other"
+    }
+  ],
+  "new_from_freeDb_sample": []
+}

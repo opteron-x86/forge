@@ -1,9 +1,15 @@
 // ═══════════════════════════════════════════════════════════════
-//  TALOS — Coach & AI Routes
+//  TALOS — Coach & AI Routes (v2 — Database-Backed Exercises)
 //  POST /api/coach, POST /api/coach/program, POST /api/coach/analyze,
 //  POST /api/coach/substitute, POST /api/coach/weekly,
 //  POST /api/coach/analysis, GET/POST/DELETE /api/coach/messages,
 //  GET/PUT /api/ai/config, GET /api/ai/status, GET /api/ai/quota
+//
+//  Changes from v1:
+//  - Removed static imports of EXERCISES and exercisesByMuscle
+//  - All exercise lookups now async via exercise-context.js
+//  - AI coach gets enriched data (secondary muscles, force, level)
+//  - Substitution route uses database-backed substitution map
 // ═══════════════════════════════════════════════════════════════
 
 import { Router } from "express";
@@ -13,10 +19,13 @@ import {
   checkAIRateLimit, AI_DAILY_LIMIT, AI_MONTHLY_LIMIT,
 } from "../middleware.js";
 import {
-  getAIProvider, reinitProvider, exerciseNames, exercisesByMuscle,
+  getAIProvider, reinitProvider,
   loadAIConfig, resolveConfig, PROVIDERS,
 } from "../ai.js";
-import { EXERCISES } from "../../src/lib/exercises.js";
+import {
+  getExerciseContext, buildExerciseLibraryPrompt,
+  getExerciseDetail, getSubstitutions,
+} from "../exercise-context.js";
 
 const router = Router();
 
@@ -201,58 +210,41 @@ router.post("/coach/program", requireAuth, requireAIQuota, handler(async (req, r
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context } = req.body;
 
-  // Build exercise library context
-  const exerciseLib = Object.entries(exercisesByMuscle).map(([muscle, exs]) =>
-    `${muscle.toUpperCase()}: ${exs.join(", ")}`
-  ).join("\n");
-
-  const customExs = await db.all("SELECT name, muscle, equipment, type FROM custom_exercises");
-  const customLib = customExs.length > 0
-    ? `\nCUSTOM EXERCISES: ${customExs.map(e => `${e.name} (${e.muscle}, ${e.equipment}, ${e.type})`).join(", ")}`
-    : "";
+  // Build exercise library context from database
+  const exerciseLib = await buildExerciseLibraryPrompt();
+  const { exerciseNames } = await getExerciseContext();
 
   const system = `You are an expert strength training coach creating a workout program. You MUST use the create_program tool to build the program.
 
 CRITICAL: Only use exercise names that EXACTLY match the provided library. Do not invent exercises or modify names.
 
+Based on the user's profile, goals, experience level, and training history, design an appropriate program.
+
 EXERCISE LIBRARY:
-${exerciseLib}${customLib}
+${exerciseLib}`;
 
-PROGRAM DESIGN PRINCIPLES:
-- Consider the user's experience level, goals, injuries, and available equipment
-- Place compound lifts first in each day
-- Balance push/pull volume within a session and across the week
-- Use appropriate rep ranges for the exercise type (compounds: 3-8, accessories: 8-15)
-- Add helpful notes for exercises that need form cues or injury modifications
-- Respect any injuries or limitations mentioned
+  const systemWithContext = context ? `${system}\n\nUSER CONTEXT:\n${context}` : system;
 
-EXERCISE SELECTION — AVOID REAL REDUNDANCY:
-- Within a session, vary exercises by movement pattern (vertical pull vs horizontal pull, press vs fly, hip hinge vs squat pattern)
-- Two exercises can target the same muscle group if they use different angles, grips, or movement planes — this is COMPLEMENTARY, not redundant
-- TRUE redundancy: two exercises with near-identical mechanics in the same session (e.g. barbell row AND pendlay row, OR flat bench AND flat DB press as the first two exercises)
-- When selecting exercises, mentally justify why each is included and how it differs from others in the session
-- In the notes field, briefly explain the purpose of key exercises (especially when two exercises target similar muscles), e.g. "Vertical pull — lat stretch and width" or "Horizontal row — mid-back thickness"`;
+  const result = await aiProvider.chatWithTools(systemWithContext, [
+    { role: "user", content: prompt || "Create a program based on my goals and experience." },
+  ], [PROGRAM_TOOL], { maxTokens: 3000 });
 
-  const result = await aiProvider.chatWithTools(system, [
-    { role: "user", content: `${context}\n\nPROGRAM REQUEST: ${prompt}` },
-  ], [PROGRAM_TOOL], { maxTokens: 4000 });
-
-  const programCall = result.toolCalls?.find(tc => tc.name === "create_program");
-  if (programCall) {
-    const allNames = new Set([...exerciseNames, ...customExs.map(e => e.name)]);
-    const program = programCall.input;
-    const unknowns = [];
-    program.days?.forEach(day => {
-      day.exercises?.forEach(ex => {
-        if (!allNames.has(ex.name)) unknowns.push(ex.name);
-      });
-      day.id = genId();
-    });
-
-    trackEvent(req.user.id, "coach_program_builder");
-    res.json({ program, unknownExercises: unknowns, commentary: result.text || null });
+  const toolCall = result.toolCalls?.find(tc => tc.name === "create_program");
+  if (toolCall) {
+    // Validate exercise names against the full library
+    const allNames = new Set(exerciseNames);
+    const program = toolCall.input;
+    for (const day of program.days || []) {
+      for (const ex of day.exercises || []) {
+        if (!allNames.has(ex.name)) {
+          ex.notes = `⚠ "${ex.name}" not in library — ${ex.notes || ""}`.trim();
+        }
+      }
+    }
+    trackEvent(req.user.id, "coach_program");
+    res.json({ program, commentary: result.text || null });
   } else {
-    trackEvent(req.user.id, "coach_program_builder");
+    trackEvent(req.user.id, "coach_program");
     res.json({ program: null, commentary: result.text || "Could not generate program. Try being more specific." });
   }
 }));
@@ -326,28 +318,31 @@ const SUBSTITUTE_TOOL = {
 };
 
 router.post("/coach/substitute", requireAuth, requireAIQuota, handler(async (req, res) => {
-  const db = getDb();
   const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { exercise, reason, context } = req.body;
 
-  const exerciseLib = Object.entries(exercisesByMuscle).map(([muscle, exs]) =>
-    `${muscle.toUpperCase()}: ${exs.join(", ")}`
-  ).join("\n");
-  const customExs = await db.all("SELECT name, muscle, equipment, type FROM custom_exercises");
-  const customLib = customExs.length > 0
-    ? `\nCUSTOM EXERCISES: ${customExs.map(e => `${e.name} (${e.muscle}, ${e.equipment}, ${e.type})`).join(", ")}`
-    : "";
+  // Build exercise library context from database
+  const exerciseLib = await buildExerciseLibraryPrompt();
+  const { exerciseNames } = await getExerciseContext();
 
-  const exMeta = EXERCISES.find(e => e.name === exercise) || customExs.find(e => e.name === exercise);
+  // Get exercise metadata from database
+  const exMeta = await getExerciseDetail(exercise);
   const exInfo = exMeta
-    ? `${exercise} — muscle: ${exMeta.muscle}, equipment: ${exMeta.equipment}, type: ${exMeta.type}`
+    ? `${exercise} — muscle: ${exMeta.muscle}, equipment: ${exMeta.equipment}, type: ${exMeta.type}${exMeta.secondary_muscles?.length ? `, secondary muscles: ${exMeta.secondary_muscles.join(", ")}` : ""}${exMeta.force ? `, force: ${exMeta.force}` : ""}`
     : exercise;
+
+  // Get curated substitutions to hint to AI
+  const curatedSubs = await getSubstitutions(exercise);
+  const subsHint = curatedSubs.length > 0
+    ? `\nKNOWN GOOD SUBSTITUTIONS (consider these first): ${curatedSubs.join(", ")}`
+    : "";
 
   const system = `You are a strength training coach suggesting exercise substitutions during a live workout. Use the suggest_substitutions tool.
 
 EXERCISE TO REPLACE: ${exInfo}
 REASON FOR SWAP: ${reason || "Equipment unavailable or preference"}
+${subsHint}
 
 CRITICAL: Only suggest exercises that EXACTLY match names in the library below. Prioritize:
 1. Same primary muscle group and movement pattern
@@ -357,7 +352,7 @@ CRITICAL: Only suggest exercises that EXACTLY match names in the library below. 
 5. Prefer compound over isolation if replacing a compound, and vice versa
 
 EXERCISE LIBRARY:
-${exerciseLib}${customLib}`;
+${exerciseLib}`;
 
   const result = await aiProvider.chatWithTools(system, [
     { role: "user", content: `${context}\n\nFind substitutes for: ${exercise}` },
@@ -365,7 +360,7 @@ ${exerciseLib}${customLib}`;
 
   const toolCall = result.toolCalls?.find(tc => tc.name === "suggest_substitutions");
   if (toolCall) {
-    const allNames = new Set([...exerciseNames, ...customExs.map(e => e.name)]);
+    const allNames = new Set(exerciseNames);
     const subs = toolCall.input.substitutions?.filter(s => allNames.has(s.name)) || [];
     trackEvent(req.user.id, "coach_substitute", { exercise: exercise || null });
     res.json({ substitutions: subs, commentary: result.text || null });

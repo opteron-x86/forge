@@ -1,30 +1,19 @@
 // ═══════════════════════════════════════════════════════════════
-//  TALOS — AI Provider Module
+//  TALOS — AI Provider Module (v2 — Database-Backed Exercises)
 //  Extracted from server.js monolith (Phase 2 audit, commit 7e055db)
 //  + PostgreSQL migration: async database layer
 //
-//  Handles: AI provider initialization, config persistence,
-//  and exercise library indexing for AI context.
+//  Handles: AI provider initialization, config persistence.
+//
+//  Exercise library indexing has moved to exercise-context.js
+//  for database-backed lookups with caching.
 //
 //  NOTE: initAI() must be called after initDatabase() since
 //  loadAIConfig reads from the database.
 // ═══════════════════════════════════════════════════════════════
 
 import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "../ai-provider.js";
-import { EXERCISES } from "../src/lib/exercises.js";
 import { getDb } from "./db.js";
-
-// ===================== EXERCISE INDEX =====================
-
-/** All built-in exercise names */
-export const exerciseNames = EXERCISES.map(e => e.name);
-
-/** Exercises grouped by muscle group (for AI context) */
-export const exercisesByMuscle = {};
-for (const ex of EXERCISES) {
-  if (!exercisesByMuscle[ex.muscle]) exercisesByMuscle[ex.muscle] = [];
-  exercisesByMuscle[ex.muscle].push(ex.name);
-}
 
 // ===================== AI CONFIG =====================
 

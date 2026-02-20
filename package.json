@@ -7,7 +7,10 @@
     "dev": "concurrently \"node server.js\" \"vite\"",
     "build": "vite build",
     "start": "NODE_ENV=production node server.js",
-    "setup": "npm install && npm run build && echo '\n✅ Ready! Run: npm start'"
+    "setup": "npm install && npm run build && echo '\n✅ Ready! Run: npm start'",
+    "postbuild": "node scripts/generate-exercise-fallback.js || true",
+    "seed:exercises": "node scripts/seed-exercises.js",
+    "seed:exercises:apply": "node scripts/seed-exercises.js --apply"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

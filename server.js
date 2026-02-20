@@ -79,10 +79,11 @@ app.use("/api",                  coachRoutes);   // Handles /api/coach/* and /ap
 app.use("/api/export",           exportRoutes);
 
 // TEMPORARY: Download production SQLite DB for migration — REMOVE AFTER USE
-import { requireAuth, requireAdmin } from "./server/middleware.js";
-
-app.get("/api/admin/db-snapshot", requireAuth, requireAdmin, (req, res) => {
-  res.download("/data/talos.db");
+app.get("/api/admin/db-snapshot", requireAuth, requireAdmin, async (req, res) => {
+  const db = getDb();
+  await db.run("PRAGMA wal_checkpoint(TRUNCATE)");
+  const dbPath = process.env.DATABASE_PATH || "/data/talos.db";
+  res.download(dbPath);
 });
 
 // ===================== HEALTH & SPA FALLBACK =====================

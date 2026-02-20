@@ -31,7 +31,6 @@ import programRoutes from "./server/routes/programs.js";
 import exerciseRoutes from "./server/routes/exercises.js";
 import coachRoutes from "./server/routes/coach.js";
 import exportRoutes from "./server/routes/export.js";
-import Database from "better-sqlite3";
 
 // ===================== APP SETUP =====================
 
@@ -81,8 +80,8 @@ app.use("/api/export",           exportRoutes);
 
 // TEMPORARY: Download production SQLite DB for migration — REMOVE AFTER USE
 
-
-app.get("/api/admin/db-snapshot", requireAuth, requireAdmin, (req, res) => {
+app.get("/api/admin/db-snapshot", requireAuth, requireAdmin, async (req, res) => {
+  const { default: Database } = await import("better-sqlite3");
   const dbPath = process.env.DATABASE_PATH || "/data/talos.db";
   const raw = Database(dbPath);
   raw.pragma("wal_checkpoint(TRUNCATE)");

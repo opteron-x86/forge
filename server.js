@@ -78,6 +78,13 @@ app.use("/api/exercises",        exerciseRoutes);
 app.use("/api",                  coachRoutes);   // Handles /api/coach/* and /api/ai/*
 app.use("/api/export",           exportRoutes);
 
+// TEMPORARY: Download production SQLite DB for migration — REMOVE AFTER USE
+import { requireAuth, requireAdmin } from "./server/middleware.js";
+
+app.get("/api/admin/db-snapshot", requireAuth, requireAdmin, (req, res) => {
+  res.download("/data/talos.db");
+});
+
 // ===================== HEALTH & SPA FALLBACK =====================
 
 app.get("/api/health", async (req, res) => {

@@ -6,8 +6,11 @@
 //
 //  Tables: users, workouts, profiles, bio_history, programs,
 //          custom_exercises, coach_messages, workout_reviews,
-//          ai_config, analytics_events
+//          ai_config, analytics_events, exercises,
+//          exercise_substitutions
 // ═══════════════════════════════════════════════════════════════
+
+import { migrateExerciseTables } from "./exercise-schema.js";
 
 /**
  * Initialize the complete database schema.
@@ -202,6 +205,9 @@ export async function initSchema(db) {
       // Column already exists — expected
     }
   }
+
+  // ===================== EXERCISE LIBRARY =====================
+  await migrateExerciseTables(db);
 
   console.log(`[DB] Schema initialized (${db.type})`);
 }

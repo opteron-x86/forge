@@ -31,7 +31,7 @@ import programRoutes from "./server/routes/programs.js";
 import exerciseRoutes from "./server/routes/exercises.js";
 import coachRoutes from "./server/routes/coach.js";
 import exportRoutes from "./server/routes/export.js";
-
+import { requireAuth, requireAdmin } from "./server/middleware.js";
 // ===================== APP SETUP =====================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

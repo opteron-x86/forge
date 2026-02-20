@@ -7,14 +7,13 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { Router } from "express";
-import db from "../db.js";
-import { genId, trackEvent } from "../db.js";
+import { getDb, genId, trackEvent } from "../db.js";
 import {
   requireAuth, requireAdmin, requireAIQuota, handler,
   checkAIRateLimit, AI_DAILY_LIMIT, AI_MONTHLY_LIMIT,
 } from "../middleware.js";
 import {
-  aiProvider, reinitProvider, exerciseNames, exercisesByMuscle,
+  getAIProvider, reinitProvider, exerciseNames, exercisesByMuscle,
   loadAIConfig, resolveConfig, PROVIDERS,
 } from "../ai.js";
 import { EXERCISES } from "../../src/lib/exercises.js";
@@ -24,13 +23,14 @@ const router = Router();
 // ===================== AI CONFIG ENDPOINTS =====================
 
 // AI status (any authenticated user)
-router.get("/ai/status", requireAuth, handler((req, res) => {
-  res.json({ enabled: !!aiProvider });
+router.get("/ai/status", requireAuth, handler(async (req, res) => {
+  res.json({ enabled: !!getAIProvider() });
 }));
 
 // AI config details (admin only)
-router.get("/ai/config", requireAuth, requireAdmin, handler((req, res) => {
-  const dbSettings = loadAIConfig();
+router.get("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => {
+  const aiProvider = getAIProvider();
+  const dbSettings = await loadAIConfig();
   const config = resolveConfig(dbSettings, process.env);
   res.json({
     provider: config?.provider || "",
@@ -45,52 +45,65 @@ router.get("/ai/config", requireAuth, requireAdmin, handler((req, res) => {
   });
 }));
 
-router.put("/ai/config", requireAuth, requireAdmin, handler((req, res) => {
+router.put("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => {
+  const db = getDb();
   const { provider, model, baseUrl, supportsTools } = req.body;
-  const upsert = db.prepare(
-    "INSERT INTO ai_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"
-  );
-  if (provider !== undefined) upsert.run("provider", provider);
-  if (model !== undefined) upsert.run("model", model);
-  if (baseUrl !== undefined) upsert.run("baseUrl", baseUrl);
-  if (supportsTools !== undefined) upsert.run("supportsTools", String(supportsTools));
 
-  const newProvider = reinitProvider();
+  const upsert = async (key, value) => {
+    await db.run(
+      "INSERT INTO ai_config (key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value",
+      [key, value]
+    );
+  };
+
+  if (provider !== undefined) await upsert("provider", provider);
+  if (model !== undefined) await upsert("model", model);
+  if (baseUrl !== undefined) await upsert("baseUrl", baseUrl);
+  if (supportsTools !== undefined) await upsert("supportsTools", String(supportsTools));
+
+  const newProvider = await reinitProvider();
   res.json({ ok: true, enabled: !!newProvider, providerName: newProvider?.providerName || "" });
 }));
 
 // AI usage quota
-router.get("/ai/quota", requireAuth, handler((req, res) => {
-  const check = checkAIRateLimit(req.user.id);
+router.get("/ai/quota", requireAuth, handler(async (req, res) => {
+  const check = await checkAIRateLimit(req.user.id);
   res.json({ remaining: check.remaining, dailyLimit: AI_DAILY_LIMIT, monthlyLimit: AI_MONTHLY_LIMIT });
 }));
 
 // ===================== COACH MESSAGES (PERSISTENCE) =====================
 
-router.get("/coach/messages", requireAuth, handler((req, res) => {
+router.get("/coach/messages", requireAuth, handler(async (req, res) => {
+  const db = getDb();
   const { limit = 100 } = req.query;
-  const messages = db.prepare(
-    "SELECT * FROM coach_messages WHERE user_id = ? ORDER BY created_at DESC LIMIT ?"
-  ).all(req.user.id, limit).reverse();
-  res.json(messages);
+  const messages = await db.all(
+    "SELECT * FROM coach_messages WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2",
+    [req.user.id, limit]
+  );
+  res.json(messages.reverse());
 }));
 
-router.post("/coach/messages", requireAuth, handler((req, res) => {
+router.post("/coach/messages", requireAuth, handler(async (req, res) => {
+  const db = getDb();
   const { id, type, prompt, response } = req.body;
   if (!id) return res.status(400).json({ error: "id required" });
-  db.prepare(
-    "INSERT OR REPLACE INTO coach_messages (id, user_id, type, prompt, response) VALUES (?, ?, ?, ?, ?)"
-  ).run(id, req.user.id, type || "chat", prompt || null, response || null);
+  await db.run(
+    `INSERT INTO coach_messages (id, user_id, type, prompt, response) VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id, type = EXCLUDED.type, prompt = EXCLUDED.prompt, response = EXCLUDED.response`,
+    [id, req.user.id, type || "chat", prompt || null, response || null]
+  );
   res.json({ ok: true });
 }));
 
-router.delete("/coach/messages/:id", requireAuth, handler((req, res) => {
-  db.prepare("DELETE FROM coach_messages WHERE id = ? AND user_id = ?").run(req.params.id, req.user.id);
+router.delete("/coach/messages/:id", requireAuth, handler(async (req, res) => {
+  const db = getDb();
+  await db.run("DELETE FROM coach_messages WHERE id = $1 AND user_id = $2", [req.params.id, req.user.id]);
   res.json({ ok: true });
 }));
 
-router.delete("/coach/messages", requireAuth, handler((req, res) => {
-  db.prepare("DELETE FROM coach_messages WHERE user_id = ?").run(req.user.id);
+router.delete("/coach/messages", requireAuth, handler(async (req, res) => {
+  const db = getDb();
+  await db.run("DELETE FROM coach_messages WHERE user_id = $1", [req.user.id]);
   res.json({ ok: true });
 }));
 
@@ -114,6 +127,7 @@ YOU HAVE ACCESS TO:
 KEEP RESPONSES UNDER 200 WORDS unless the user asks for detailed analysis. Use markdown formatting for clarity.`;
 
 router.post("/coach", requireAuth, requireAIQuota, handler(async (req, res) => {
+  const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { messages, context } = req.body;
 
@@ -165,6 +179,8 @@ const PROGRAM_TOOL = {
 };
 
 router.post("/coach/program", requireAuth, requireAIQuota, handler(async (req, res) => {
+  const db = getDb();
+  const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { prompt, context } = req.body;
 
@@ -173,7 +189,7 @@ router.post("/coach/program", requireAuth, requireAIQuota, handler(async (req, r
     `${muscle.toUpperCase()}: ${exs.join(", ")}`
   ).join("\n");
 
-  const customExs = db.prepare("SELECT name, muscle, equipment, type FROM custom_exercises").all();
+  const customExs = await db.all("SELECT name, muscle, equipment, type FROM custom_exercises");
   const customLib = customExs.length > 0
     ? `\nCUSTOM EXERCISES: ${customExs.map(e => `${e.name} (${e.muscle}, ${e.equipment}, ${e.type})`).join(", ")}`
     : "";
@@ -227,6 +243,8 @@ EXERCISE SELECTION — AVOID REAL REDUNDANCY:
 // ===================== AI SESSION ANALYSIS =====================
 
 router.post("/coach/analyze", requireAuth, requireAIQuota, handler(async (req, res) => {
+  const db = getDb();
+  const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { workout, context, workout_id } = req.body;
 
@@ -253,9 +271,11 @@ COACHING INTEGRITY:
 
   // Persist the review if workout_id provided
   if (workout_id && result.text) {
-    db.prepare(
-      "INSERT OR REPLACE INTO workout_reviews (id, workout_id, user_id, review) VALUES (?, ?, ?, ?)"
-    ).run(genId(), workout_id, req.user.id, result.text);
+    await db.run(
+      `INSERT INTO workout_reviews (id, workout_id, user_id, review) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET workout_id = EXCLUDED.workout_id, user_id = EXCLUDED.user_id, review = EXCLUDED.review`,
+      [genId(), workout_id, req.user.id, result.text]
+    );
   }
 
   trackEvent(req.user.id, "coach_analyze");
@@ -289,13 +309,15 @@ const SUBSTITUTE_TOOL = {
 };
 
 router.post("/coach/substitute", requireAuth, requireAIQuota, handler(async (req, res) => {
+  const db = getDb();
+  const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { exercise, reason, context } = req.body;
 
   const exerciseLib = Object.entries(exercisesByMuscle).map(([muscle, exs]) =>
     `${muscle.toUpperCase()}: ${exs.join(", ")}`
   ).join("\n");
-  const customExs = db.prepare("SELECT name, muscle, equipment, type FROM custom_exercises").all();
+  const customExs = await db.all("SELECT name, muscle, equipment, type FROM custom_exercises");
   const customLib = customExs.length > 0
     ? `\nCUSTOM EXERCISES: ${customExs.map(e => `${e.name} (${e.muscle}, ${e.equipment}, ${e.type})`).join(", ")}`
     : "";
@@ -339,6 +361,7 @@ ${exerciseLib}${customLib}`;
 // ===================== AI WEEKLY REPORT =====================
 
 router.post("/coach/weekly", requireAuth, requireAIQuota, handler(async (req, res) => {
+  const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { context } = req.body;
 
@@ -365,6 +388,7 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
 // ===================== AI DEEP ANALYSIS =====================
 
 router.post("/coach/analysis", requireAuth, requireAIQuota, handler(async (req, res) => {
+  const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
   const { context } = req.body;
 

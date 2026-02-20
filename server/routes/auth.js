@@ -9,8 +9,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Resend } from "resend";
-import db from "../db.js";
-import { genId, trackEvent } from "../db.js";
+import { getDb, genId, trackEvent } from "../db.js";
 import { signToken, requireAuth, rateLimit, handler } from "../middleware.js";
 
 const router = Router();
@@ -29,7 +28,8 @@ const authRateLimit = rateLimit(10, 15 * 60 * 1000);
 
 // ===================== REGISTER =====================
 
-router.post("/register", authRateLimit, handler((req, res) => {
+router.post("/register", authRateLimit, handler(async (req, res) => {
+  const db = getDb();
   const { email, password, name, color } = req.body;
   if (!email?.trim()) return res.status(400).json({ error: "Email required" });
   if (!password || password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
@@ -37,17 +37,18 @@ router.post("/register", authRateLimit, handler((req, res) => {
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(normalizedEmail);
+  const existing = await db.get("SELECT id FROM users WHERE email = $1", [normalizedEmail]);
   if (existing) return res.status(409).json({ error: "Email already registered" });
 
   const id = genId();
   const passwordHash = bcrypt.hashSync(password, BCRYPT_ROUNDS);
   const role = (ADMIN_EMAIL && normalizedEmail === ADMIN_EMAIL.toLowerCase()) ? "admin" : "user";
 
-  db.prepare(
-    "INSERT INTO users (id, name, email, password_hash, role, color, theme) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  ).run(id, name.trim(), normalizedEmail, passwordHash, role, color || "#f97316", "talos");
-  db.prepare("INSERT INTO profiles (user_id) VALUES (?)").run(id);
+  await db.run(
+    "INSERT INTO users (id, name, email, password_hash, role, color, theme) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    [id, name.trim(), normalizedEmail, passwordHash, role, color || "#f97316", "talos"]
+  );
+  await db.run("INSERT INTO profiles (user_id) VALUES ($1)", [id]);
 
   const user = { id, name: name.trim(), email: normalizedEmail, role, color: color || "#f97316", theme: "talos" };
   const token = signToken(user);
@@ -57,14 +58,16 @@ router.post("/register", authRateLimit, handler((req, res) => {
 
 // ===================== LOGIN =====================
 
-router.post("/login", authRateLimit, handler((req, res) => {
+router.post("/login", authRateLimit, handler(async (req, res) => {
+  const db = getDb();
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: "Email and password required" });
 
   const normalizedEmail = email.trim().toLowerCase();
-  const user = db.prepare(
-    "SELECT id, name, email, password_hash, role, color, theme, is_active FROM users WHERE email = ?"
-  ).get(normalizedEmail);
+  const user = await db.get(
+    "SELECT id, name, email, password_hash, role, color, theme, is_active FROM users WHERE email = $1",
+    [normalizedEmail]
+  );
 
   if (!user) return res.status(401).json({ error: "Invalid email or password" });
   if (!user.is_active) return res.status(403).json({ error: "Account deactivated. Contact support." });
@@ -83,7 +86,7 @@ router.post("/login", authRateLimit, handler((req, res) => {
 
 // ===================== ME =====================
 
-router.get("/me", requireAuth, handler((req, res) => {
+router.get("/me", requireAuth, handler(async (req, res) => {
   res.json({
     id: req.user.id,
     name: req.user.name,
@@ -97,11 +100,12 @@ router.get("/me", requireAuth, handler((req, res) => {
 // ===================== FORGOT PASSWORD =====================
 
 router.post("/forgot-password", authRateLimit, handler(async (req, res) => {
+  const db = getDb();
   const { email } = req.body;
   if (!email?.trim()) return res.status(400).json({ error: "Email required" });
 
   const normalizedEmail = email.trim().toLowerCase();
-  const user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(normalizedEmail);
+  const user = await db.get("SELECT id, name, email FROM users WHERE email = $1", [normalizedEmail]);
 
   // Always return success to prevent email enumeration
   if (!user || !resend) {
@@ -113,8 +117,10 @@ router.post("/forgot-password", authRateLimit, handler(async (req, res) => {
   const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
   const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
 
-  db.prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?")
-    .run(resetTokenHash, expires, user.id);
+  await db.run(
+    "UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3",
+    [resetTokenHash, expires, user.id]
+  );
 
   // Send email
   const resetUrl = `${APP_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
@@ -143,44 +149,50 @@ router.post("/forgot-password", authRateLimit, handler(async (req, res) => {
 
 // ===================== RESET PASSWORD =====================
 
-router.post("/reset-password", handler((req, res) => {
+router.post("/reset-password", handler(async (req, res) => {
+  const db = getDb();
   const { token, email, newPassword } = req.body;
   if (!token || !email || !newPassword) return res.status(400).json({ error: "All fields required" });
   if (newPassword.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
 
   const normalizedEmail = email.trim().toLowerCase();
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-  const user = db.prepare(
-    "SELECT id, reset_token, reset_token_expires FROM users WHERE email = ?"
-  ).get(normalizedEmail);
+  const user = await db.get(
+    "SELECT id, reset_token, reset_token_expires FROM users WHERE email = $1",
+    [normalizedEmail]
+  );
 
   if (!user || user.reset_token !== tokenHash) {
     return res.status(400).json({ error: "Invalid or expired reset link." });
   }
   if (new Date(user.reset_token_expires) < new Date()) {
-    db.prepare("UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = ?").run(user.id);
+    await db.run("UPDATE users SET reset_token = NULL, reset_token_expires = NULL WHERE id = $1", [user.id]);
     return res.status(400).json({ error: "Reset link has expired. Please request a new one." });
   }
 
   const passwordHash = bcrypt.hashSync(newPassword, BCRYPT_ROUNDS);
-  db.prepare("UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?")
-    .run(passwordHash, user.id);
+  await db.run(
+    "UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2",
+    [passwordHash, user.id]
+  );
 
   res.json({ message: "Password has been reset. You can now sign in." });
 }));
 
 // ===================== ACCOUNT UPDATE =====================
 
-router.put("/account", requireAuth, handler((req, res) => {
+router.put("/account", requireAuth, handler(async (req, res) => {
+  const db = getDb();
   const { name, color, theme } = req.body;
   const sets = [];
   const vals = [];
-  if (name !== undefined) { sets.push("name = ?"); vals.push(name.trim()); }
-  if (color !== undefined) { sets.push("color = ?"); vals.push(color); }
-  if (theme !== undefined) { sets.push("theme = ?"); vals.push(theme); }
+  let paramIndex = 1;
+  if (name !== undefined) { sets.push(`name = $${paramIndex++}`); vals.push(name.trim()); }
+  if (color !== undefined) { sets.push(`color = $${paramIndex++}`); vals.push(color); }
+  if (theme !== undefined) { sets.push(`theme = $${paramIndex++}`); vals.push(theme); }
   if (sets.length === 0) return res.json({ ok: true });
   vals.push(req.user.id);
-  db.prepare(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`).run(...vals);
+  await db.run(`UPDATE users SET ${sets.join(", ")} WHERE id = $${paramIndex}`, vals);
   res.json({ ok: true });
 }));
 

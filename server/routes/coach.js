@@ -129,11 +129,28 @@ KEEP RESPONSES UNDER 200 WORDS unless the user asks for detailed analysis. Use m
 router.post("/coach", requireAuth, requireAIQuota, handler(async (req, res) => {
   const aiProvider = getAIProvider();
   if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
-  const { messages, context } = req.body;
+  const { messages, prompt, context, history } = req.body;
+
+  // Support both formats: { messages } or { prompt, history }
+  let chatMessages = messages;
+  if (!chatMessages) {
+    chatMessages = [];
+    if (Array.isArray(history)) {
+      for (const h of history) {
+        if (h.prompt) chatMessages.push({ role: "user", content: h.prompt });
+        if (h.response) chatMessages.push({ role: "assistant", content: h.response });
+      }
+    }
+    if (prompt) chatMessages.push({ role: "user", content: prompt });
+  }
+
+  if (!chatMessages || chatMessages.length === 0) {
+    return res.status(400).json({ error: "No message provided" });
+  }
 
   const systemWithContext = context ? `${COACH_SYSTEM}\n\nUSER CONTEXT:\n${context}` : COACH_SYSTEM;
 
-  const result = await aiProvider.chat(systemWithContext, messages, { maxTokens: 1000 });
+  const result = await aiProvider.chat(systemWithContext, chatMessages, { maxTokens: 1000 });
   trackEvent(req.user.id, "coach_chat");
   res.json({ response: result.text });
 }));

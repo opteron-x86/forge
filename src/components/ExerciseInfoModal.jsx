@@ -221,11 +221,14 @@ export default function ExerciseInfoModal({ name, onClose, onSwap }) {
             {/* ── Images ── */}
             {images.length > 0 && (
               <div style={{ margin: "12px 0" }}>
-                <div style={{
+                <div
+                  onClick={() => { if (images.length > 1) setImgIdx((imgIdx + 1) % images.length); }}
+                  style={{
                   position: "relative", borderRadius: 10, overflow: "hidden",
                   background: "var(--surface)", border: "1px solid var(--border)",
                   aspectRatio: "4/3", display: "flex", alignItems: "center",
                   justifyContent: "center",
+                  cursor: images.length > 1 ? "pointer" : "default",
                 }}>
                   <img
                     src={images[imgIdx]}

@@ -1,0 +1,66 @@
+diff --git a/src/components/ExerciseInfoBtn.jsx b/src/components/ExerciseInfoBtn.jsx
+index 9e56daf..b6c8511 100644
+--- a/src/components/ExerciseInfoBtn.jsx
++++ b/src/components/ExerciseInfoBtn.jsx
+@@ -8,7 +8,7 @@
+ //   <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
+ 
+ export default function ExerciseInfoBtn({ onClick, size = "md" }) {
+-  const sz = size === "sm" ? 10 : 12;
++  const sz = size === "sm" ? 13 : 15;
+   return (
+     <button
+       onClick={(e) => { e.stopPropagation(); onClick(); }}
+@@ -17,8 +17,8 @@ export default function ExerciseInfoBtn({ onClick, size = "md" }) {
+         color: "var(--text-dim)", fontSize: sz, fontFamily: "inherit",
+         padding: 0, display: "inline-flex", alignItems: "center",
+         justifyContent: "center",
+-        // Invisible touch area meets 44px minimum
+-        width: 28, height: 28, minWidth: 28, minHeight: 28,
++        // 44px minimum touch target
++        width: 36, height: 36, minWidth: 36, minHeight: 36,
+         borderRadius: "50%", flexShrink: 0,
+         transition: "color 0.1s, background 0.1s",
+       }}
+diff --git a/src/components/ExerciseInfoModal.jsx b/src/components/ExerciseInfoModal.jsx
+index e3a7ffd..263f066 100644
+--- a/src/components/ExerciseInfoModal.jsx
++++ b/src/components/ExerciseInfoModal.jsx
+@@ -221,11 +221,14 @@ export default function ExerciseInfoModal({ name, onClose, onSwap }) {
+             {/* ── Images ── */}
+             {images.length > 0 && (
+               <div style={{ margin: "12px 0" }}>
+-                <div style={{
++                <div
++                  onClick={() => { if (images.length > 1) setImgIdx((imgIdx + 1) % images.length); }}
++                  style={{
+                   position: "relative", borderRadius: 10, overflow: "hidden",
+                   background: "var(--surface)", border: "1px solid var(--border)",
+                   aspectRatio: "4/3", display: "flex", alignItems: "center",
+                   justifyContent: "center",
++                  cursor: images.length > 1 ? "pointer" : "default",
+                 }}>
+                   <img
+                     src={images[imgIdx]}
+diff --git a/src/pages/ActiveWorkout.jsx b/src/pages/ActiveWorkout.jsx
+index d1c29f2..b73b37f 100644
+--- a/src/pages/ActiveWorkout.jsx
++++ b/src/pages/ActiveWorkout.jsx
+@@ -288,9 +288,14 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
+           <div key={ei} style={S.card}>
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+               <div style={{ flex: 1 }}>
+-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
+-                  <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
++                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
++                  <div
++                    onClick={() => showInfo(ex.name)}
++                    style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)", cursor: "pointer" }}
++                  >
++                    {ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}
++                  </div>
++                  <ExerciseInfoBtn onClick={() => showInfo(ex.name)} />
+                 </div>
+                 {last && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
+                 {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 2 }}>{ex.notes}</div>}

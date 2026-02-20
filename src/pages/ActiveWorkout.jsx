@@ -288,9 +288,14 @@ export default function ActiveWorkout({ workout, setWorkout, onFinish, onDiscard
           <div key={ei} style={S.card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}</div>
-                  <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div
+                    onClick={() => showInfo(ex.name)}
+                    style={{ fontSize: 13, fontWeight: 700, color: "var(--text-bright)", cursor: "pointer" }}
+                  >
+                    {ex.name}{ex.targetReps && <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6 }}>Target: {ex.targetReps}</span>}
+                  </div>
+                  <ExerciseInfoBtn onClick={() => showInfo(ex.name)} />
                 </div>
                 {last && <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>Last: {last.sets.map(s => `${s.weight}×${s.reps}`).join(", ")}</div>}
                 {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 2 }}>{ex.notes}</div>}

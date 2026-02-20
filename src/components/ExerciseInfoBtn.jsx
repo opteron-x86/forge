@@ -8,7 +8,7 @@
 //   <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
 
 export default function ExerciseInfoBtn({ onClick, size = "md" }) {
-  const sz = size === "sm" ? 10 : 12;
+  const sz = size === "sm" ? 13 : 15;
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
@@ -17,8 +17,8 @@ export default function ExerciseInfoBtn({ onClick, size = "md" }) {
         color: "var(--text-dim)", fontSize: sz, fontFamily: "inherit",
         padding: 0, display: "inline-flex", alignItems: "center",
         justifyContent: "center",
-        // Invisible touch area meets 44px minimum
-        width: 28, height: 28, minWidth: 28, minHeight: 28,
+        // 44px minimum touch target
+        width: 36, height: 36, minWidth: 36, minHeight: 36,
         borderRadius: "50%", flexShrink: 0,
         transition: "color 0.1s, background 0.1s",
       }}

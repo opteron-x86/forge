@@ -75,7 +75,7 @@ router.put("/", requireAuth, handler(async (req, res) => {
     experienceLevel || "", trainingIntensity || "",
     targetPrs ? JSON.stringify(targetPrs) : "{}",
     injuriesNotes || "", caloriesTarget || null, proteinTarget || null,
-    activeProgramId || null, onboardingComplete ? 1 : 0,
+    activeProgramId || null, !!onboardingComplete,
     intensityScale || "rpe",
   ]);
 

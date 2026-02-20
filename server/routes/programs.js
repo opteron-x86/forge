@@ -15,7 +15,7 @@ router.get("/", requireAuth, handler(async (req, res) => {
     "SELECT * FROM programs WHERE user_id = $1 ORDER BY created_at DESC", [req.user.id]
   );
   const shared = await db.all(
-    "SELECT * FROM programs WHERE shared = 1 AND user_id != $1 ORDER BY created_at DESC", [req.user.id]
+    "SELECT * FROM programs WHERE shared = TRUE AND user_id != $1 ORDER BY created_at DESC", [req.user.id]
   );
   const all = [...own, ...shared].map(p => ({
     ...p,
@@ -31,7 +31,7 @@ router.post("/", requireAuth, handler(async (req, res) => {
   const id = genId();
   await db.run(
     "INSERT INTO programs (id, user_id, name, description, days, shared, forked_from) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [id, req.user.id, name.trim(), description || "", JSON.stringify(days || []), shared ? 1 : 0, forked_from || null]
+    [id, req.user.id, name.trim(), description || "", JSON.stringify(days || []), !!shared, forked_from || null]
   );
   trackEvent(req.user.id, "program_created", { name: name.trim() });
   res.json({ ok: true, id });
@@ -46,7 +46,7 @@ router.put("/:id", requireAuth, handler(async (req, res) => {
   if (!existing) return res.status(404).json({ error: "Program not found" });
   await db.run(
     "UPDATE programs SET name = $1, description = $2, days = $3, shared = $4 WHERE id = $5 AND user_id = $6",
-    [name, description || "", JSON.stringify(days || []), shared ? 1 : 0, req.params.id, req.user.id]
+    [name, description || "", JSON.stringify(days || []), !!shared, req.params.id, req.user.id]
   );
   res.json({ ok: true });
 }));
@@ -61,12 +61,12 @@ router.delete("/:id", requireAuth, handler(async (req, res) => {
 router.post("/:id/adopt", requireAuth, handler(async (req, res) => {
   const db = getDb();
   const source = await db.get(
-    "SELECT * FROM programs WHERE id = $1 AND shared = 1", [req.params.id]
+    "SELECT * FROM programs WHERE id = $1 AND shared = TRUE", [req.params.id]
   );
   if (!source) return res.status(404).json({ error: "Program not found or not shared" });
   const newId = genId();
   await db.run(
-    "INSERT INTO programs (id, user_id, name, description, days, shared, forked_from) VALUES ($1, $2, $3, $4, $5, 0, $6)",
+    "INSERT INTO programs (id, user_id, name, description, days, shared, forked_from) VALUES ($1, $2, $3, $4, $5, FALSE, $6)",
     [newId, req.user.id, source.name, source.description, source.days, source.id]
   );
   trackEvent(req.user.id, "program_adopted", { source_id: source.id, name: source.name });

@@ -32,7 +32,7 @@ router.put("/users/:id/status", requireAuth, requireAdmin, handler(async (req, r
   const db = getDb();
   const { is_active } = req.body;
   if (req.params.id === req.user.id) return res.status(400).json({ error: "Cannot deactivate yourself" });
-  await db.run("UPDATE users SET is_active = $1 WHERE id = $2", [is_active ? 1 : 0, req.params.id]);
+  await db.run("UPDATE users SET is_active = $1 WHERE id = $2", [!!is_active, req.params.id]);
   res.json({ ok: true });
 }));
 

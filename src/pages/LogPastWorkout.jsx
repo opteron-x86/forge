@@ -14,6 +14,8 @@ import { useTalos } from "../context/TalosContext";
 import { EXERCISES, getAllExercises } from "../lib/exercises";
 import { genId, fmtDate, FEEL } from "../lib/helpers";
 import ExercisePicker from "../components/ExercisePicker";
+import useExerciseInfo from "../components/useExerciseInfo";
+import ExerciseInfoBtn from "../components/ExerciseInfoBtn";
 import S from "../lib/styles";
 
 export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
@@ -60,6 +62,9 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
   const [notes, setNotes] = useState(isEditing ? (editingWorkout.notes || "") : "");
   const [showPicker, setShowPicker] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Exercise info modal
+  const { showInfo, infoModal } = useExerciseInfo();
 
   // ── Programs for the current user ──
   const userPrograms = programs.filter((p) => p.user_id === user.id);
@@ -216,6 +221,7 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
   // ── Render ──
   return (
     <div className="fade-in">
+      {infoModal}
       {/* Exercise Picker Modal */}
       {showPicker && (
         <ExercisePicker
@@ -319,7 +325,15 @@ export default function LogPastWorkout({ onSave, onCancel, editingWorkout }) {
             {/* Exercise header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)" }}>{ex.name}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div
+                    onClick={() => showInfo(ex.name)}
+                    style={{ fontSize: 14, fontWeight: 700, color: "var(--text-bright)", cursor: "pointer" }}
+                  >
+                    {ex.name}
+                  </div>
+                  <ExerciseInfoBtn onClick={() => showInfo(ex.name)} />
+                </div>
                 {exMeta && (
                   <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 1 }}>
                     {exMeta.muscle} · {exMeta.equipment}

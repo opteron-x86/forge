@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { useTalos } from "../context/TalosContext";
 import { fmtDate, FEEL, est1RM } from "../lib/helpers";
 import MarkdownText from "../components/MarkdownText";
+import useExerciseInfo from "../components/useExerciseInfo";
 import api from "../lib/api";
 import S from "../lib/styles";
 
@@ -51,6 +52,9 @@ export default function HistoryPage({ onLogPast }) {
   const [showFilters, setShowFilters] = useState(false);
   const [filterProgram, setFilterProgram] = useState("all");
   const [filterDay, setFilterDay] = useState("all");
+
+  // Exercise info modal
+  const { showInfo, infoModal } = useExerciseInfo();
 
   // Calendar state
   const today = new Date();
@@ -162,6 +166,7 @@ export default function HistoryPage({ onLogPast }) {
 
   return (
     <div className="fade-in">
+      {infoModal}
       {/* ── Calendar ── */}
       <div style={S.card}>
         {/* Month nav */}
@@ -331,7 +336,12 @@ export default function HistoryPage({ onLogPast }) {
               <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 12 }}>
                 {w.exercises?.map((ex, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{ex.name}</div>
+                    <div
+                      onClick={(e) => { e.stopPropagation(); showInfo(ex.name); }}
+                      style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", cursor: "pointer" }}
+                    >
+                      {ex.name}
+                    </div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{ex.sets?.map(s => `${s.weight}×${s.reps}${s.rpe ? ` @${s.rpe}` : ""}`).join("  ·  ")}</div>
                     {ex.notes && <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 1 }}>{ex.notes}</div>}
                   </div>

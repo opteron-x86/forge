@@ -7,6 +7,8 @@ import { useTalos } from "../context/TalosContext";
 import { genId } from "../lib/helpers";
 import { STARTER_TEMPLATES } from "../lib/starterTemplates";
 import ExercisePicker from "../components/ExercisePicker";
+import useExerciseInfo from "../components/useExerciseInfo";
+import ExerciseInfoBtn from "../components/ExerciseInfoBtn";
 import api from "../lib/api";
 import S from "../lib/styles";
 
@@ -19,6 +21,9 @@ function BrowsePrograms({ onAdopt, onClose }) {
   const [preview, setPreview] = useState(null);
   const [adopted, setAdopted] = useState(new Set());
   const [adopting, setAdopting] = useState(false);
+
+  // Exercise info modal
+  const { showInfo, infoModal } = useExerciseInfo();
 
   useEffect(() => {
     api.get("/programs/browse").then(data => {
@@ -96,6 +101,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
 
     return (
       <div className="fade-in">
+        {infoModal}
         <div style={S.card}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             {p.source === "template" ? (
@@ -138,7 +144,10 @@ function BrowsePrograms({ onAdopt, onClose }) {
             </div>
             {(day.exercises || []).map((ex, ei) => (
               <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
-                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                <span
+                  onClick={(e) => { e.stopPropagation(); showInfo(ex.name); }}
+                  style={{ fontSize: 11, color: "var(--text-secondary)", cursor: "pointer" }}
+                >{ex.name}</span>
                 <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{ex.defaultSets}×{ex.targetReps}</span>
               </div>
             ))}
@@ -275,6 +284,9 @@ const BUILDER_EQUIPMENT = [
 function GuidedProgramBuilder({ onSave, onClose }) {
   const { profile, user, workouts, programs } = useTalos();
 
+  // Exercise info modal
+  const { showInfo, infoModal } = useExerciseInfo();
+
   // Pre-fill from profile
   const [goal, setGoal] = useState(
     profile.goal === "strength" ? "strength"
@@ -376,6 +388,7 @@ function GuidedProgramBuilder({ onSave, onClose }) {
     const p = result.program;
     return (
       <div style={{ padding: "0 16px" }}>
+        {infoModal}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={S.label}>AI Program Preview</div>
           <button onClick={onClose} style={S.sm()}>✕</button>
@@ -410,7 +423,10 @@ function GuidedProgramBuilder({ onSave, onClose }) {
                 borderTop: ei > 0 ? "1px solid var(--surface2)" : "none",
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{ex.name}</span>
+                  <span
+                    onClick={() => showInfo(ex.name)}
+                    style={{ fontSize: 11, color: "var(--text-secondary)", cursor: "pointer" }}
+                  >{ex.name}</span>
                   {ex.notes && <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 1, fontStyle: "italic" }}>{ex.notes}</div>}
                 </div>
                 <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, marginLeft: 8 }}>
@@ -531,6 +547,9 @@ export default function ProgramsPage() {
   const [browsing, setBrowsing] = useState(false);
   const [aiBuilding, setAiBuilding] = useState(false);
 
+  // Exercise info modal
+  const { showInfo, infoModal } = useExerciseInfo();
+
   function toggleDayCollapse(dayId) {
     setCollapsedDays(prev => {
       const next = new Set(prev);
@@ -647,6 +666,7 @@ export default function ProgramsPage() {
   if (editing) {
     return (
       <div className="fade-in">
+      {infoModal}
       {showPicker && (
         <ExercisePicker customExercises={customExercises}
         onSelect={(ex) => {
@@ -701,7 +721,8 @@ export default function ProgramsPage() {
             <input value={day.subtitle} onChange={e => updateDay(di, "subtitle", e.target.value)} style={{ ...S.input, marginBottom: 8, fontSize: 11 }} placeholder="Subtitle (e.g. Chest / Triceps)" />
 
             {day.exercises.map((ex, ei) => (
-              <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid var(--surface2)" }}>
+              <div key={ei} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 0", borderBottom: "1px solid var(--surface2)" }}>
+              <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
               <span onClick={() => { setPickerDayIdx(di); setReplacingExIdx(ei); setShowPicker(true); }} style={{ fontSize: 12, color: "var(--text-secondary)", flex: 1, cursor: "pointer", textDecoration: "underline", textDecorationColor: "var(--border2)", textUnderlineOffset: 2 }}>{ex.name}</span>
               <select value={ex.defaultSets} onChange={e => {
                 setEditing(p => {

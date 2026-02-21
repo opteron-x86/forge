@@ -20,6 +20,9 @@ router.get("/", requireAuth, handler(async (req, res) => {
   const targetPrs = profile?.target_prs
     ? (typeof profile.target_prs === "string" ? JSON.parse(profile.target_prs) : profile.target_prs)
     : {};
+  const pinnedLifts = profile?.pinned_lifts
+    ? (typeof profile.pinned_lifts === "string" ? JSON.parse(profile.pinned_lifts) : profile.pinned_lifts)
+    : [];
 
   res.json({
     height: profile?.height || "",
@@ -40,6 +43,7 @@ router.get("/", requireAuth, handler(async (req, res) => {
     activeProgramId: profile?.active_program_id || null,
     onboardingComplete: !!profile?.onboarding_complete,
     intensityScale: profile?.intensity_scale || "rpe",
+    pinnedLifts,
     bioHistory,
   });
 }));
@@ -51,13 +55,15 @@ router.put("/", requireAuth, handler(async (req, res) => {
     sex, dateOfBirth, goal, targetWeight, experienceLevel,
     trainingIntensity, targetPrs, injuriesNotes, caloriesTarget,
     proteinTarget, activeProgramId, onboardingComplete, intensityScale,
+    pinnedLifts,
   } = req.body;
 
   await db.run(`
     INSERT INTO profiles (user_id, height, weight, body_fat, rest_timer_compound, rest_timer_isolation,
       sex, date_of_birth, goal, target_weight, experience_level, training_intensity, target_prs,
-      injuries_notes, calories_target, protein_target, active_program_id, onboarding_complete, intensity_scale)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      injuries_notes, calories_target, protein_target, active_program_id, onboarding_complete, intensity_scale,
+      pinned_lifts)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
     ON CONFLICT(user_id) DO UPDATE SET
       height = EXCLUDED.height, weight = EXCLUDED.weight, body_fat = EXCLUDED.body_fat,
       rest_timer_compound = EXCLUDED.rest_timer_compound, rest_timer_isolation = EXCLUDED.rest_timer_isolation,
@@ -66,7 +72,8 @@ router.put("/", requireAuth, handler(async (req, res) => {
       training_intensity = EXCLUDED.training_intensity, target_prs = EXCLUDED.target_prs,
       injuries_notes = EXCLUDED.injuries_notes, calories_target = EXCLUDED.calories_target,
       protein_target = EXCLUDED.protein_target, active_program_id = EXCLUDED.active_program_id,
-      onboarding_complete = EXCLUDED.onboarding_complete, intensity_scale = EXCLUDED.intensity_scale
+      onboarding_complete = EXCLUDED.onboarding_complete, intensity_scale = EXCLUDED.intensity_scale,
+      pinned_lifts = EXCLUDED.pinned_lifts
   `, [
     req.user.id,
     height || "", weight || null, bodyFat || null,
@@ -77,6 +84,7 @@ router.put("/", requireAuth, handler(async (req, res) => {
     injuriesNotes || "", caloriesTarget || null, proteinTarget || null,
     activeProgramId || null, !!onboardingComplete,
     intensityScale || "rpe",
+    pinnedLifts ? JSON.stringify(pinnedLifts) : "[]",
   ]);
 
   // Log weight to bio history if present

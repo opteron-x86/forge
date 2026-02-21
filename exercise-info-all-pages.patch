@@ -91,19 +91,18 @@ index 73ff59a..f74e4ea 100644
                    <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 1 }}>
                      {exMeta.muscle} · {exMeta.equipment}
 diff --git a/src/pages/ProgramsPage.jsx b/src/pages/ProgramsPage.jsx
-index 34c9ab9..642748e 100644
+index 34c9ab9..2cd11b8 100644
 --- a/src/pages/ProgramsPage.jsx
 +++ b/src/pages/ProgramsPage.jsx
-@@ -7,6 +7,8 @@ import { useTalos } from "../context/TalosContext";
+@@ -7,6 +7,7 @@ import { useTalos } from "../context/TalosContext";
  import { genId } from "../lib/helpers";
  import { STARTER_TEMPLATES } from "../lib/starterTemplates";
  import ExercisePicker from "../components/ExercisePicker";
 +import useExerciseInfo from "../components/useExerciseInfo";
-+import ExerciseInfoBtn from "../components/ExerciseInfoBtn";
  import api from "../lib/api";
  import S from "../lib/styles";
  
-@@ -20,6 +22,9 @@ function BrowsePrograms({ onAdopt, onClose }) {
+@@ -20,6 +21,9 @@ function BrowsePrograms({ onAdopt, onClose }) {
    const [adopted, setAdopted] = useState(new Set());
    const [adopting, setAdopting] = useState(false);
  
@@ -113,7 +112,7 @@ index 34c9ab9..642748e 100644
    useEffect(() => {
      api.get("/programs/browse").then(data => {
        setCommunityPrograms(data.programs || []);
-@@ -96,6 +101,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
+@@ -96,6 +100,7 @@ function BrowsePrograms({ onAdopt, onClose }) {
  
      return (
        <div className="fade-in">
@@ -121,7 +120,7 @@ index 34c9ab9..642748e 100644
          <div style={S.card}>
            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
              {p.source === "template" ? (
-@@ -138,7 +144,10 @@ function BrowsePrograms({ onAdopt, onClose }) {
+@@ -138,7 +143,10 @@ function BrowsePrograms({ onAdopt, onClose }) {
              </div>
              {(day.exercises || []).map((ex, ei) => (
                <div key={ei} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
@@ -133,7 +132,7 @@ index 34c9ab9..642748e 100644
                  <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{ex.defaultSets}×{ex.targetReps}</span>
                </div>
              ))}
-@@ -275,6 +284,9 @@ const BUILDER_EQUIPMENT = [
+@@ -275,6 +283,9 @@ const BUILDER_EQUIPMENT = [
  function GuidedProgramBuilder({ onSave, onClose }) {
    const { profile, user, workouts, programs } = useTalos();
  
@@ -143,7 +142,7 @@ index 34c9ab9..642748e 100644
    // Pre-fill from profile
    const [goal, setGoal] = useState(
      profile.goal === "strength" ? "strength"
-@@ -376,6 +388,7 @@ function GuidedProgramBuilder({ onSave, onClose }) {
+@@ -376,6 +387,7 @@ function GuidedProgramBuilder({ onSave, onClose }) {
      const p = result.program;
      return (
        <div style={{ padding: "0 16px" }}>
@@ -151,7 +150,7 @@ index 34c9ab9..642748e 100644
          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
            <div style={S.label}>AI Program Preview</div>
            <button onClick={onClose} style={S.sm()}>✕</button>
-@@ -410,7 +423,10 @@ function GuidedProgramBuilder({ onSave, onClose }) {
+@@ -410,7 +422,10 @@ function GuidedProgramBuilder({ onSave, onClose }) {
                  borderTop: ei > 0 ? "1px solid var(--surface2)" : "none",
                }}>
                  <div style={{ flex: 1, minWidth: 0 }}>
@@ -163,31 +162,3 @@ index 34c9ab9..642748e 100644
                    {ex.notes && <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 1, fontStyle: "italic" }}>{ex.notes}</div>}
                  </div>
                  <span style={{ fontSize: 11, color: "var(--text-dim)", flexShrink: 0, marginLeft: 8 }}>
-@@ -531,6 +547,9 @@ export default function ProgramsPage() {
-   const [browsing, setBrowsing] = useState(false);
-   const [aiBuilding, setAiBuilding] = useState(false);
- 
-+  // Exercise info modal
-+  const { showInfo, infoModal } = useExerciseInfo();
-+
-   function toggleDayCollapse(dayId) {
-     setCollapsedDays(prev => {
-       const next = new Set(prev);
-@@ -647,6 +666,7 @@ export default function ProgramsPage() {
-   if (editing) {
-     return (
-       <div className="fade-in">
-+      {infoModal}
-       {showPicker && (
-         <ExercisePicker customExercises={customExercises}
-         onSelect={(ex) => {
-@@ -701,7 +721,8 @@ export default function ProgramsPage() {
-             <input value={day.subtitle} onChange={e => updateDay(di, "subtitle", e.target.value)} style={{ ...S.input, marginBottom: 8, fontSize: 11 }} placeholder="Subtitle (e.g. Chest / Triceps)" />
- 
-             {day.exercises.map((ex, ei) => (
--              <div key={ei} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", borderBottom: "1px solid var(--surface2)" }}>
-+              <div key={ei} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 0", borderBottom: "1px solid var(--surface2)" }}>
-+              <ExerciseInfoBtn onClick={() => showInfo(ex.name)} size="sm" />
-               <span onClick={() => { setPickerDayIdx(di); setReplacingExIdx(ei); setShowPicker(true); }} style={{ fontSize: 12, color: "var(--text-secondary)", flex: 1, cursor: "pointer", textDecoration: "underline", textDecorationColor: "var(--border2)", textUnderlineOffset: 2 }}>{ex.name}</span>
-               <select value={ex.defaultSets} onChange={e => {
-                 setEditing(p => {

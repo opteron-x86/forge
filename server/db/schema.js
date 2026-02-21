@@ -88,7 +88,8 @@ export async function initSchema(db) {
       protein_target INTEGER,
       active_program_id TEXT,
       onboarding_complete ${BOOL} DEFAULT ${BOOL_FALSE},
-      intensity_scale TEXT DEFAULT 'rpe'
+      intensity_scale TEXT DEFAULT 'rpe',
+      pinned_lifts ${JSON_TYPE} DEFAULT '[]'
     )
   `);
 
@@ -196,6 +197,7 @@ export async function initSchema(db) {
     "ALTER TABLE workouts ADD COLUMN finished_at TEXT",
     `ALTER TABLE profiles ADD COLUMN intensity_scale TEXT DEFAULT 'rpe'`,
     `ALTER TABLE profiles ADD COLUMN onboarding_complete ${BOOL} DEFAULT ${BOOL_FALSE}`,
+    `ALTER TABLE profiles ADD COLUMN pinned_lifts TEXT DEFAULT '[]'`,
   ];
 
   for (const sql of migrations) {

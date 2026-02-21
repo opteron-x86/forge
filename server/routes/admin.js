@@ -17,7 +17,7 @@ const router = Router();
 router.get("/users", requireAuth, requireAdmin, handler(async (req, res) => {
   const db = getDb();
   const users = await db.all(
-    "SELECT id, name, email, role, color, is_active, created_at FROM users ORDER BY created_at ASC"
+    "SELECT id, name, email, role, tier, color, is_active, created_at FROM users ORDER BY created_at ASC"
   );
   const enriched = [];
   for (const u of users) {
@@ -25,6 +25,15 @@ router.get("/users", requireAuth, requireAdmin, handler(async (req, res) => {
     enriched.push({ ...u, workoutCount: stats.workouts });
   }
   res.json(enriched);
+}));
+
+// Set user tier (admin only)
+router.put("/users/:id/tier", requireAuth, requireAdmin, handler(async (req, res) => {
+  const db = getDb();
+  const { tier } = req.body;
+  if (!["free", "pro"].includes(tier)) return res.status(400).json({ error: "Tier must be 'free' or 'pro'" });
+  await db.run("UPDATE users SET tier = $1 WHERE id = $2", [tier, req.params.id]);
+  res.json({ ok: true, tier });
 }));
 
 // Deactivate / reactivate user (admin only)

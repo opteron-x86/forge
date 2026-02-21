@@ -14,6 +14,7 @@
 
 import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "../ai-provider.js";
 import { getDb } from "./db.js";
+import { initFreeProvider } from "./ai-tier.js";
 
 // ===================== AI CONFIG =====================
 
@@ -49,9 +50,11 @@ let aiProvider = null;
 /**
  * Initialize the AI provider. Must be called after initDatabase().
  * Called once at startup from server.js.
+ * Initializes both the pro (admin-configured) and free (Gemini) providers.
  */
 export async function initAI() {
   aiProvider = await initProvider();
+  initFreeProvider();
   return aiProvider;
 }
 

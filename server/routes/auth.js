@@ -23,8 +23,9 @@ const APP_URL = process.env.APP_URL || "https://talos.fit";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || null;
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
-// --- Rate limit: 10 attempts per 15 minutes on auth endpoints ---
-const authRateLimit = rateLimit(10, 15 * 60 * 1000);
+// --- Rate limit: configurable via env, defaults to 10 per 15 minutes ---
+const AUTH_RATE_MAX = parseInt(process.env.AUTH_RATE_LIMIT) || 10;
+const authRateLimit = rateLimit(AUTH_RATE_MAX, 15 * 60 * 1000);
 
 // ===================== REGISTER =====================
 

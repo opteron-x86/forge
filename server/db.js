@@ -52,6 +52,14 @@ export async function trackEvent(userId, event, meta = null) {
   return _trackEvent(_db, userId, event, meta);
 }
 
+/**
+ * Reset and optionally inject a database instance (testing only).
+ * @param {object|null} testDb - Database adapter to use, or null to clear
+ */
+export function _resetForTesting(testDb = null) {
+  _db = testDb;
+}
+
 // DB_PATH for startup banner
 export const DB_PATH = process.env.DATABASE_URL
   ? "(PostgreSQL)"

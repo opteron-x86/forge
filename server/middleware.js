@@ -9,6 +9,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { getDb } from "./db.js";
+import { getLimitsForTier } from "./ai-tier.js";
 
 // --- JWT Config ---
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex");
@@ -16,10 +17,6 @@ const JWT_EXPIRES_IN = "7d";
 if (!process.env.JWT_SECRET) {
   console.warn("⚠️  No JWT_SECRET set — using random secret (tokens won't survive restarts)");
 }
-
-// --- AI Quota Config ---
-const AI_DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT) || 30;
-const AI_MONTHLY_LIMIT = parseInt(process.env.AI_MONTHLY_LIMIT) || 500;
 
 // ===================== JWT HELPERS =====================
 
@@ -50,7 +47,7 @@ export async function requireAuth(req, res, next) {
     const payload = verifyToken(header.slice(7));
     const db = getDb();
     const user = await db.get(
-      "SELECT id, name, email, role, color, theme, is_active FROM users WHERE id = $1",
+      "SELECT id, name, email, role, tier, color, theme, is_active FROM users WHERE id = $1",
       [payload.id]
     );
     if (!user) return res.status(401).json({ error: "User not found" });
@@ -110,10 +107,12 @@ export function rateLimit(max, windowMs) {
 
 /**
  * Check per-user AI rate limits (daily + monthly).
+ * Limits are determined by the user's tier.
  * Returns { allowed, remaining, reason }.
  */
-export async function checkAIRateLimit(userId) {
+export async function checkAIRateLimit(userId, tier = "free") {
   const db = getDb();
+  const limits = getLimitsForTier(tier);
   const today = new Date().toISOString().split("T")[0];
   const monthStart = today.slice(0, 7) + "-01";
 
@@ -127,21 +126,23 @@ export async function checkAIRateLimit(userId) {
     [userId, monthStart + "T00:00:00"]
   );
 
-  if (daily.count >= AI_DAILY_LIMIT) {
-    return { allowed: false, remaining: 0, reason: `Daily AI limit reached (${AI_DAILY_LIMIT}/day)` };
+  if (daily.count >= limits.daily) {
+    return { allowed: false, remaining: 0, reason: `Daily AI limit reached (${limits.daily}/day)` };
   }
-  if (monthly.count >= AI_MONTHLY_LIMIT) {
-    return { allowed: false, remaining: 0, reason: `Monthly AI limit reached (${AI_MONTHLY_LIMIT}/month)` };
+  if (monthly.count >= limits.monthly) {
+    return { allowed: false, remaining: 0, reason: `Monthly AI limit reached (${limits.monthly}/month)` };
   }
-  return { allowed: true, remaining: AI_DAILY_LIMIT - daily.count };
+  return { allowed: true, remaining: limits.daily - daily.count, daily: limits.daily, monthly: limits.monthly };
 }
 
 /**
  * Express middleware that blocks requests if AI quota is exceeded.
+ * Uses the user's tier to determine limits.
  */
 export async function requireAIQuota(req, res, next) {
   try {
-    const check = await checkAIRateLimit(req.user.id);
+    const tier = req.user?.tier || "free";
+    const check = await checkAIRateLimit(req.user.id, tier);
     if (!check.allowed) {
       return res.status(429).json({ error: check.reason, remaining: 0 });
     }
@@ -151,6 +152,20 @@ export async function requireAIQuota(req, res, next) {
     // Fail open — don't block the request if quota check fails
     next();
   }
+}
+
+/**
+ * Express middleware that blocks requests from free-tier users.
+ * Use after requireAuth. Returns 403 with upgrade prompt.
+ */
+export function requirePro(featureLabel = "This feature") {
+  return (req, res, next) => {
+    if (req.user?.tier === "pro") return next();
+    return res.status(403).json({
+      error: `${featureLabel} requires a Pro subscription`,
+      upgrade: true,
+    });
+  };
 }
 
 // ===================== ROUTE ERROR WRAPPER =====================
@@ -171,6 +186,3 @@ export function handler(fn) {
     }
   };
 }
-
-// Export quota limits for the /api/ai/quota endpoint
-export { AI_DAILY_LIMIT, AI_MONTHLY_LIMIT };

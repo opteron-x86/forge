@@ -15,13 +15,14 @@
 import { Router } from "express";
 import { getDb, genId, trackEvent } from "../db.js";
 import {
-  requireAuth, requireAdmin, requireAIQuota, handler,
-  checkAIRateLimit, AI_DAILY_LIMIT, AI_MONTHLY_LIMIT,
+  requireAuth, requireAdmin, requireAIQuota, requirePro, handler,
+  checkAIRateLimit,
 } from "../middleware.js";
 import {
   getAIProvider, reinitProvider,
   loadAIConfig, resolveConfig, PROVIDERS,
 } from "../ai.js";
+import { resolveProvider, getTierInfo, AI_FEATURES } from "../ai-tier.js";
 import {
   getExerciseContext, buildExerciseLibraryPrompt,
   getExerciseDetail, getSubstitutions,
@@ -74,10 +75,19 @@ router.put("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => 
   res.json({ ok: true, enabled: !!newProvider, providerName: newProvider?.providerName || "" });
 }));
 
-// AI usage quota
+// AI usage quota (tier-aware)
 router.get("/ai/quota", requireAuth, handler(async (req, res) => {
-  const check = await checkAIRateLimit(req.user.id);
-  res.json({ remaining: check.remaining, dailyLimit: AI_DAILY_LIMIT, monthlyLimit: AI_MONTHLY_LIMIT });
+  const tier = req.user.tier || "free";
+  const check = await checkAIRateLimit(req.user.id, tier);
+  res.json({ remaining: check.remaining, dailyLimit: check.daily, monthlyLimit: check.monthly, tier });
+}));
+
+// AI tier info (features, limits, availability)
+router.get("/ai/tier", requireAuth, handler(async (req, res) => {
+  const tier = req.user.tier || "free";
+  const info = getTierInfo(tier);
+  info.proProviderEnabled = !!getAIProvider();
+  res.json(info);
 }));
 
 // ===================== COACH MESSAGES (PERSISTENCE) =====================
@@ -118,6 +128,25 @@ router.delete("/coach/messages", requireAuth, handler(async (req, res) => {
 
 // ===================== AI COACH (CHAT) =====================
 
+/**
+ * Resolve the AI provider for a request based on user tier and feature.
+ * Returns the provider or sends an error response.
+ * @returns {object|null} provider instance, or null if response was sent
+ */
+function getProviderForRequest(req, res, feature) {
+  const tier = req.user?.tier || "free";
+  const { provider, blocked, reason } = resolveProvider(tier, feature, getAIProvider());
+  if (blocked) {
+    res.status(403).json({ error: reason, upgrade: true });
+    return null;
+  }
+  if (!provider) {
+    res.status(503).json({ error: reason || "AI coach unavailable — no provider configured" });
+    return null;
+  }
+  return provider;
+}
+
 const COACH_SYSTEM = `You are a knowledgeable, confident strength training coach with deep expertise in exercise science and program design.
 
 YOUR PERSONALITY:
@@ -136,8 +165,8 @@ YOU HAVE ACCESS TO:
 KEEP RESPONSES UNDER 200 WORDS unless the user asks for detailed analysis. Use markdown formatting for clarity.`;
 
 router.post("/coach", requireAuth, requireAIQuota, handler(async (req, res) => {
-  const aiProvider = getAIProvider();
-  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const aiProvider = getProviderForRequest(req, res, "chat");
+  if (!aiProvider) return;
   const { messages, prompt, context, history } = req.body;
 
   // Support both formats: { messages } or { prompt, history }
@@ -204,10 +233,10 @@ const PROGRAM_TOOL = {
   },
 };
 
-router.post("/coach/program", requireAuth, requireAIQuota, handler(async (req, res) => {
+router.post("/coach/program", requireAuth, requirePro("Program Builder"), requireAIQuota, handler(async (req, res) => {
   const db = getDb();
-  const aiProvider = getAIProvider();
-  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const aiProvider = getProviderForRequest(req, res, "program");
+  if (!aiProvider) return;
   const { prompt, context } = req.body;
 
   // Build exercise library context from database
@@ -253,8 +282,8 @@ ${exerciseLib}`;
 
 router.post("/coach/analyze", requireAuth, requireAIQuota, handler(async (req, res) => {
   const db = getDb();
-  const aiProvider = getAIProvider();
-  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const aiProvider = getProviderForRequest(req, res, "analyze");
+  if (!aiProvider) return;
   const { workout, context, workout_id } = req.body;
 
   const system = `You are a concise strength training coach providing a post-workout session analysis. Analyze the just-completed workout and give brief, specific feedback.
@@ -318,8 +347,8 @@ const SUBSTITUTE_TOOL = {
 };
 
 router.post("/coach/substitute", requireAuth, requireAIQuota, handler(async (req, res) => {
-  const aiProvider = getAIProvider();
-  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const aiProvider = getProviderForRequest(req, res, "substitute");
+  if (!aiProvider) return;
   const { exercise, reason, context } = req.body;
 
   // Build exercise library context from database
@@ -373,8 +402,8 @@ ${exerciseLib}`;
 // ===================== AI WEEKLY REPORT =====================
 
 router.post("/coach/weekly", requireAuth, requireAIQuota, handler(async (req, res) => {
-  const aiProvider = getAIProvider();
-  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+  const aiProvider = getProviderForRequest(req, res, "weekly");
+  if (!aiProvider) return;
   const { context } = req.body;
 
   const system = `You are a strength training coach providing a concise weekly training report. Analyze the past 7 days of training data.
@@ -399,9 +428,9 @@ Be data-driven. Reference actual numbers from the workout logs. Keep the whole r
 
 // ===================== AI DEEP ANALYSIS =====================
 
-router.post("/coach/analysis", requireAuth, requireAIQuota, handler(async (req, res) => {
-  const aiProvider = getAIProvider();
-  if (!aiProvider) return res.status(503).json({ error: "AI coach unavailable — no provider configured" });
+router.post("/coach/analysis", requireAuth, requirePro("Deep Analysis"), requireAIQuota, handler(async (req, res) => {
+  const aiProvider = getProviderForRequest(req, res, "deep_analysis");
+  if (!aiProvider) return;
   const { context } = req.body;
 
   const system = `You are an expert strength training coach providing a comprehensive training analysis. This is a premium, detailed assessment — not a quick chat response.

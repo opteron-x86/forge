@@ -72,6 +72,7 @@ function sqlDialect(db) {
     weekOf:       (col) => pg ? `to_char(${col}::date, 'IYYY-"W"IW')` : `strftime('%Y-W%W', ${col})`,
     daysAgo:      (n)   => pg ? `NOW() - INTERVAL '${n} days'`        : `date('now', '-${n} days')`,
     castFloat:    (col) => pg ? `${col}::FLOAT`                       : `CAST(${col} AS FLOAT)`,
+    greatest1:    (col) => pg ? `GREATEST(1::BIGINT, ${col})`         : `MAX(1, ${col})`,
   };
 }
 
@@ -118,7 +119,7 @@ router.get("/analytics", requireAuth, requireAdmin, handler(async (req, res) => 
       ${sql.weekOf("date")} as week,
       COUNT(*) as workouts,
       COUNT(DISTINCT user_id) as users,
-      ROUND(${sql.castFloat("COUNT(*)")} / MAX(1, COUNT(DISTINCT user_id)), 1) as per_user
+      ROUND(${sql.castFloat("COUNT(*)")} / ${sql.greatest1("COUNT(DISTINCT user_id)")}, 1) as per_user
     FROM workouts
     WHERE date >= $1
     GROUP BY ${sql.weekOf("date")}

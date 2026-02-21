@@ -31,7 +31,7 @@ export const AI_FEATURES = {
 
 let _freeProvider = null;
 
-const FREE_MODEL = process.env.GEMINI_FREE_MODEL || "gemini-2.0-flash";
+const FREE_MODEL = process.env.GEMINI_FREE_MODEL || "gemini-2.5-flash";
 
 /**
  * Initialize the free-tier Gemini provider.

@@ -30,8 +30,7 @@ import Onboarding from "./components/Onboarding";
 import SettingsModal from "./components/SettingsModal";
 import ProfileModal from "./components/ProfileModal";
 import AvatarMenu from "./components/AvatarMenu";
-import AdminPanel from "./components/AdminPanel";
-import AnalyticsDashboard from "./components/AnalyticsDashboard";
+import AdminDashboard from "./components/AdminDashboard";
 import SessionSummary from "./components/SessionSummary";
 import InstallPrompt from "./components/InstallPrompt";
 
@@ -54,7 +53,6 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState(null);
   const [sessionSummary, setSessionSummary] = useState(null);
@@ -486,6 +484,10 @@ export default function App() {
   return (
     <TalosContext.Provider value={ctx}>
       <div style={S.app}>
+        {showAdmin ? (
+          <AdminDashboard onClose={() => setShowAdmin(false)} />
+        ) : (
+        <>
         {/* Header */}
         <header style={S.header}>
           <h1 style={S.title}><img src="/talos-icon.svg" alt="" style={{ width: 20, height: 20, verticalAlign: "middle", marginRight: 6 }} />TALOS{currentWorkout && <span style={{ ...S.tag("#22c55e"), marginLeft: 6, fontSize: 9 }}>LIVE</span>}</h1>
@@ -523,7 +525,6 @@ export default function App() {
                   onProfile={() => setShowProfile(true)}
                   onSettings={() => setShowSettings(true)}
                   onAdmin={() => setShowAdmin(true)}
-                  onAnalytics={() => setShowAnalytics(true)}
                   onLogout={logout}
                   onClose={() => setAvatarMenuOpen(false)}
                 />
@@ -544,16 +545,6 @@ export default function App() {
         {showProfile && (
           <ProfileModal
             onClose={() => setShowProfile(false)}
-          />
-        )}
-        {showAdmin && (
-          <AdminPanel
-            onBack={() => setShowAdmin(false)}
-          />
-        )}
-        {showAnalytics && (
-          <AnalyticsDashboard
-            onBack={() => setShowAnalytics(false)}
           />
         )}
 
@@ -634,6 +625,8 @@ export default function App() {
             {editingProgram ? "Prog ●" : "Prog"}
           </button>
         </nav>
+        </>
+        )}
       </div>
     </TalosContext.Provider>
   );

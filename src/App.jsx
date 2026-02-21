@@ -206,9 +206,10 @@ export default function App() {
   }
 
   async function adoptProgram(program) {
-    const res = await api.post("/programs/adopt", program);
+    const res = await api.post("/programs", program);
     const updated = await api.get("/programs");
     setPrograms(updated);
+    window.dispatchEvent(new Event("talos-refresh-programs"));
     return res;
   }
 

@@ -363,7 +363,7 @@ export default function App() {
   }
 
   // ── Onboarding for new users ──
-  const needsOnboarding = loaded && programs.length === 0 && workouts.length === 0 && !profile.onboardingComplete;
+  const needsOnboarding = loaded && programs.filter(p => p.user_id === user.id).length === 0 && workouts.length === 0 && !profile.onboardingComplete;
 
   async function completeOnboarding(program, level, profileData) {
     // Merge onboarding profile data with existing profile

@@ -14,14 +14,31 @@ router.get("/", requireAuth, handler(async (req, res) => {
   const own = await db.all(
     "SELECT * FROM programs WHERE user_id = $1 ORDER BY created_at DESC", [req.user.id]
   );
-  const shared = await db.all(
-    "SELECT * FROM programs WHERE shared = TRUE AND user_id != $1 ORDER BY created_at DESC", [req.user.id]
-  );
-  const all = [...own, ...shared].map(p => ({
+  res.json(own.map(p => ({
     ...p,
     days: typeof p.days === "string" ? JSON.parse(p.days) : p.days,
-  }));
-  res.json(all);
+  })));
+}));
+
+// Browse community (shared) programs — used by the Programs page browse view
+router.get("/browse", requireAuth, handler(async (req, res) => {
+  const db = getDb();
+  const shared = await db.all(
+    `SELECT p.id, p.name, p.description, p.days, p.forked_from, p.created_at,
+            u.name AS creator_name, u.color AS creator_color
+     FROM programs p
+     JOIN users u ON u.id = p.user_id
+     WHERE p.shared = TRUE AND p.user_id != $1
+     ORDER BY p.created_at DESC`,
+    [req.user.id]
+  );
+  res.json({
+    programs: shared.map(p => ({
+      ...p,
+      days: typeof p.days === "string" ? JSON.parse(p.days) : p.days,
+      source: "community",
+    })),
+  });
 }));
 
 router.post("/", requireAuth, handler(async (req, res) => {

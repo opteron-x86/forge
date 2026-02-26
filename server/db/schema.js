@@ -157,6 +157,25 @@ export async function initSchema(db) {
   `);
 
   await db.exec(`
+    CREATE TABLE IF NOT EXISTS pre_workout_checkins (
+      id ${TEXT_PK},
+      user_id TEXT NOT NULL REFERENCES users(id),
+      date TEXT NOT NULL,
+      workout_id TEXT,
+      sleep_hours REAL,
+      sleep_quality INTEGER,
+      energy INTEGER,
+      stress INTEGER,
+      soreness INTEGER,
+      pain_notes TEXT,
+      time_available INTEGER,
+      readiness_score INTEGER,
+      assessment ${JSON_TYPE},
+      created_at ${TIMESTAMP} DEFAULT (${NOW})
+    )
+  `);
+
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS analytics_events (
       id ${AUTO_ID},
       user_id TEXT,
@@ -175,6 +194,7 @@ export async function initSchema(db) {
     "CREATE INDEX IF NOT EXISTS idx_workout_reviews_user ON workout_reviews(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_programs_user ON programs(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_bio_history_user ON bio_history(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON pre_workout_checkins(user_id, date)",
     "CREATE INDEX IF NOT EXISTS idx_analytics_user_event ON analytics_events(user_id, event)",
   ];
 

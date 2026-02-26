@@ -33,6 +33,7 @@ import AvatarMenu from "./components/AvatarMenu";
 import AdminDashboard from "./components/AdminDashboard";
 import SessionSummary from "./components/SessionSummary";
 import InstallPrompt from "./components/InstallPrompt";
+import PreWorkoutCheckin from "./components/PreWorkoutCheckin";
 
 export default function App() {
   // ── Auth state ──
@@ -58,6 +59,8 @@ export default function App() {
   const [sessionSummary, setSessionSummary] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null);
   const [logPastDate, setLogPastDate] = useState(null);
+  const [preWorkoutTarget, setPreWorkoutTarget] = useState(null);
+  // preWorkoutTarget: { program, day } — when set, shows the pre-workout modal
 
   // ── Coach state (lifted here so it survives tab switches) ──
   const [coachHistory, setCoachHistory] = useState([]);
@@ -243,13 +246,23 @@ export default function App() {
     return null;
   }
 
+// ── Pre-workout assessment gate ──
+  // When a user taps a program day, show the pre-workout check-in first
+  // (if AI is enabled). Then startWorkoutDirect() fires when they're done.
   function startWorkout(program, day, template) {
-    // template: optional past workout object to pre-fill weights/reps from
+    if (aiConfig.enabled && day && !template) {
+      // Show the pre-workout check-in modal
+      setPreWorkoutTarget({ program, day });
+    } else {
+      // Skip pre-workout (freestyle, repeat, or AI disabled)
+      startWorkoutDirect(program, day, template);
+    }
+  }
 
+  function startWorkoutDirect(program, day, template, aiTargets) {
     let exercises = [];
 
     if (template) {
-      // ── Start from a past workout template ──
       exercises = template.exercises?.map(e => ({
         name: e.name,
         sets: e.sets?.map(s => ({
@@ -262,54 +275,61 @@ export default function App() {
         targetReps: e.targetReps || "",
       })) || [];
     } else if (day?.exercises) {
-      // ── Start from program day, auto-fill from last performance ──
       const lastDayWorkout = findLastWorkoutForDay(program?.id, day.id, day.label);
 
       exercises = day.exercises.map(e => {
-        // Check if this exercise was in the last workout for this day
         const lastEx = lastDayWorkout?.exercises?.find(pe => pe.name === e.name);
-        // Fall back to last time this exercise appeared anywhere
         const lastAny = lastEx || findLastPerformance(e.name);
         const numSets = e.defaultSets || 3;
 
-        if (lastAny?.sets?.length > 0) {
-          // Pre-fill from last performance
+        // Check if AI provided target weights for this exercise
+        const aiTarget = aiTargets?.[e.name];
+
+        if (aiTarget) {
+          // Use AI-suggested weights
+          const sets = Array.from({ length: aiTarget.sets || numSets }, () => ({
+            weight: aiTarget.weight ?? "",
+            reps: "",
+            rpe: "",
+            completed: false,
+          }));
+          return {
+            name: e.name, sets, notes: "",
+            targetReps: aiTarget.reps || e.targetReps || e.reps || "",
+          };
+        } else if (lastAny?.sets?.length > 0) {
           const sets = Array.from({ length: numSets }, (_, i) => ({
             weight: lastAny.sets[Math.min(i, lastAny.sets.length - 1)]?.weight ?? "",
             reps: lastAny.sets[Math.min(i, lastAny.sets.length - 1)]?.reps ?? "",
             rpe: "",
             completed: false,
           }));
-          return { name: e.name, sets, notes: "", targetReps: e.targetReps || "" };
-        }
-
-        // No history — blank sets
-        return {
-          name: e.name,
-          sets: Array.from({ length: numSets }, () => ({
+          return {
+            name: e.name, sets, notes: "",
+            targetReps: e.targetReps || e.reps || "",
+          };
+        } else {
+          const sets = Array.from({ length: numSets }, () => ({
             weight: "", reps: "", rpe: "", completed: false,
-          })),
-          notes: "",
-          targetReps: e.targetReps || "",
-        };
+          }));
+          return { name: e.name, sets, notes: "", targetReps: e.targetReps || e.reps || "" };
+        }
       });
     }
 
-    const workout = {
-      id: genId(),
+    setCurrent({
+      program_id: program?.id || null,
+      day_id: day?.id || null,
+      day_label: day?.label || "Workout",
       date: new Date().toISOString().split("T")[0],
-      startTime: Date.now(),
-      program_id: template?.program_id || program?.id || null,
-      day_id: template?.day_id || day?.id || null,
-      day_label: template?.day_label || day?.label || "Freestyle",
       exercises,
-      feel: 3,
+      feel: null,
+      startTime: Date.now(),
+      sleep_hours: null,
       notes: "",
-      sleepHours: null,
-    };
-    setCurrent(workout);
+      isNew: !template,
+    });
     setTab("active");
-    api.track("workout_started", { day_label: workout.day_label, from_template: !!template });
   }
 
   function repeatWorkout(w) {
@@ -549,6 +569,25 @@ export default function App() {
           />
         )}
 
+        {/* Pre-Workout Assessment Modal */}
+        {preWorkoutTarget && (
+          <PreWorkoutCheckin
+            program={preWorkoutTarget.program}
+            day={preWorkoutTarget.day}
+            onStart={(aiTargets) => {
+              const { program, day } = preWorkoutTarget;
+              setPreWorkoutTarget(null);
+              startWorkoutDirect(program, day, null, aiTargets);
+            }}
+            onSkip={() => {
+              const { program, day } = preWorkoutTarget;
+              setPreWorkoutTarget(null);
+              startWorkoutDirect(program, day);
+            }}
+            onClose={() => setPreWorkoutTarget(null)}
+          />
+        )}
+        
         {/* Page router */}
         {activeTab === "train" && <TrainPage onStartWorkout={startWorkout} />}
         {activeTab === "active" && currentWorkout && (

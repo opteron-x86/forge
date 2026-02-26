@@ -394,12 +394,15 @@ async function buildPreWorkoutContext(db, userId, checkin, scheduledDay, program
   const profile = await db.get("SELECT * FROM profiles WHERE user_id = $1", [userId]);
   const user = await db.get("SELECT name FROM users WHERE id = $1", [userId]);
 
+  // Cutoff date as ISO string — avoids TEXT vs TIMESTAMP type mismatch in PG
+  const cutoff = new Date(Date.now() - 42 * 86400000).toISOString().split("T")[0];
+
   // ── Recent workouts (6 weeks for trend analysis) ──
   const recentWorkouts = await db.all(
     `SELECT * FROM workouts WHERE user_id = $1
-     AND date >= CURRENT_DATE - INTERVAL '42 days'
+     AND date >= $2
      ORDER BY date DESC`,
-    [userId]
+    [userId, cutoff]
   );
 
   const workouts = recentWorkouts.map(w => ({
@@ -418,9 +421,9 @@ async function buildPreWorkoutContext(db, userId, checkin, scheduledDay, program
   // ── Body weight trend ──
   const bioHistory = await db.all(
     `SELECT date, weight, body_fat FROM bio_history
-     WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '42 days'
+     WHERE user_id = $1 AND date >= $2
      ORDER BY date DESC LIMIT 10`,
-    [userId]
+    [userId, cutoff]
   );
 
   // ── Parse profile JSON fields ──

@@ -397,7 +397,7 @@ async function buildPreWorkoutContext(db, userId, checkin, scheduledDay, program
   // ── Recent workouts (6 weeks for trend analysis) ──
   const recentWorkouts = await db.all(
     `SELECT * FROM workouts WHERE user_id = $1
-     AND date >= date('now', '-42 days')
+     AND date >= CURRENT_DATE - INTERVAL '42 days'
      ORDER BY date DESC`,
     [userId]
   );
@@ -418,7 +418,7 @@ async function buildPreWorkoutContext(db, userId, checkin, scheduledDay, program
   // ── Body weight trend ──
   const bioHistory = await db.all(
     `SELECT date, weight, body_fat FROM bio_history
-     WHERE user_id = $1 AND date >= date('now', '-42 days')
+     WHERE user_id = $1 AND date >= CURRENT_DATE - INTERVAL '42 days'
      ORDER BY date DESC LIMIT 10`,
     [userId]
   );

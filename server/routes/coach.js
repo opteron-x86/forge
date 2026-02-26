@@ -632,7 +632,7 @@ function guessMuscle(name) {
  * }
  */
 router.post("/coach/pre-workout", requireAuth, requireAIQuota, handler(async (req, res) => {
-  const aiProvider = getProviderForRequest(req, res, "analysis");
+  const aiProvider = getProviderForRequest(req, res, "pre_workout");
   if (!aiProvider) return;
 
   const db = getDb();

@@ -25,6 +25,7 @@ export const AI_FEATURES = {
   substitute:    { label: "Exercise Swap",     freeTier: true  },
   program:       { label: "Program Builder",   freeTier: false },
   deep_analysis: { label: "Deep Analysis",     freeTier: false },
+  pre_workout:   { label: "Pre-Workout",       freeTier: false },
 };
 
 // ─── Free Provider (Gemini) ─────────────────────────────────────

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="TALOS — AI-powered gym tracking built by a lifter, for lifters. Track workouts, get intelligent coaching, and train smarter." />
+  <meta property="og:title" content="TALOS — Your Intelligent Training Partner" />
+  <meta property="og:description" content="AI-powered gym tracking built by a lifter, for lifters." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://talos.fit" />
+  <title>TALOS — Your Intelligent Training Partner</title>
+  <link rel="icon" type="image/svg+xml" href="/talos-icon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1a1a1a;
+      --border: #262626;
+      --border2: #333333;
+      --text-dim: #525252;
+      --text-muted: #737373;
+      --text-light: #a3a3a3;
+      --text: #e5e5e5;
+      --text-secondary: #d4d4d4;
+      --text-bright: #fafafa;
+      --accent: #c9952d;
+      --accent-muted: #b8862a;
+      --accent-bg: rgba(201,149,45,0.10);
+      --accent-glow: rgba(201,149,45,0.25);
+      --font: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ═══════════ BACKGROUND GRID ═══════════ */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(201,149,45,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,149,45,0.03) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 70% 50% at 50% 30%, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 30%, black 20%, transparent 70%);
+    }
+
+    .bg-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(201,149,45,0.06) 0%, transparent 60%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ═══════════ LAYOUT ═══════════ */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ═══════════ NAV ═══════════ */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: 2px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-link {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      cursor: pointer;
+      background: none;
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+      border-color: var(--border2);
+    }
+
+    .nav-link--accent {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .nav-link--accent:hover {
+      background: var(--accent);
+      color: #000;
+    }
+
+    /* ═══════════ HERO ═══════════ */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-bg);
+      border: 1px solid rgba(201,149,45,0.2);
+      border-radius: 100px;
+      padding: 6px 16px;
+      margin-bottom: 32px;
+      animation: fadeDown 0.6s ease-out;
+    }
+
+    .hero-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 7vw, 56px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: var(--text-bright);
+      margin-bottom: 20px;
+      animation: fadeDown 0.6s ease-out 0.1s both;
+    }
+
+    .hero h1 .accent {
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      max-width: 480px;
+      margin: 0 auto 40px;
+      animation: fadeDown 0.6s ease-out 0.2s both;
+    }
+
+    /* ═══════════ WAITLIST FORM ═══════════ */
+    .waitlist-form {
+      display: flex;
+      gap: 8px;
+      max-width: 440px;
+      margin: 0 auto;
+      animation: fadeDown 0.6s ease-out 0.3s both;
+    }
+
+    .waitlist-input {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+      min-height: 48px;
+    }
+
+    .waitlist-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .waitlist-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-bg);
+    }
+
+    .waitlist-btn {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      min-height: 48px;
+    }
+
+    .waitlist-btn:hover {
+      background: #d9a53d;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(201,149,45,0.3);
+    }
+
+    .waitlist-btn:active {
+      transform: translateY(0);
+    }
+
+    .waitlist-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .waitlist-msg {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 12px;
+      min-height: 18px;
+    }
+
+    .waitlist-msg--success { color: #34d399; }
+    .waitlist-msg--error { color: #f87171; }
+
+    .waitlist-count {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 16px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ═══════════ FEATURES ═══════════ */
+    .features {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .features-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 20px;
+      transition: border-color 0.2s;
+    }
+
+    .feature:hover {
+      border-color: var(--border2);
+    }
+
+    .feature-icon {
+      font-size: 20px;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    /* ═══════════ AI SECTION ═══════════ */
+    .ai-section {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .ai-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .ai-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .ai-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+    }
+
+    .ai-desc {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .ai-chat {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ai-msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .ai-msg--user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+      border-bottom-right-radius: 3px;
+    }
+
+    .ai-msg--ai {
+      align-self: flex-start;
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text-secondary);
+      border-bottom-left-radius: 3px;
+    }
+
+    .ai-msg--ai strong {
+      color: var(--text-bright);
+    }
+
+    /* ═══════════ BUILT BY ═══════════ */
+    .built-by {
+      padding: 60px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .built-by-text {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-muted);
+      max-width: 460px;
+      margin: 0 auto 24px;
+    }
+
+    .built-by-text em {
+      color: var(--text-light);
+      font-style: normal;
+    }
+
+    .built-by-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    /* ═══════════ BOTTOM CTA ═══════════ */
+    .bottom-cta {
+      padding: 60px 0 40px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .bottom-cta h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-bright);
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .bottom-cta p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    /* ═══════════ FOOTER ═══════════ */
+    footer {
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-link {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover {
+      color: var(--text-muted);
+    }
+
+    /* ═══════════ ANIMATIONS ═══════════ */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+
+    .animate-on-scroll.visible {
+      animation: slideUp 0.5s ease-out forwards;
+    }
+
+    /* ═══════════ RESPONSIVE ═══════════ */
+    @media (max-width: 560px) {
+      .wrapper { padding: 0 16px; }
+      .hero { padding: 48px 0 40px; }
+      .hero h1 { letter-spacing: -1px; }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .waitlist-form {
+        flex-direction: column;
+      }
+
+      .waitlist-btn {
+        width: 100%;
+      }
+
+      .ai-card { padding: 24px 20px; }
+
+      footer {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="wrapper">
+
+    <!-- ═══════════ NAV ═══════════ -->
+    <nav>
+      <a href="/" class="logo">
+        <img src="/talos-icon.svg" alt="" class="logo-icon" />
+        <span class="logo-text">TALOS</span>
+      </a>
+      <div class="nav-links">
+        <a href="https://discord.gg/64UaxG2A" class="nav-link" target="_blank" rel="noopener">Discord</a>
+        <a href="/" class="nav-link">Log In</a>
+        <a href="#waitlist" class="nav-link nav-link--accent">Get Early Access</a>
+      </div>
+    </nav>
+
+    <!-- ═══════════ HERO ═══════════ -->
+    <section class="hero" id="waitlist">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Beta — Early Access
+      </div>
+      <h1>Your Intelligent<br /><span class="accent">Training Partner</span></h1>
+      <p class="hero-sub">
+        Track workouts, analyze your training, and get AI-powered coaching.
+      </p>
+
+      <form class="waitlist-form" id="waitlistForm">
+        <input
+          type="email"
+          class="waitlist-input"
+          placeholder="you@email.com"
+          required
+          autocomplete="email"
+          id="emailInput"
+        />
+        <button type="submit" class="waitlist-btn" id="submitBtn">
+          Join Waitlist
+        </button>
+      </form>
+      <div class="waitlist-msg" id="waitlistMsg"></div>
+      <div class="waitlist-count">Join the waitlist for early access</div>
+    </section>
+
+    <!-- ═══════════ FEATURES ═══════════ -->
+    <section class="features animate-on-scroll">
+      <div class="features-label">What you get</div>
+      <div class="features-grid">
+        <div class="feature">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Smart Tracking</div>
+          <div class="feature-desc">Log sets with RPE/RIR, auto-fill from history, and detect PRs automatically. Built for speed between sets.</div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">🤖</span>
+          <div class="feature-title">AI Coach</div>
+          <div class="feature-desc">An AI that analyzes your training history, spots volume imbalances, and gives advice grounded in your actual data.</div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">📋</span>
+          <div class="feature-title">Program Builder</div>
+          <div class="feature-desc">Build custom programs, use templates, or let the AI generate one. Track progress day by day through your block.</div>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">📈</span>
+          <div class="feature-title">Real Analytics</div>
+          <div class="feature-desc">Volume tracking, strength trends, muscle group breakdowns, and session-over-session comparisons that matter.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ AI SECTION ═══════════ -->
+    <section class="ai-section animate-on-scroll">
+      <div class="ai-card">
+        <div class="ai-label">AI Coaching</div>
+        <div class="ai-title">Not a chatbot. A training partner.</div>
+        <div class="ai-desc">
+          TALOS AI reads your workout history, understands periodization, and gives
+          specific, actionable coaching — not generic advice from a template.
+        </div>
+        <div class="ai-chat">
+          <div class="ai-msg ai-msg--user">My bench has been stuck at 225 for weeks. What am I missing?</div>
+          <div class="ai-msg ai-msg--ai">
+            Looking at your last 8 sessions — your chest volume is fine at 16 sets/week,
+            but <strong>tricep volume dropped 40% since you cut skull crushers</strong> 3 weeks ago.
+            Your lockout is probably the bottleneck. I'd add close-grip bench or
+            dips as a secondary and keep overhead tricep work in the mix.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ BUILT BY ═══════════ -->
+    <section class="built-by animate-on-scroll">
+      <p class="built-by-text">
+        I built TALOS to make logging my workouts easier and build
+        my programs using integrated AI capabilities. I use it
+        every day at the gym now, testing and refining features
+        and capabilities for the best experience possible.
+        TALOS wasn't made in a boardroom or a VC startup,
+        just a developer who wants to make gym tracking easier.
+      </p>
+      <span class="built-by-tag"></span>
+    </section>
+
+    <!-- ═══════════ BOTTOM CTA ═══════════ -->
+    <section class="bottom-cta animate-on-scroll">
+      <h2>Train smarter. Ship PRs.</h2>
+      <p>Early access is opening soon. Get on the list.</p>
+      <form class="waitlist-form" id="waitlistForm2">
+        <input
+          type="email"
+          class="waitlist-input"
+          placeholder="you@email.com"
+          required
+          autocomplete="email"
+          id="emailInput2"
+        />
+        <button type="submit" class="waitlist-btn">Join Waitlist</button>
+      </form>
+      <div class="waitlist-msg" id="waitlistMsg2"></div>
+    </section>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <footer>
+      <div class="footer-left">&copy; 2026 TALOS</div>
+      <div class="footer-links">
+        <a href="https://discord.gg/64UaxG2A" class="footer-link" target="_blank" rel="noopener">Discord</a>
+        <a href="https://x.com/YOUR_HANDLE" class="footer-link" target="_blank" rel="noopener">X / Twitter</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // ═══════════ SCROLL ANIMATIONS ═══════════
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationDelay = `${i * 0.1}s`;
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+
+    // ═══════════ WAITLIST FORM HANDLER ═══════════
+    // Option A: POST to your Express backend (recommended)
+    // Option B: Replace with Buttondown/ConvertKit/Mailchimp embed URL
+
+    function handleWaitlist(form, msgEl) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = form.querySelector('input[type="email"]').value.trim();
+        const btn = form.querySelector('button');
+
+        if (!email) return;
+
+        btn.disabled = true;
+        btn.textContent = '...';
+        msgEl.textContent = '';
+        msgEl.className = 'waitlist-msg';
+
+        try {
+          const res = await fetch('/api/waitlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Something went wrong');
+
+          msgEl.textContent = data.message || "You're on the list. We'll be in touch.";
+          msgEl.className = 'waitlist-msg waitlist-msg--success';
+          form.querySelector('input[type="email"]').value = '';
+        } catch (err) {
+          msgEl.textContent = err.message || 'Something went wrong. Try again.';
+          msgEl.className = 'waitlist-msg waitlist-msg--error';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Join Waitlist';
+        }
+      });
+    }
+
+    handleWaitlist(
+      document.getElementById('waitlistForm'),
+      document.getElementById('waitlistMsg')
+    );
+
+    handleWaitlist(
+      document.getElementById('waitlistForm2'),
+      document.getElementById('waitlistMsg2')
+    );
+  </script>
+
+</body>
+</html>

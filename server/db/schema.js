@@ -185,6 +185,16 @@ export async function initSchema(db) {
     )
   `);
 
+  // ─── WAITLIST ──────────────────────────────────────────────────
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS waitlist (
+      id ${TEXT_PK},
+      email TEXT NOT NULL UNIQUE,
+      source TEXT,
+      created_at ${TIMESTAMP} DEFAULT (${NOW})
+    )
+  `);
+
   // ===================== INDEXES =====================
 
   const indexes = [
@@ -196,6 +206,7 @@ export async function initSchema(db) {
     "CREATE INDEX IF NOT EXISTS idx_bio_history_user ON bio_history(user_id)",
     "CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON pre_workout_checkins(user_id, date)",
     "CREATE INDEX IF NOT EXISTS idx_analytics_user_event ON analytics_events(user_id, event)",
+    "CREATE INDEX IF NOT EXISTS idx_waitlist_email ON waitlist(email)",
   ];
 
   for (const sql of indexes) {

@@ -32,6 +32,8 @@ import exerciseRoutes from "./server/routes/exercises.js";
 import coachRoutes from "./server/routes/coach.js";
 import exportRoutes from "./server/routes/export.js";
 import { requireAuth, requireAdmin } from "./server/middleware.js";
+import waitlistRoutes from "./server/routes/waitlist.js";
+
 // ===================== APP SETUP =====================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -77,17 +79,7 @@ app.use("/api/programs",         programRoutes);
 app.use("/api/exercises",        exerciseRoutes);
 app.use("/api",                  coachRoutes);   // Handles /api/coach/* and /api/ai/*
 app.use("/api/export",           exportRoutes);
-
-// TEMPORARY: Download production SQLite DB for migration — REMOVE AFTER USE
-
-app.get("/api/admin/db-snapshot", requireAuth, requireAdmin, async (req, res) => {
-  const { default: Database } = await import("better-sqlite3");
-  const dbPath = process.env.DATABASE_PATH || "/data/talos.db";
-  const raw = Database(dbPath);
-  raw.pragma("wal_checkpoint(TRUNCATE)");
-  raw.close();
-  res.download(dbPath);
-});
+app.use("/api/waitlist",         waitlistRoutes);
 
 // ===================== HEALTH & SPA FALLBACK =====================
 
@@ -99,6 +91,12 @@ app.get("/api/health", async (req, res) => {
   } catch (e) {
     res.status(503).json({ status: "error", db: "disconnected" });
   }
+});
+
+// Landing page — served at /welcome (public, no auth needed)
+app.get("/welcome", (req, res) => {
+  const dir = process.env.NODE_ENV === "production" ? "dist" : "public";
+  res.sendFile(join(__dirname, dir, "landing.html"));
 });
 
 if (process.env.NODE_ENV === "production") {
@@ -126,7 +124,7 @@ if (process.env.NODE_ENV === "production") {
 ┌────────────────────────────────────────┐
 │                                        │
 │   Δ TALOS                              │
-│   Gym Tracker v3.2 (PG-Ready)         │
+│   Gym Tracker v3.3                     │
 │                                        │
 │   http://0.0.0.0:${String(PORT).padEnd(24)}│
 │   DB: ${String(DB_PATH).padEnd(33)}│

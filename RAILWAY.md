@@ -16,7 +16,7 @@
    | `JWT_SECRET` | Random 32+ char string | **Yes** |
    | `NODE_ENV` | `production` | **Yes** |
    | `ADMIN_EMAIL` | Your email (first to register gets admin) | Recommended |
-   | `ANTHROPIC_API_KEY` | `sk-ant-...` | For AI coach |
+   | `OPENROUTER_API_KEY` | `sk-or-...` | For AI coach (OpenRouter) |
    | `PORT` | Set automatically by Railway | No |
 
 5. **Deploy** — Railway auto-detects the `railway.toml` config, runs `npm install && npm run build`, then `npm start`

@@ -68,10 +68,10 @@ fi
 # ── Setup .env if not exists ──
 if [ ! -f "$APP_DIR/.env" ]; then
   echo ""
-  read -p "  Anthropic API key (leave blank to skip): " API_KEY
+  read -p "  OpenRouter API key (leave blank to skip): " API_KEY
   echo ""
   cat > "$APP_DIR/.env" << ENVEOF
-ANTHROPIC_API_KEY=${API_KEY}
+OPENROUTER_API_KEY=${API_KEY}
 PORT=${PORT}
 ENVEOF
   chown "$REAL_USER:$REAL_USER" "$APP_DIR/.env"

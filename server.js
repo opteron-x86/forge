@@ -115,7 +115,7 @@ if (process.env.NODE_ENV === "production") {
     const aiProvider = getAIProvider();
 
     // Start server
-    const aiStatus = aiProvider ? `✅ ${aiProvider.providerName} (${aiProvider.modelName})` : "❌ Not configured";
+    const aiStatus = aiProvider ? "✅ OpenRouter" : "❌ No OPENROUTER_API_KEY";
     const authStatus = process.env.ADMIN_EMAIL ? `Admin: ${process.env.ADMIN_EMAIL}` : "No admin email set";
     const userCount = await db.get("SELECT COUNT(*) as c FROM users");
 

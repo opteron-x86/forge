@@ -41,6 +41,7 @@ export async function initSchema(db) {
       email TEXT UNIQUE,
       password_hash TEXT,
       role TEXT DEFAULT 'user',
+      tier TEXT DEFAULT 'free',
       color TEXT DEFAULT '#f97316',
       theme TEXT DEFAULT 'talos',
       is_active ${BOOL} DEFAULT ${BOOL_TRUE},
@@ -166,6 +167,15 @@ export async function initSchema(db) {
   `);
 
   await db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_model_routing (
+      feature TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      model TEXT NOT NULL,
+      PRIMARY KEY (feature, tier)
+    )
+  `);
+
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS pre_workout_checkins (
       id ${TEXT_PK},
       user_id TEXT NOT NULL REFERENCES users(id),
@@ -238,6 +248,7 @@ export async function initSchema(db) {
     `ALTER TABLE profiles ADD COLUMN intensity_scale TEXT DEFAULT 'rpe'`,
     `ALTER TABLE profiles ADD COLUMN onboarding_complete ${BOOL} DEFAULT ${BOOL_FALSE}`,
     `ALTER TABLE profiles ADD COLUMN pinned_lifts TEXT DEFAULT '[]'`,
+    `ALTER TABLE users ADD COLUMN tier TEXT DEFAULT 'free'`,
   ];
 
   for (const sql of migrations) {

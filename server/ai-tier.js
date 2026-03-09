@@ -1,22 +1,19 @@
 // ═══════════════════════════════════════════════════════════════
-//  TALOS — Tiered AI Provider Resolution
+//  TALOS — Tiered AI Model Routing (OpenRouter)
 //
-//  Maps (user tier, AI feature) → provider instance + model.
+//  Maps (user tier, AI feature) → specific OpenRouter model.
 //
-//  Free tier:  Gemini (via GEMINI_API_KEY) — chat, review, weekly, substitute
-//  Pro tier:   Admin-configured provider — all features including
-//              program builder and deep analysis
+//  Model assignments are stored in the database (ai_model_routing)
+//  and configurable from the admin panel. Defaults are provided
+//  for all features so the system works out of the box.
 //
-//  The free provider is separate from the admin-configured provider
-//  so that free-tier API costs stay on the cheap Gemini key while
-//  Pro users get the full Anthropic experience.
+//  Free tier:  Cheaper/faster models (Gemini Flash, DeepSeek, etc.)
+//  Pro tier:   Premium models (Claude Sonnet, GPT-4.1, Gemini Pro)
 // ═══════════════════════════════════════════════════════════════
 
-import { createProvider } from "../ai-provider.js";
+import { getDb } from "./db.js";
 
 // ─── Feature Definitions ────────────────────────────────────────
-// Each AI feature declares whether it's available on the free tier
-// and what model to use for free users.
 
 export const AI_FEATURES = {
   chat:          { label: "Coach Chat",        freeTier: true  },
@@ -28,87 +25,125 @@ export const AI_FEATURES = {
   pre_workout:   { label: "Pre-Workout",       freeTier: false },
 };
 
-// ─── Free Provider (Gemini) ─────────────────────────────────────
+// ─── Default Model Assignments ──────────────────────────────────
+// Used when no DB override exists. Sensible defaults for cost/quality.
 
-let _freeProvider = null;
+const DEFAULT_MODELS = {
+  chat:          { free: "google/gemini-2.5-flash",  pro: "anthropic/claude-sonnet-4" },
+  analyze:       { free: "google/gemini-2.5-flash",  pro: "anthropic/claude-sonnet-4" },
+  weekly:        { free: "google/gemini-2.5-flash",  pro: "anthropic/claude-sonnet-4" },
+  substitute:    { free: "google/gemini-2.5-flash",  pro: "google/gemini-2.5-flash" },
+  program:       { free: null,                        pro: "anthropic/claude-sonnet-4" },
+  deep_analysis: { free: null,                        pro: "anthropic/claude-sonnet-4" },
+  pre_workout:   { free: null,                        pro: "google/gemini-2.5-flash" },
+};
 
-const FREE_MODEL = process.env.GEMINI_FREE_MODEL || "gemini-2.5-flash";
+// ─── In-Memory Cache ────────────────────────────────────────────
+// Loaded from DB at startup and refreshed on admin save.
+
+let _modelRouting = {};
 
 /**
- * Initialize the free-tier Gemini provider.
- * Call once at startup alongside the pro provider.
- * @returns {object|null} Provider instance or null if no key configured
+ * Load model routing from the database into memory.
+ * Called at startup and after admin config changes.
  */
-export function initFreeProvider() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.log("[AI-Tier] No GEMINI_API_KEY — free tier AI disabled");
-    _freeProvider = null;
-    return null;
-  }
-
+export async function loadModelRouting() {
   try {
-    _freeProvider = createProvider({
-      provider: "gemini",
-      apiKey,
-      model: FREE_MODEL,
-    });
-    console.log(`[AI-Tier] Free tier: Gemini (${FREE_MODEL})`);
-    return _freeProvider;
+    const db = getDb();
+    const rows = await db.all("SELECT feature, tier, model FROM ai_model_routing");
+    _modelRouting = {};
+    for (const row of rows) {
+      if (!_modelRouting[row.feature]) _modelRouting[row.feature] = {};
+      _modelRouting[row.feature][row.tier] = row.model;
+    }
+    console.log(`[AI-Tier] Loaded ${rows.length} model routing rules from DB`);
   } catch (e) {
-    console.error("[AI-Tier] Free provider init error:", e.message);
-    _freeProvider = null;
-    return null;
+    console.warn("[AI-Tier] Could not load routing (table may not exist yet):", e.message);
+    _modelRouting = {};
   }
 }
 
 /**
- * Get the free-tier provider instance.
- * @returns {object|null}
+ * Save a model routing rule to the database and refresh cache.
  */
-export function getFreeProvider() {
-  return _freeProvider;
+export async function saveModelRoute(feature, tier, model) {
+  const db = getDb();
+  await db.run(
+    `INSERT INTO ai_model_routing (feature, tier, model)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (feature, tier) DO UPDATE SET model = EXCLUDED.model`,
+    [feature, tier, model]
+  );
+  // Refresh cache
+  if (!_modelRouting[feature]) _modelRouting[feature] = {};
+  _modelRouting[feature][tier] = model;
 }
 
-// ─── Provider Resolution ────────────────────────────────────────
+/**
+ * Save multiple model routing rules at once.
+ * @param {Array<{feature, tier, model}>} routes
+ */
+export async function saveModelRoutes(routes) {
+  const db = getDb();
+  for (const { feature, tier, model } of routes) {
+    await db.run(
+      `INSERT INTO ai_model_routing (feature, tier, model)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (feature, tier) DO UPDATE SET model = EXCLUDED.model`,
+      [feature, tier, model]
+    );
+  }
+  await loadModelRouting(); // Full refresh
+}
+
+// ─── Model Resolution ───────────────────────────────────────────
 
 /**
- * Resolve the AI provider for a given user tier and feature.
+ * Get the OpenRouter model ID for a given feature and user tier.
  *
- * @param {string} tier - User tier ("free" or "pro")
+ * Resolution order: DB override → default → null (blocked)
+ *
  * @param {string} feature - Feature key from AI_FEATURES
- * @param {object|null} proProvider - The admin-configured pro provider
- * @returns {{ provider: object|null, blocked: boolean, reason: string|null }}
+ * @param {string} tier - User tier ("free" or "pro")
+ * @returns {string|null} OpenRouter model ID or null
  */
-export function resolveProvider(tier, feature, proProvider) {
+export function getModelForFeature(feature, tier) {
+  // DB override first
+  const dbModel = _modelRouting[feature]?.[tier];
+  if (dbModel) return dbModel;
+
+  // Fall back to defaults
+  return DEFAULT_MODELS[feature]?.[tier] || null;
+}
+
+/**
+ * Resolve the model for a request, checking tier access and feature availability.
+ *
+ * @param {string} tier - User tier
+ * @param {string} feature - Feature key
+ * @returns {{ model: string|null, blocked: boolean, reason: string|null }}
+ */
+export function resolveModel(tier, feature) {
   const featureConfig = AI_FEATURES[feature];
   if (!featureConfig) {
-    return { provider: null, blocked: true, reason: "Unknown AI feature" };
-  }
-
-  // Pro users always get the admin-configured provider
-  if (tier === "pro") {
-    if (!proProvider) {
-      return { provider: null, blocked: false, reason: "AI provider not configured" };
-    }
-    return { provider: proProvider, blocked: false, reason: null };
+    return { model: null, blocked: true, reason: "Unknown AI feature" };
   }
 
   // Free tier — check if feature is available
-  if (!featureConfig.freeTier) {
+  if (tier !== "pro" && !featureConfig.freeTier) {
     return {
-      provider: null,
+      model: null,
       blocked: true,
       reason: `${featureConfig.label} requires a Pro subscription`,
     };
   }
 
-  // Free tier, feature allowed — use Gemini
-  if (!_freeProvider) {
-    return { provider: null, blocked: false, reason: "Free-tier AI not configured" };
+  const model = getModelForFeature(feature, tier);
+  if (!model) {
+    return { model: null, blocked: false, reason: "No model configured for this feature" };
   }
 
-  return { provider: _freeProvider, blocked: false, reason: null };
+  return { model, blocked: false, reason: null };
 }
 
 // ─── Rate Limit Config ──────────────────────────────────────────
@@ -124,11 +159,6 @@ export const TIER_LIMITS = {
   },
 };
 
-/**
- * Get rate limits for a user's tier.
- * @param {string} tier
- * @returns {{ daily: number, monthly: number }}
- */
 export function getLimitsForTier(tier) {
   return TIER_LIMITS[tier] || TIER_LIMITS.free;
 }
@@ -137,8 +167,7 @@ export function getLimitsForTier(tier) {
 
 /**
  * Build a tier info object for the frontend.
- * @param {string} tier
- * @returns {object}
+ * Includes per-feature model assignments for admin visibility.
  */
 export function getTierInfo(tier) {
   const limits = getLimitsForTier(tier);
@@ -147,13 +176,26 @@ export function getTierInfo(tier) {
     features[key] = {
       label: config.label,
       available: tier === "pro" || config.freeTier,
+      model: getModelForFeature(key, tier),
     };
   }
 
-  return {
-    tier,
-    limits,
-    features,
-    freeProviderEnabled: !!_freeProvider,
-  };
+  return { tier, limits, features };
+}
+
+/**
+ * Get the full model routing table for admin display.
+ * Returns all features with their free and pro model assignments.
+ */
+export function getFullRoutingTable() {
+  const table = {};
+  for (const [feature, config] of Object.entries(AI_FEATURES)) {
+    table[feature] = {
+      label: config.label,
+      freeTier: config.freeTier,
+      freeModel: getModelForFeature(feature, "free"),
+      proModel: getModelForFeature(feature, "pro"),
+    };
+  }
+  return table;
 }

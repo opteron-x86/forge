@@ -1,155 +1,85 @@
 // ═══════════════════════════════════════════════════════════════
-// TALOS AI Provider Abstraction
-// Supports: Anthropic, OpenAI, Gemini, OpenAI-compatible (Ollama, LM Studio, etc.)
+// TALOS AI Provider — OpenRouter Gateway
+//
+// All AI calls route through OpenRouter's OpenAI-compatible API.
+// Models are specified per-call as OpenRouter model IDs
+// (e.g. "google/gemini-2.5-flash", "anthropic/claude-sonnet-4").
+//
+// This replaces the multi-provider abstraction with a single
+// gateway, dramatically simplifying the AI layer.
 // ═══════════════════════════════════════════════════════════════
 
-import Anthropic from "@anthropic-ai/sdk";
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
-// ─── Base Provider ───────────────────────────────────────────
+// ─── OpenRouter Provider ────────────────────────────────────
 
-class AIProvider {
-  constructor(config) {
-    this.config = config;
+export class OpenRouterProvider {
+  constructor(apiKey, defaultModel = "google/gemini-2.5-flash") {
+    if (!apiKey) throw new Error("OpenRouter API key required");
+    this.apiKey = apiKey;
+    this.defaultModel = defaultModel;
   }
 
-  get providerName() { return "base"; }
-  get modelName() { return this.config.model; }
+  get providerName() { return "openrouter"; }
 
-  async chat(system, messages, options = {}) {
-    throw new Error("chat() not implemented");
-  }
-
-  async chatWithTools(system, messages, tools, options = {}) {
-    // Default: JSON-prompt fallback for providers without native tool use
-    return this._jsonFallback(system, messages, tools, options);
-  }
-
-  async _jsonFallback(system, messages, tools, options) {
-    const toolDesc = tools.map(t =>
-      `Tool: ${t.name}\nDescription: ${t.description}\nParameters: ${JSON.stringify(t.input_schema, null, 2)}`
-    ).join("\n\n");
-
-    const augmented = `${system}
-
-When you need to use a tool, respond with ONLY a JSON code block in this exact format (no other text):
-\`\`\`json
-{"tool": "tool_name", "input": {<parameters matching the schema>}}
-\`\`\`
-
-Available tools:
-${toolDesc}`;
-
-    const result = await this.chat(augmented, messages, options);
-
-    // Try to extract tool call from response
-    try {
-      // Match ```json ... ``` or bare JSON
-      const codeBlock = result.text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const raw = codeBlock ? codeBlock[1].trim() : result.text.trim();
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.tool && parsed.input) {
-          return { text: null, toolCalls: [{ name: parsed.tool, input: parsed.input }] };
-        }
-      }
-    } catch (e) { /* not valid JSON, treat as text */ }
-
-    return { text: result.text, toolCalls: [] };
-  }
-}
-
-// ─── Anthropic Provider ──────────────────────────────────────
-
-class AnthropicProvider extends AIProvider {
-  constructor(config) {
-    super(config);
-    this.client = new Anthropic({ apiKey: config.apiKey });
-  }
-
-  get providerName() { return "anthropic"; }
-
-  async chat(system, messages, options = {}) {
-    const msg = await this.client.messages.create({
-      model: this.config.model || "claude-sonnet-4-5-20250929",
-      max_tokens: options.maxTokens || 1500,
-      system,
-      messages,
-    });
-    return { text: msg.content.map(b => b.type === "text" ? b.text : "").join("\n") };
-  }
-
-  async chatWithTools(system, messages, tools, options = {}) {
-    const msg = await this.client.messages.create({
-      model: this.config.model || "claude-sonnet-4-5-20250929",
-      max_tokens: options.maxTokens || 4000,
-      system,
-      messages,
-      tools: tools.map(t => ({
-        name: t.name,
-        description: t.description,
-        input_schema: t.input_schema,
-      })),
-    });
-
-    const text = msg.content.filter(b => b.type === "text").map(b => b.text).join("\n") || null;
-    const toolCalls = msg.content.filter(b => b.type === "tool_use").map(b => ({
-      name: b.name,
-      input: b.input,
-    }));
-
-    return { text, toolCalls };
-  }
-}
-
-// ─── OpenAI-Compatible Provider ──────────────────────────────
-// Works with: OpenAI, Ollama, LM Studio, vLLM, Together, Groq, Fireworks, etc.
-
-class OpenAICompatibleProvider extends AIProvider {
-  constructor(config) {
-    super(config);
-    this.baseUrl = (config.baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
-    this.apiKey = config.apiKey;
-    this.supportsTools = config.supportsTools !== false; // assume yes unless explicitly disabled
-  }
-
-  get providerName() { return "openai-compatible"; }
-
+  /**
+   * Make an OpenAI-compatible chat completion request via OpenRouter.
+   * @param {object} body - Request body (model, messages, etc.)
+   * @returns {object} OpenAI-format response
+   */
   async _call(body) {
-    const headers = { "Content-Type": "application/json" };
-    if (this.apiKey) headers["Authorization"] = `Bearer ${this.apiKey}`;
-
-    const res = await fetch(`${this.baseUrl}/chat/completions`, {
+    const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`,
+        "HTTP-Referer": "https://talos.fit",
+        "X-Title": "TALOS",
+      },
       body: JSON.stringify(body),
     });
 
     if (!res.ok) {
       const err = await res.text().catch(() => "Unknown error");
-      throw new Error(`OpenAI-compatible API error (${res.status}): ${err}`);
+      throw new Error(`OpenRouter API error (${res.status}): ${err}`);
     }
 
     return res.json();
   }
 
+  /**
+   * Simple chat completion.
+   * @param {string} system - System prompt
+   * @param {Array} messages - Chat messages [{role, content}]
+   * @param {object} options - { maxTokens, model }
+   */
   async chat(system, messages, options = {}) {
+    const model = options.model || this.defaultModel;
     const data = await this._call({
-      model: this.config.model || "gpt-4o",
+      model,
       max_tokens: options.maxTokens || 1500,
       messages: [{ role: "system", content: system }, ...messages],
     });
-    return { text: data.choices?.[0]?.message?.content || "" };
+    return {
+      text: data.choices?.[0]?.message?.content || "",
+      model: data.model || model,
+    };
   }
 
+  /**
+   * Chat completion with tool/function calling.
+   * Falls back to JSON-prompt approach if tool use fails.
+   * @param {string} system - System prompt
+   * @param {Array} messages - Chat messages
+   * @param {Array} tools - Tool definitions (Anthropic format, converted internally)
+   * @param {object} options - { maxTokens, model }
+   */
   async chatWithTools(system, messages, tools, options = {}) {
-    if (!this.supportsTools) {
-      return this._jsonFallback(system, messages, tools, options);
-    }
+    const model = options.model || this.defaultModel;
 
     try {
       const data = await this._call({
-        model: this.config.model || "gpt-4o",
+        model,
         max_tokens: options.maxTokens || 4000,
         messages: [{ role: "system", content: system }, ...messages],
         tools: tools.map(t => ({
@@ -169,184 +99,72 @@ class OpenAICompatibleProvider extends AIProvider {
         input: JSON.parse(tc.function.arguments),
       }));
 
-      return { text, toolCalls };
+      return { text, toolCalls, model: data.model || model };
     } catch (e) {
-      // If tool use fails (unsupported model), fall back to JSON prompt
-      console.warn("Tool use failed, falling back to JSON prompt:", e.message);
-      this.supportsTools = false;
+      // If tool use fails (model doesn't support it), fall back to JSON prompt
+      console.warn(`[OpenRouter] Tool use failed for ${model}, falling back to JSON prompt:`, e.message);
       return this._jsonFallback(system, messages, tools, options);
     }
   }
-}
 
-// ─── Gemini Provider ─────────────────────────────────────────
+  /**
+   * JSON-prompt fallback for models without native tool support.
+   */
+  async _jsonFallback(system, messages, tools, options) {
+    const toolDesc = tools.map(t =>
+      `Tool: ${t.name}\nDescription: ${t.description}\nParameters: ${JSON.stringify(t.input_schema, null, 2)}`
+    ).join("\n\n");
 
-class GeminiProvider extends AIProvider {
-  constructor(config) {
-    super(config);
-    this.apiKey = config.apiKey;
-  }
+    const augmented = `${system}
 
-  get providerName() { return "gemini"; }
+When you need to use a tool, respond with ONLY a JSON code block in this exact format (no other text):
+\`\`\`json
+{"tool": "tool_name", "input": {<parameters matching the schema>}}
+\`\`\`
 
-  async _call(body, toolDeclarations = null) {
-    const model = this.config.model || "gemini-2.0-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+Available tools:
+${toolDesc}`;
 
-    const payload = { ...body };
-    if (toolDeclarations) {
-      payload.tools = [{ functionDeclarations: toolDeclarations }];
-    }
+    const result = await this.chat(augmented, messages, options);
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const codeBlock = result.text.match(/```(?:json)?\s*([\s\S]*?)```/);
+      const raw = codeBlock ? codeBlock[1].trim() : result.text.trim();
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.tool && parsed.input) {
+          return { text: null, toolCalls: [{ name: parsed.tool, input: parsed.input }], model: result.model };
+        }
+      }
+    } catch (e) { /* not valid JSON, treat as text */ }
 
-    if (!res.ok) {
-      const err = await res.text().catch(() => "Unknown error");
-      throw new Error(`Gemini API error (${res.status}): ${err}`);
-    }
-
-    return res.json();
-  }
-
-  _buildBody(system, messages, options = {}) {
-    return {
-      systemInstruction: { parts: [{ text: system }] },
-      contents: messages.map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-      generationConfig: { maxOutputTokens: options.maxTokens || 1500 },
-    };
-  }
-
-  async chat(system, messages, options = {}) {
-    const data = await this._call(this._buildBody(system, messages, options));
-    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
-    return { text };
-  }
-
-  async chatWithTools(system, messages, tools, options = {}) {
-    const toolDeclarations = tools.map(t => ({
-      name: t.name,
-      description: t.description,
-      parameters: t.input_schema,
-    }));
-
-    const data = await this._call(
-      this._buildBody(system, messages, options),
-      toolDeclarations
-    );
-
-    const parts = data.candidates?.[0]?.content?.parts || [];
-    const text = parts.filter(p => p.text).map(p => p.text).join("") || null;
-    const toolCalls = parts.filter(p => p.functionCall).map(p => ({
-      name: p.functionCall.name,
-      input: p.functionCall.args,
-    }));
-
-    return { text, toolCalls };
+    return { text: result.text, toolCalls: [], model: result.model };
   }
 }
 
-// ─── Factory ─────────────────────────────────────────────────
+// ─── Popular OpenRouter Models (for admin UI) ───────────────
 
-export function createProvider(config) {
-  if (!config || (!config.apiKey && config.provider !== "openai-compatible")) {
-    return null;
-  }
-
-  switch (config.provider) {
-    case "anthropic":
-      return new AnthropicProvider(config);
-    case "openai":
-      return new OpenAICompatibleProvider({ ...config, baseUrl: "https://api.openai.com/v1" });
-    case "gemini":
-      return new GeminiProvider(config);
-    case "openai-compatible":
-      if (!config.baseUrl) throw new Error("baseUrl required for openai-compatible provider");
-      return new OpenAICompatibleProvider(config);
-    default:
-      throw new Error(`Unknown AI provider: ${config.provider}`);
-  }
-}
-
-// ─── Config Resolution ───────────────────────────────────────
-// Resolves AI config from: DB settings → .env → legacy ANTHROPIC_API_KEY
-
-export function resolveConfig(dbSettings, env) {
-  // API key always comes from environment variables, never from the database.
-  // DB settings only control provider, model, base URL, and tool support.
-  const apiKey = env.AI_API_KEY || env.ANTHROPIC_API_KEY || "";
-
-  // DB settings take priority for provider/model selection
-  if (dbSettings?.provider) {
-    return {
-      provider: dbSettings.provider,
-      model: dbSettings.model || defaultModelFor(dbSettings.provider),
-      apiKey,
-      baseUrl: dbSettings.baseUrl || "",
-      supportsTools: dbSettings.supportsTools !== "false",
-    };
-  }
-
-  // .env AI_PROVIDER config
-  if (env.AI_PROVIDER) {
-    return {
-      provider: env.AI_PROVIDER,
-      model: env.AI_MODEL || defaultModelFor(env.AI_PROVIDER),
-      apiKey,
-      baseUrl: env.AI_BASE_URL || "",
-      supportsTools: env.AI_SUPPORTS_TOOLS !== "false",
-    };
-  }
-
-  // Legacy fallback: ANTHROPIC_API_KEY
-  if (env.ANTHROPIC_API_KEY) {
-    return {
-      provider: "anthropic",
-      model: env.AI_MODEL || defaultModelFor("anthropic"),
-      apiKey: env.ANTHROPIC_API_KEY,
-      baseUrl: "",
-    };
-  }
-
-  return null;
-}
-
-export function defaultModelFor(provider) {
-  switch (provider) {
-    case "anthropic": return "claude-sonnet-4-5-20250929";
-    case "openai": return "gpt-4.1";
-    case "gemini": return "gemini-2.5-flash";
-    case "openai-compatible": return "default";
-    default: return "";
-  }
-}
-
-// ─── Provider Info ───────────────────────────────────────────
-
-export const PROVIDERS = [
-  { id: "anthropic", name: "Anthropic (Claude)", models: [
-    { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
-    { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
-    { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-    { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  ]},
-{ id: "openai", name: "OpenAI", models: [
-  { id: "gpt-4.1", label: "GPT-4.1" },
-  { id: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
-  { id: "gpt-4o", label: "GPT-4o" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini" },
-  { id: "o4-mini", label: "o4 Mini" },
-]},
-{ id: "gemini", name: "Google Gemini", models: [
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-]},
-{ id: "openai-compatible", name: "OpenAI-Compatible (Ollama, LM Studio, etc.)", models: [] },
+export const OPENROUTER_MODELS = [
+  // Anthropic
+  { id: "anthropic/claude-sonnet-4", label: "Claude Sonnet 4", tier: "pro" },
+  { id: "anthropic/claude-haiku-4", label: "Claude Haiku 4", tier: "mid" },
+  // Google
+  { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", tier: "pro" },
+  { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", tier: "free" },
+  { id: "google/gemini-2.0-flash-001", label: "Gemini 2.0 Flash", tier: "free" },
+  // OpenAI
+  { id: "openai/gpt-4.1", label: "GPT-4.1", tier: "pro" },
+  { id: "openai/gpt-4.1-mini", label: "GPT-4.1 Mini", tier: "mid" },
+  { id: "openai/gpt-4.1-nano", label: "GPT-4.1 Nano", tier: "free" },
+  { id: "openai/o4-mini", label: "o4 Mini", tier: "mid" },
+  // Meta
+  { id: "meta-llama/llama-4-maverick", label: "Llama 4 Maverick", tier: "mid" },
+  { id: "meta-llama/llama-4-scout", label: "Llama 4 Scout", tier: "free" },
+  // DeepSeek
+  { id: "deepseek/deepseek-chat-v3-0324", label: "DeepSeek V3", tier: "free" },
+  { id: "deepseek/deepseek-r1", label: "DeepSeek R1", tier: "mid" },
+  // Mistral
+  { id: "mistralai/mistral-medium-3", label: "Mistral Medium 3", tier: "mid" },
+  { id: "mistralai/mistral-small-3.1-24b", label: "Mistral Small 3.1", tier: "free" },
 ];

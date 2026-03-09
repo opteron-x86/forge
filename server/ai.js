@@ -1,79 +1,61 @@
 // ═══════════════════════════════════════════════════════════════
-//  TALOS — AI Provider Module (v2 — Database-Backed Exercises)
-//  Extracted from server.js monolith (Phase 2 audit, commit 7e055db)
-//  + PostgreSQL migration: async database layer
+//  TALOS — AI Module (OpenRouter Gateway)
 //
-//  Handles: AI provider initialization, config persistence.
+//  Single OpenRouter provider serves all tiers and features.
+//  Model selection happens per-request based on the routing table
+//  in ai-tier.js, not at the provider level.
 //
-//  Exercise library indexing has moved to exercise-context.js
-//  for database-backed lookups with caching.
+//  Env vars: OPENROUTER_API_KEY (required for AI features)
 //
-//  NOTE: initAI() must be called after initDatabase() since
-//  loadAIConfig reads from the database.
+//  NOTE: initAI() must be called after initDatabase().
 // ═══════════════════════════════════════════════════════════════
 
-import { createProvider, resolveConfig, defaultModelFor, PROVIDERS } from "../ai-provider.js";
-import { getDb } from "./db.js";
-import { initFreeProvider } from "./ai-tier.js";
-
-// ===================== AI CONFIG =====================
-
-/** Load AI config from the database */
-export async function loadAIConfig() {
-  const db = getDb();
-  const rows = await db.all("SELECT key, value FROM ai_config");
-  const config = {};
-  for (const row of rows) config[row.key] = row.value;
-  return config;
-}
-
-/** Initialize the AI provider from DB config + env vars */
-async function initProvider() {
-  const dbSettings = await loadAIConfig();
-  const config = resolveConfig(dbSettings, process.env);
-  if (!config) return null;
-  try {
-    return createProvider(config);
-  } catch (e) {
-    console.error("AI provider init error:", e.message);
-    return null;
-  }
-}
+import { OpenRouterProvider, OPENROUTER_MODELS } from "../ai-provider.js";
+import { loadModelRouting, getFullRoutingTable } from "./ai-tier.js";
 
 // ===================== MUTABLE STATE =====================
 
-// The AI provider is a mutable singleton — it can be reconfigured
-// at runtime via the admin AI config endpoint.
-// Initialized via initAI() after database is ready.
-let aiProvider = null;
+let _provider = null;
 
 /**
- * Initialize the AI provider. Must be called after initDatabase().
- * Called once at startup from server.js.
- * Initializes both the pro (admin-configured) and free (Gemini) providers.
+ * Initialize the OpenRouter provider and load model routing.
+ * Called once at startup from server.js after database is ready.
  */
 export async function initAI() {
-  aiProvider = await initProvider();
-  initFreeProvider();
-  return aiProvider;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    console.log("[AI] No OPENROUTER_API_KEY — AI features disabled");
+    _provider = null;
+  } else {
+    try {
+      _provider = new OpenRouterProvider(apiKey);
+      console.log("[AI] OpenRouter provider initialized");
+    } catch (e) {
+      console.error("[AI] Provider init error:", e.message);
+      _provider = null;
+    }
+  }
+
+  // Load per-feature model routing from database
+  await loadModelRouting();
+
+  return _provider;
 }
 
 /**
- * Get the current AI provider instance.
- * @returns {object|null}
+ * Get the OpenRouter provider instance.
+ * @returns {OpenRouterProvider|null}
  */
 export function getAIProvider() {
-  return aiProvider;
+  return _provider;
 }
 
 /**
- * Reinitialize the AI provider (called after config changes).
- * Returns the new provider instance (or null).
+ * Check if AI is available (provider exists).
  */
-export async function reinitProvider() {
-  aiProvider = await initProvider();
-  return aiProvider;
+export function isAIEnabled() {
+  return !!_provider;
 }
 
-// Re-export for route modules that need provider metadata
-export { PROVIDERS, defaultModelFor, resolveConfig };
+// Re-export for route modules
+export { OPENROUTER_MODELS };

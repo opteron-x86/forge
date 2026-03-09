@@ -157,6 +157,15 @@ export async function initSchema(db) {
   `);
 
   await db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_model_routing (
+      feature TEXT NOT NULL,
+      tier TEXT NOT NULL,
+      model TEXT NOT NULL,
+      PRIMARY KEY (feature, tier)
+    )
+  `);
+
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS pre_workout_checkins (
       id ${TEXT_PK},
       user_id TEXT NOT NULL REFERENCES users(id),

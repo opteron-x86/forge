@@ -374,12 +374,12 @@ function AIStatusTab() {
       {/* Provider Health */}
       <Section title="🔌 Provider Status">
         <div style={{ display: "grid", gap: 10 }}>
-          {/* Pro provider */}
+          {/* OpenRouter status */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "var(--surface2)", borderRadius: 8 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-bright)" }}>Pro Provider</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-bright)" }}>OpenRouter Gateway</div>
               <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
-                {config?.provider ? `${config.providerName || config.provider} — ${config.model}` : "Not configured"}
+                {config?.enabled ? "Connected — models routed per feature" : "Not configured (set OPENROUTER_API_KEY)"}
               </div>
             </div>
             <div style={{
@@ -388,25 +388,10 @@ function AIStatusTab() {
               boxShadow: config?.enabled ? "0 0 8px #22c55e60" : "0 0 8px #ef444460",
             }} />
           </div>
-
-          {/* Free provider */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "var(--surface2)", borderRadius: 8 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-bright)" }}>Free Provider</div>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
-                {tier?.freeProviderEnabled ? "Gemini 2.0 Flash" : "Not configured (no GEMINI_API_KEY)"}
-              </div>
-            </div>
-            <div style={{
-              width: 10, height: 10, borderRadius: "50%",
-              background: providerColor(tier?.freeProviderEnabled),
-              boxShadow: tier?.freeProviderEnabled ? "0 0 8px #22c55e60" : "0 0 8px #ef444460",
-            }} />
-          </div>
         </div>
       </Section>
 
-      {/* Feature Availability */}
+      {/* Feature Availability with Model Routing */}
       {tier?.features && (
         <Section title="🎯 Feature Access by Tier">
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 16px", fontSize: 11, alignItems: "center" }}>
@@ -415,8 +400,11 @@ function AIStatusTab() {
             <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10, textAlign: "center" }}>PRO</div>
             {Object.entries(tier.features).map(([key, f]) => (
               <div key={key} style={{ display: "contents" }}>
-                <span style={{ color: "var(--text-light)", fontWeight: 500 }}>{f.label}</span>
-                <span style={{ textAlign: "center", fontSize: 13 }}>{f.available || key === "chat" ? "✓" : "—"}</span>
+                <div>
+                  <span style={{ color: "var(--text-light)", fontWeight: 500 }}>{f.label}</span>
+                  {f.model && <div style={{ fontSize: 8, color: "var(--text-dim)", marginTop: 1 }}>{f.model}</div>}
+                </div>
+                <span style={{ textAlign: "center", fontSize: 13 }}>{f.available ? "✓" : "—"}</span>
                 <span style={{ textAlign: "center", fontSize: 13, color: "#22c55e" }}>✓</span>
               </div>
             ))}

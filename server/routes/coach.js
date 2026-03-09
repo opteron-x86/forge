@@ -1,15 +1,10 @@
 // ═══════════════════════════════════════════════════════════════
-//  TALOS — Coach & AI Routes (v2 — Database-Backed Exercises)
+//  TALOS — Coach & AI Routes (v3 — OpenRouter Gateway)
 //  POST /api/coach, POST /api/coach/program, POST /api/coach/analyze,
 //  POST /api/coach/substitute, POST /api/coach/weekly,
 //  POST /api/coach/analysis, GET/POST/DELETE /api/coach/messages,
-//  GET/PUT /api/ai/config, GET /api/ai/status, GET /api/ai/quota
-//
-//  Changes from v1:
-//  - Removed static imports of EXERCISES and exercisesByMuscle
-//  - All exercise lookups now async via exercise-context.js
-//  - AI coach gets enriched data (secondary muscles, force, level)
-//  - Substitution route uses database-backed substitution map
+//  GET/PUT /api/ai/config, GET /api/ai/status, GET /api/ai/quota,
+//  GET/PUT /api/ai/routing
 // ═══════════════════════════════════════════════════════════════
 
 import { Router } from "express";
@@ -18,11 +13,11 @@ import {
   requireAuth, requireAdmin, requireAIQuota, requirePro, handler,
   checkAIRateLimit,
 } from "../middleware.js";
+import { getAIProvider, isAIEnabled, OPENROUTER_MODELS } from "../ai.js";
 import {
-  getAIProvider, reinitProvider,
-  loadAIConfig, resolveConfig, PROVIDERS,
-} from "../ai.js";
-import { resolveProvider, getTierInfo, AI_FEATURES } from "../ai-tier.js";
+  resolveModel, getTierInfo, AI_FEATURES,
+  getFullRoutingTable, saveModelRoutes, loadModelRouting,
+} from "../ai-tier.js";
 import {
   getExerciseContext, buildExerciseLibraryPrompt,
   getExerciseDetail, getSubstitutions,
@@ -34,45 +29,59 @@ const router = Router();
 
 // AI status (any authenticated user)
 router.get("/ai/status", requireAuth, handler(async (req, res) => {
-  res.json({ enabled: !!getAIProvider() });
+  res.json({ enabled: isAIEnabled() });
 }));
 
-// AI config details (admin only)
+// AI config overview (admin only)
 router.get("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => {
-  const aiProvider = getAIProvider();
-  const dbSettings = await loadAIConfig();
-  const config = resolveConfig(dbSettings, process.env);
+  const routing = getFullRoutingTable();
   res.json({
-    provider: config?.provider || "",
-    model: config?.model || "",
-    baseUrl: dbSettings.baseUrl || process.env.AI_BASE_URL || "",
-    hasKey: !!(config?.apiKey),
-    keySource: config?.apiKey ? "environment" : "none",
-    supportsTools: dbSettings.supportsTools !== "false",
-    enabled: !!aiProvider,
-    providerName: aiProvider?.providerName || "",
-    providers: PROVIDERS,
+    enabled: isAIEnabled(),
+    gateway: "openrouter",
+    hasKey: !!process.env.OPENROUTER_API_KEY,
+    routing,
+    models: OPENROUTER_MODELS,
+    features: AI_FEATURES,
   });
 }));
 
+// Get model routing table (admin only)
+router.get("/ai/routing", requireAuth, requireAdmin, handler(async (req, res) => {
+  res.json({
+    routing: getFullRoutingTable(),
+    models: OPENROUTER_MODELS,
+  });
+}));
+
+// Save model routing (admin only)
+router.put("/ai/routing", requireAuth, requireAdmin, handler(async (req, res) => {
+  const { routes } = req.body;
+  if (!Array.isArray(routes)) {
+    return res.status(400).json({ error: "routes array required" });
+  }
+
+  // Validate routes
+  for (const r of routes) {
+    if (!r.feature || !r.tier || !r.model) {
+      return res.status(400).json({ error: "Each route needs feature, tier, model" });
+    }
+    if (!AI_FEATURES[r.feature]) {
+      return res.status(400).json({ error: `Unknown feature: ${r.feature}` });
+    }
+    if (!["free", "pro"].includes(r.tier)) {
+      return res.status(400).json({ error: `Invalid tier: ${r.tier}` });
+    }
+  }
+
+  await saveModelRoutes(routes);
+  res.json({ ok: true, routing: getFullRoutingTable() });
+}));
+
+// Legacy AI config endpoint (now simplified)
 router.put("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => {
-  const db = getDb();
-  const { provider, model, baseUrl, supportsTools } = req.body;
-
-  const upsert = async (key, value) => {
-    await db.run(
-      "INSERT INTO ai_config (key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value",
-      [key, value]
-    );
-  };
-
-  if (provider !== undefined) await upsert("provider", provider);
-  if (model !== undefined) await upsert("model", model);
-  if (baseUrl !== undefined) await upsert("baseUrl", baseUrl);
-  if (supportsTools !== undefined) await upsert("supportsTools", String(supportsTools));
-
-  const newProvider = await reinitProvider();
-  res.json({ ok: true, enabled: !!newProvider, providerName: newProvider?.providerName || "" });
+  // The old provider/model config is no longer relevant — routing is per-feature now.
+  // This endpoint exists for backward compatibility but just returns current state.
+  res.json({ ok: true, enabled: isAIEnabled(), gateway: "openrouter" });
 }));
 
 // AI usage quota (tier-aware)
@@ -86,7 +95,7 @@ router.get("/ai/quota", requireAuth, handler(async (req, res) => {
 router.get("/ai/tier", requireAuth, handler(async (req, res) => {
   const tier = req.user.tier || "free";
   const info = getTierInfo(tier);
-  info.proProviderEnabled = !!getAIProvider();
+  info.enabled = isAIEnabled();
   res.json(info);
 }));
 
@@ -129,22 +138,40 @@ router.delete("/coach/messages", requireAuth, handler(async (req, res) => {
 // ===================== AI COACH (CHAT) =====================
 
 /**
- * Resolve the AI provider for a request based on user tier and feature.
- * Returns the provider or sends an error response.
- * @returns {object|null} provider instance, or null if response was sent
+ * Resolve the AI provider + model for a request based on user tier and feature.
+ * Returns a wrapper object with .chat() and .chatWithTools() that have the
+ * correct model pre-bound, so calling code doesn't need to pass model explicitly.
+ *
+ * @returns {object|null} Wrapper with chat/chatWithTools, or null if response was sent
  */
 function getProviderForRequest(req, res, feature) {
+  const provider = getAIProvider();
+  if (!provider) {
+    res.status(503).json({ error: "AI coach unavailable — no OpenRouter API key configured" });
+    return null;
+  }
+
   const tier = req.user?.tier || "free";
-  const { provider, blocked, reason } = resolveProvider(tier, feature, getAIProvider());
+  const { model, blocked, reason } = resolveModel(tier, feature);
+
   if (blocked) {
     res.status(403).json({ error: reason, upgrade: true });
     return null;
   }
-  if (!provider) {
-    res.status(503).json({ error: reason || "AI coach unavailable — no provider configured" });
+  if (!model) {
+    res.status(503).json({ error: reason || "No model configured for this feature" });
     return null;
   }
-  return provider;
+
+  // Return a wrapper that injects the resolved model into every call
+  return {
+    providerName: `openrouter/${model}`,
+    model,
+    chat: (system, messages, options = {}) =>
+      provider.chat(system, messages, { ...options, model }),
+    chatWithTools: (system, messages, tools, options = {}) =>
+      provider.chatWithTools(system, messages, tools, { ...options, model }),
+  };
 }
 
 const COACH_SYSTEM = `You are a knowledgeable, confident strength training coach with deep expertise in exercise science and program design.
@@ -705,7 +732,7 @@ router.post("/coach/pre-workout", requireAuth, requireAIQuota, handler(async (re
     res.json({
       assessment,
       generated_at: new Date().toISOString(),
-      model: aiProvider.providerName || "unknown",
+      model: aiProvider.model || "unknown",
     });
   } catch (err) {
     console.error("[Pre-Workout] AI error:", err.message);

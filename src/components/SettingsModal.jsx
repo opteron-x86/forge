@@ -1,8 +1,8 @@
 // ═══════════════════════ SETTINGS MODAL ═══════════════════════
-// App preferences: theme, avatar color, AI config (admin only).
+// App preferences: theme, avatar color.
 // Account management: email, password change, data export.
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTalos } from "../context/TalosContext";
 import { USER_COLORS } from "../lib/helpers";
 import { THEME_LIST, applyTheme } from "../lib/themes";
@@ -21,25 +21,7 @@ export default function SettingsModal({ onClose }) {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
 
-  // AI config (admin only)
-  const [showAI, setShowAI] = useState(false);
-  const [aiRouting, setAiRouting] = useState({});  // { feature: { label, freeTier, freeModel, proModel } }
-  const [aiModels, setAiModels] = useState([]);
-  const [aiStatus, setAiStatus] = useState("");
-  const [aiLoaded, setAiLoaded] = useState(false);
-
   const isAdmin = user.role === "admin";
-
-  useEffect(() => {
-    if (showAI && !aiLoaded) {
-      api.get("/ai/config").then(cfg => {
-        setAiRouting(cfg.routing || {});
-        setAiModels(cfg.models || []);
-        setAiStatus(cfg.enabled ? "OpenRouter active" : "No API key — set OPENROUTER_API_KEY");
-        setAiLoaded(true);
-      }).catch(() => setAiLoaded(true));
-    }
-  }, [showAI]);
 
   function selectTheme(id) {
     setTheme(id);
@@ -81,35 +63,6 @@ export default function SettingsModal({ onClose }) {
       const a = document.createElement("a"); a.href = url; a.download = "talos-export.csv"; a.click();
       URL.revokeObjectURL(url);
     } catch (e) { alert("Export failed: " + e.message); }
-  }
-
-  async function saveAI() {
-    setAiStatus("Saving...");
-    try {
-      // Build routes array from current routing state
-      const routes = [];
-      for (const [feature, cfg] of Object.entries(aiRouting)) {
-        if (cfg.freeModel && cfg.freeTier) {
-          routes.push({ feature, tier: "free", model: cfg.freeModel });
-        }
-        if (cfg.proModel) {
-          routes.push({ feature, tier: "pro", model: cfg.proModel });
-        }
-      }
-      const res = await api.put("/ai/routing", { routes });
-      setAiRouting(res.routing || aiRouting);
-      setAiStatus("Saved ✓");
-    } catch (e) { setAiStatus("Error: " + e.message); }
-  }
-
-  function updateRouting(feature, tier, model) {
-    setAiRouting(prev => ({
-      ...prev,
-      [feature]: {
-        ...prev[feature],
-        [tier === "free" ? "freeModel" : "proModel"]: model,
-      },
-    }));
   }
 
   return (
@@ -181,92 +134,8 @@ export default function SettingsModal({ onClose }) {
           <button onClick={exportData} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Export All Data (CSV)</button>
         </div>
 
-        {/* AI Model Routing (admin only) */}
-        {isAdmin && (
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginBottom: 12 }}>
-            <div onClick={() => setShowAI(!showAI)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", textTransform: "uppercase" }}>AI Model Routing</div>
-              <span style={{ color: "var(--text-dim)", fontSize: 12, transform: showAI ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▼</span>
-            </div>
-            {aiStatus && <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{aiStatus}</div>}
-            {showAI && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 8 }}>
-                  Route each AI feature to a specific model via OpenRouter. Free tier uses cheaper models; Pro tier gets premium models.
-                </div>
-                {Object.entries(aiRouting).map(([feature, cfg]) => (
-                  <div key={feature} style={{ marginBottom: 10, padding: 8, background: "var(--surface2)", borderRadius: 6 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>
-                      {cfg.label}
-                      {!cfg.freeTier && <span style={{ fontSize: 8, color: "var(--accent)", marginLeft: 6, fontWeight: 400 }}>PRO ONLY</span>}
-                    </div>
-                    {/* Pro tier model */}
-                    <div style={{ marginBottom: cfg.freeTier ? 4 : 0 }}>
-                      <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 2 }}>PRO</div>
-                      <ModelSelect
-                        value={cfg.proModel || ""}
-                        models={aiModels}
-                        onChange={v => updateRouting(feature, "pro", v)}
-                      />
-                    </div>
-                    {/* Free tier model (only for features available on free) */}
-                    {cfg.freeTier && (
-                      <div>
-                        <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 2 }}>FREE</div>
-                        <ModelSelect
-                          value={cfg.freeModel || ""}
-                          models={aiModels}
-                          onChange={v => updateRouting(feature, "free", v)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <button onClick={saveAI} style={{ ...S.btn("ghost"), width: "100%", fontSize: 11 }}>Save Model Routing</button>
-                <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "center" }}>
-                  Set OPENROUTER_API_KEY in environment variables. Enter any OpenRouter model ID.
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         <button onClick={save} style={{ ...S.btn("primary"), width: "100%" }}>Save</button>
       </div>
-    </div>
-  );
-}
-
-// ─── Model Select Component ──────────────────────────────
-// Dropdown with known models + custom input for any OpenRouter model ID.
-
-function ModelSelect({ value, models, onChange }) {
-  const isKnown = models.some(m => m.id === value);
-  const showCustom = !isKnown && value !== "";
-
-  return (
-    <div style={{ display: "flex", gap: 4 }}>
-      <select
-        value={isKnown ? value : "__custom__"}
-        onChange={e => {
-          if (e.target.value === "__custom__") onChange("");
-          else onChange(e.target.value);
-        }}
-        style={{ ...S.input, fontSize: 10, height: 32, flex: 1 }}
-      >
-        {models.map(m => (
-          <option key={m.id} value={m.id}>{m.label}</option>
-        ))}
-        <option value="__custom__">Custom...</option>
-      </select>
-      {(showCustom || value === "") && (
-        <input
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          style={{ ...S.input, fontSize: 10, height: 32, flex: 1 }}
-          placeholder="e.g. anthropic/claude-haiku-4"
-        />
-      )}
     </div>
   );
 }

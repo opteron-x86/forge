@@ -1,5 +1,5 @@
 // ═══════════════════════ ADMIN DASHBOARD ═══════════════════════
-// Full-page admin dashboard with tabs: Users, Analytics, AI Status, Event Log.
+// Full-page admin dashboard with tabs: Users, Analytics, AI Config, Event Log.
 // Replaces the main app view when open. Admin-only access.
 
 import { useState, useEffect, useCallback } from "react";
@@ -340,94 +340,162 @@ function AnalyticsTab() {
   );
 }
 
-// ─── AI Status Tab ────────────────────────────────────────────
+// ─── AI Config Tab ───────────────────────────────────────────
 
-function AIStatusTab() {
-  const [tier, setTier] = useState(null);
+function AIConfigTab() {
   const [config, setConfig] = useState(null);
+  const [routing, setRouting] = useState({});
+  const [models, setModels] = useState([]);
+  const [limits, setLimits] = useState({ free: { daily: 15, monthly: 200 }, pro: { daily: 50, monthly: 500 } });
   const [usage, setUsage] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     Promise.all([
-      api.get("/ai/tier").catch(() => null),
       api.get("/ai/config").catch(() => null),
       api.get("/admin/analytics?days=30").catch(() => null),
-    ]).then(([t, c, analytics]) => {
-      setTier(t);
-      setConfig(c);
-      // Extract per-user AI usage from analytics
+    ]).then(([cfg, analytics]) => {
+      if (cfg) {
+        setConfig(cfg);
+        setRouting(cfg.routing || {});
+        setModels(cfg.models || []);
+        if (cfg.limits) setLimits(cfg.limits);
+      }
       if (analytics?.featureAdoption) {
-        const aiEvents = analytics.featureAdoption.filter(f => f.event.startsWith("coach_"));
-        setUsage(aiEvents);
+        setUsage(analytics.featureAdoption.filter(f => f.event.startsWith("coach_")));
       }
       setLoading(false);
     });
   }, []);
 
-  if (loading) return <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 30 }}>Loading AI status...</div>;
+  function updateRouting(feature, tier, model) {
+    setRouting(prev => ({
+      ...prev,
+      [feature]: { ...prev[feature], [tier === "free" ? "freeModel" : "proModel"]: model },
+    }));
+  }
 
-  const providerColor = (enabled) => enabled ? "#22c55e" : "#ef4444";
+  function toggleFreeTier(feature) {
+    setRouting(prev => ({
+      ...prev,
+      [feature]: { ...prev[feature], freeTier: !prev[feature]?.freeTier },
+    }));
+  }
+
+  function updateLimit(tier, period, value) {
+    const num = parseInt(value) || 0;
+    setLimits(prev => ({ ...prev, [tier]: { ...prev[tier], [period]: num } }));
+  }
+
+  async function saveAll() {
+    setMsg("Saving...");
+    try {
+      // Save model routing
+      const routes = [];
+      for (const [feature, cfg] of Object.entries(routing)) {
+        if (cfg.freeModel && cfg.freeTier) routes.push({ feature, tier: "free", model: cfg.freeModel });
+        if (cfg.proModel) routes.push({ feature, tier: "pro", model: cfg.proModel });
+      }
+      await api.put("/ai/routing", { routes });
+
+      // Save feature toggles
+      const toggles = Object.entries(routing).map(([feature, cfg]) => ({
+        feature, freeTier: !!cfg.freeTier,
+      }));
+      await api.put("/ai/features", { toggles });
+
+      // Save rate limits
+      await api.put("/ai/limits", { limits });
+
+      setMsg("Saved ✓");
+      setTimeout(() => setMsg(""), 2000);
+    } catch (e) {
+      setMsg("Error: " + e.message);
+    }
+  }
+
+  if (loading) return <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 30 }}>Loading AI config...</div>;
 
   return (
     <div>
-      {/* Provider Health */}
-      <Section title="🔌 Provider Status">
-        <div style={{ display: "grid", gap: 10 }}>
-          {/* OpenRouter status */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "var(--surface2)", borderRadius: 8 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-bright)" }}>OpenRouter Gateway</div>
-              <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
-                {config?.enabled ? "Connected — models routed per feature" : "Not configured (set OPENROUTER_API_KEY)"}
-              </div>
+      {/* Provider Status */}
+      <Section title="🔌 Gateway">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "var(--surface2)", borderRadius: 8 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-bright)" }}>OpenRouter</div>
+            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
+              {config?.enabled ? "Connected" : "Set OPENROUTER_API_KEY in env"}
             </div>
-            <div style={{
-              width: 10, height: 10, borderRadius: "50%",
-              background: providerColor(config?.enabled),
-              boxShadow: config?.enabled ? "0 0 8px #22c55e60" : "0 0 8px #ef444460",
-            }} />
           </div>
+          <div style={{
+            width: 10, height: 10, borderRadius: "50%",
+            background: config?.enabled ? "#22c55e" : "#ef4444",
+            boxShadow: config?.enabled ? "0 0 8px #22c55e60" : "0 0 8px #ef444460",
+          }} />
         </div>
       </Section>
 
-      {/* Feature Availability with Model Routing */}
-      {tier?.features && (
-        <Section title="🎯 Feature Access by Tier">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 16px", fontSize: 11, alignItems: "center" }}>
-            <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10 }}>FEATURE</div>
-            <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10, textAlign: "center" }}>FREE</div>
-            <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10, textAlign: "center" }}>PRO</div>
-            {Object.entries(tier.features).map(([key, f]) => (
-              <div key={key} style={{ display: "contents" }}>
-                <div>
-                  <span style={{ color: "var(--text-light)", fontWeight: 500 }}>{f.label}</span>
-                  {f.model && <div style={{ fontSize: 8, color: "var(--text-dim)", marginTop: 1 }}>{f.model}</div>}
-                </div>
-                <span style={{ textAlign: "center", fontSize: 13 }}>{f.available ? "✓" : "—"}</span>
-                <span style={{ textAlign: "center", fontSize: 13, color: "#22c55e" }}>✓</span>
+      {/* Model Routing & Feature Toggles */}
+      <Section title="🎯 Feature Routing">
+        <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 10 }}>
+          Assign models per feature. Toggle free tier access with the switch.
+        </div>
+        {Object.entries(routing).map(([feature, cfg]) => (
+          <div key={feature} style={{ marginBottom: 10, padding: 10, background: "var(--surface2)", borderRadius: 8 }}>
+            {/* Feature header with free tier toggle */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text)" }}>{cfg.label}</div>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 9, color: "var(--text-dim)" }}>
+                <span>FREE</span>
+                <ToggleSwitch checked={!!cfg.freeTier} onChange={() => toggleFreeTier(feature)} />
+              </label>
+            </div>
+            {/* Pro model */}
+            <div style={{ marginBottom: cfg.freeTier ? 4 : 0 }}>
+              <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 2 }}>PRO MODEL</div>
+              <ModelSelect value={cfg.proModel || ""} models={models} onChange={v => updateRouting(feature, "pro", v)} />
+            </div>
+            {/* Free model (only when free tier is enabled) */}
+            {cfg.freeTier && (
+              <div>
+                <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 2, marginTop: 4 }}>FREE MODEL</div>
+                <ModelSelect value={cfg.freeModel || ""} models={models} onChange={v => updateRouting(feature, "free", v)} />
               </div>
-            ))}
+            )}
           </div>
-        </Section>
-      )}
+        ))}
+      </Section>
 
       {/* Rate Limits */}
       <Section title="⏱ Rate Limits">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "6px 16px", fontSize: 11, alignItems: "center" }}>
-          <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10 }}>LIMIT</div>
-          <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10, textAlign: "center" }}>FREE</div>
-          <div style={{ fontWeight: 700, color: "var(--text-muted)", fontSize: 10, textAlign: "center" }}>PRO</div>
-          <span style={{ color: "var(--text-light)" }}>Daily</span>
-          <span style={{ textAlign: "center", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>15</span>
-          <span style={{ textAlign: "center", color: "#a855f7", fontVariantNumeric: "tabular-nums" }}>50</span>
-          <span style={{ color: "var(--text-light)" }}>Monthly</span>
-          <span style={{ textAlign: "center", color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>200</span>
-          <span style={{ textAlign: "center", color: "#a855f7", fontVariantNumeric: "tabular-nums" }}>500</span>
+        <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 10 }}>
+          Max AI requests per user per day/month.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "8px 12px", alignItems: "center" }}>
+          <div />
+          <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textAlign: "center" }}>FREE</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "var(--text-muted)", textAlign: "center" }}>PRO</div>
+
+          <div style={{ fontSize: 11, color: "var(--text-light)", fontWeight: 500 }}>Daily</div>
+          <input type="number" value={limits.free.daily} onChange={e => updateLimit("free", "daily", e.target.value)}
+            style={{ ...S.input, fontSize: 11, height: 32, textAlign: "center" }} />
+          <input type="number" value={limits.pro.daily} onChange={e => updateLimit("pro", "daily", e.target.value)}
+            style={{ ...S.input, fontSize: 11, height: 32, textAlign: "center" }} />
+
+          <div style={{ fontSize: 11, color: "var(--text-light)", fontWeight: 500 }}>Monthly</div>
+          <input type="number" value={limits.free.monthly} onChange={e => updateLimit("free", "monthly", e.target.value)}
+            style={{ ...S.input, fontSize: 11, height: 32, textAlign: "center" }} />
+          <input type="number" value={limits.pro.monthly} onChange={e => updateLimit("pro", "monthly", e.target.value)}
+            style={{ ...S.input, fontSize: 11, height: 32, textAlign: "center" }} />
         </div>
       </Section>
 
-      {/* AI Usage by Feature */}
+      {/* Save button */}
+      {msg && <div style={{ fontSize: 11, color: msg.startsWith("Error") ? "#ef4444" : "#22c55e", marginBottom: 8, textAlign: "center" }}>{msg}</div>}
+      <button onClick={saveAll} style={{ ...S.btn("primary"), width: "100%", marginBottom: 16 }}>Save All Changes</button>
+
+      {/* Usage stats */}
       {usage.length > 0 && (
         <Section title="📊 AI Usage (30d)">
           {usage.map(f => (
@@ -441,24 +509,55 @@ function AIStatusTab() {
           ))}
         </Section>
       )}
+    </div>
+  );
+}
 
-      {/* Config details */}
-      {config && (
-        <Section title="⚙ Configuration">
-          <div style={{ fontSize: 11, display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px" }}>
-            {[
-              ["Provider", config.provider || "—"],
-              ["Model", config.model || "—"],
-              ["API Key", config.hasKey ? "✓ Set (env)" : "✗ Missing"],
-              ["Tool Support", config.supportsTools ? "Enabled" : "Disabled"],
-            ].map(([k, v]) => (
-              <div key={k} style={{ display: "contents" }}>
-                <span style={{ color: "var(--text-muted)", fontWeight: 600 }}>{k}</span>
-                <span style={{ color: "var(--text-light)", fontFamily: "monospace", fontSize: 11 }}>{v}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
+// ─── Shared Subcomponents for AI Config ─────────────────────────
+
+function ToggleSwitch({ checked, onChange }) {
+  return (
+    <div onClick={onChange} style={{
+      width: 32, height: 18, borderRadius: 9, cursor: "pointer",
+      background: checked ? "#22c55e" : "var(--border2)",
+      position: "relative", transition: "background 0.2s",
+    }}>
+      <div style={{
+        width: 14, height: 14, borderRadius: "50%", background: "#fff",
+        position: "absolute", top: 2,
+        left: checked ? 16 : 2,
+        transition: "left 0.2s",
+      }} />
+    </div>
+  );
+}
+
+function ModelSelect({ value, models, onChange }) {
+  const isKnown = models.some(m => m.id === value);
+  const showCustom = !isKnown && value !== "";
+
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      <select
+        value={isKnown ? value : "__custom__"}
+        onChange={e => {
+          if (e.target.value === "__custom__") onChange("");
+          else onChange(e.target.value);
+        }}
+        style={{ ...S.input, fontSize: 10, height: 32, flex: 1 }}
+      >
+        {models.map(m => (
+          <option key={m.id} value={m.id}>{m.label}</option>
+        ))}
+        <option value="__custom__">Custom...</option>
+      </select>
+      {(showCustom || value === "") && (
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          style={{ ...S.input, fontSize: 10, height: 32, flex: 1 }}
+          placeholder="e.g. anthropic/claude-haiku-4"
+        />
       )}
     </div>
   );
@@ -586,7 +685,7 @@ function EventLogTab() {
 const TABS = [
   { id: "users", label: "Users", icon: "👤" },
   { id: "analytics", label: "Analytics", icon: "📊" },
-  { id: "ai", label: "AI Status", icon: "⚡" },
+  { id: "ai", label: "AI Config", icon: "⚡" },
   { id: "events", label: "Event Log", icon: "📋" },
 ];
 
@@ -660,7 +759,7 @@ export default function AdminDashboard({ onClose }) {
       <div style={{ padding: 16, paddingBottom: 40 }}>
         {activeTab === "users" && <UsersTab />}
         {activeTab === "analytics" && <AnalyticsTab />}
-        {activeTab === "ai" && <AIStatusTab />}
+        {activeTab === "ai" && <AIConfigTab />}
         {activeTab === "events" && <EventLogTab />}
       </div>
     </div>

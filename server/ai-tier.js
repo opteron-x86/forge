@@ -3,19 +3,21 @@
 //
 //  Maps (user tier, AI feature) → specific OpenRouter model.
 //
-//  Model assignments are stored in the database (ai_model_routing)
-//  and configurable from the admin panel. Defaults are provided
-//  for all features so the system works out of the box.
+//  Three things are admin-configurable from the dashboard:
+//    1. Model routing:  which model serves each feature × tier
+//    2. Feature access: which features are available on free tier
+//    3. Rate limits:    daily/monthly caps per tier
 //
-//  Free tier:  Cheaper/faster models (Gemini Flash, DeepSeek, etc.)
-//  Pro tier:   Premium models (Claude Sonnet, GPT-4.1, Gemini Pro)
+//  All config is persisted in the ai_config table (key/value)
+//  and the ai_model_routing table (feature/tier/model).
 // ═══════════════════════════════════════════════════════════════
 
 import { getDb } from "./db.js";
 
-// ─── Feature Definitions ────────────────────────────────────────
+// ─── Feature Definitions (defaults) ─────────────────────────────
+// freeTier can be overridden per-feature from the admin panel.
 
-export const AI_FEATURES = {
+const DEFAULT_FEATURES = {
   chat:          { label: "Coach Chat",        freeTier: true  },
   analyze:       { label: "Workout Review",    freeTier: true  },
   weekly:        { label: "Weekly Report",     freeTier: true  },
@@ -26,7 +28,6 @@ export const AI_FEATURES = {
 };
 
 // ─── Default Model Assignments ──────────────────────────────────
-// Used when no DB override exists. Sensible defaults for cost/quality.
 
 const DEFAULT_MODELS = {
   chat:          { free: "google/gemini-2.5-flash",  pro: "anthropic/claude-sonnet-4" },
@@ -38,98 +39,118 @@ const DEFAULT_MODELS = {
   pre_workout:   { free: null,                        pro: "google/gemini-2.5-flash" },
 };
 
-// ─── In-Memory Cache ────────────────────────────────────────────
-// Loaded from DB at startup and refreshed on admin save.
+// ─── Default Rate Limits ────────────────────────────────────────
+
+const DEFAULT_LIMITS = {
+  free: { daily: 15, monthly: 200 },
+  pro:  { daily: 50, monthly: 500 },
+};
+
+// ─── In-Memory State (loaded from DB at startup) ────────────────
 
 let _modelRouting = {};
+let _featureOverrides = {};   // { feature: { freeTier: bool } }
+let _rateLimits = null;       // null = use defaults
+
+// ─── Load All Config ────────────────────────────────────────────
 
 /**
- * Load model routing from the database into memory.
- * Called at startup and after admin config changes.
+ * Load model routing, feature overrides, and rate limits from DB.
+ * Called at startup and after admin saves.
  */
 export async function loadModelRouting() {
+  const db = getDb();
+
+  // Model routing
   try {
-    const db = getDb();
     const rows = await db.all("SELECT feature, tier, model FROM ai_model_routing");
     _modelRouting = {};
     for (const row of rows) {
       if (!_modelRouting[row.feature]) _modelRouting[row.feature] = {};
       _modelRouting[row.feature][row.tier] = row.model;
     }
-    console.log(`[AI-Tier] Loaded ${rows.length} model routing rules from DB`);
+    console.log(`[AI-Tier] Loaded ${rows.length} model routing rules`);
   } catch (e) {
-    console.warn("[AI-Tier] Could not load routing (table may not exist yet):", e.message);
+    console.warn("[AI-Tier] Could not load routing:", e.message);
     _modelRouting = {};
   }
+
+  // Feature overrides + rate limits from ai_config
+  try {
+    const rows = await db.all("SELECT key, value FROM ai_config WHERE key LIKE 'feature_%' OR key LIKE 'limit_%'");
+    _featureOverrides = {};
+    _rateLimits = null;
+    const limits = {};
+    for (const row of rows) {
+      if (row.key.startsWith("feature_")) {
+        const feature = row.key.replace("feature_", "");
+        _featureOverrides[feature] = { freeTier: row.value === "true" };
+      } else if (row.key.startsWith("limit_")) {
+        const [, tier, period] = row.key.split("_"); // limit_free_daily, limit_pro_monthly
+        if (!limits[tier]) limits[tier] = {};
+        limits[tier][period] = parseInt(row.value) || DEFAULT_LIMITS[tier]?.[period] || 0;
+      }
+    }
+    if (Object.keys(limits).length > 0) {
+      _rateLimits = {
+        free: { daily: limits.free?.daily ?? DEFAULT_LIMITS.free.daily, monthly: limits.free?.monthly ?? DEFAULT_LIMITS.free.monthly },
+        pro:  { daily: limits.pro?.daily ?? DEFAULT_LIMITS.pro.daily, monthly: limits.pro?.monthly ?? DEFAULT_LIMITS.pro.monthly },
+      };
+    }
+  } catch (e) {
+    console.warn("[AI-Tier] Could not load feature/limit config:", e.message);
+  }
 }
 
-/**
- * Save a model routing rule to the database and refresh cache.
- */
-export async function saveModelRoute(feature, tier, model) {
-  const db = getDb();
-  await db.run(
-    `INSERT INTO ai_model_routing (feature, tier, model)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (feature, tier) DO UPDATE SET model = EXCLUDED.model`,
-    [feature, tier, model]
-  );
-  // Refresh cache
-  if (!_modelRouting[feature]) _modelRouting[feature] = {};
-  _modelRouting[feature][tier] = model;
+// ─── Feature Access ─────────────────────────────────────────────
+
+/** Get merged feature config (defaults + DB overrides) */
+function getFeatureConfig(feature) {
+  const base = DEFAULT_FEATURES[feature];
+  if (!base) return null;
+  const override = _featureOverrides[feature];
+  return {
+    label: base.label,
+    freeTier: override ? override.freeTier : base.freeTier,
+  };
 }
 
-/**
- * Save multiple model routing rules at once.
- * @param {Array<{feature, tier, model}>} routes
- */
-export async function saveModelRoutes(routes) {
+/** Exported for resolveModel and route guards */
+export function getAIFeatures() {
+  const features = {};
+  for (const [key, def] of Object.entries(DEFAULT_FEATURES)) {
+    features[key] = getFeatureConfig(key);
+  }
+  return features;
+}
+
+/** Save free-tier feature toggles */
+export async function saveFeatureAccess(toggles) {
   const db = getDb();
-  for (const { feature, tier, model } of routes) {
+  for (const { feature, freeTier } of toggles) {
+    if (!DEFAULT_FEATURES[feature]) continue;
     await db.run(
-      `INSERT INTO ai_model_routing (feature, tier, model)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (feature, tier) DO UPDATE SET model = EXCLUDED.model`,
-      [feature, tier, model]
+      "INSERT INTO ai_config (key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value",
+      [`feature_${feature}`, String(freeTier)]
     );
   }
-  await loadModelRouting(); // Full refresh
+  await loadModelRouting();
 }
 
-// ─── Model Resolution ───────────────────────────────────────────
+// ─── Model Routing ──────────────────────────────────────────────
 
-/**
- * Get the OpenRouter model ID for a given feature and user tier.
- *
- * Resolution order: DB override → default → null (blocked)
- *
- * @param {string} feature - Feature key from AI_FEATURES
- * @param {string} tier - User tier ("free" or "pro")
- * @returns {string|null} OpenRouter model ID or null
- */
 export function getModelForFeature(feature, tier) {
-  // DB override first
   const dbModel = _modelRouting[feature]?.[tier];
   if (dbModel) return dbModel;
-
-  // Fall back to defaults
   return DEFAULT_MODELS[feature]?.[tier] || null;
 }
 
-/**
- * Resolve the model for a request, checking tier access and feature availability.
- *
- * @param {string} tier - User tier
- * @param {string} feature - Feature key
- * @returns {{ model: string|null, blocked: boolean, reason: string|null }}
- */
 export function resolveModel(tier, feature) {
-  const featureConfig = AI_FEATURES[feature];
+  const featureConfig = getFeatureConfig(feature);
   if (!featureConfig) {
     return { model: null, blocked: true, reason: "Unknown AI feature" };
   }
 
-  // Free tier — check if feature is available
   if (tier !== "pro" && !featureConfig.freeTier) {
     return {
       model: null,
@@ -146,53 +167,81 @@ export function resolveModel(tier, feature) {
   return { model, blocked: false, reason: null };
 }
 
-// ─── Rate Limit Config ──────────────────────────────────────────
-
-export const TIER_LIMITS = {
-  free: {
-    daily:   parseInt(process.env.AI_FREE_DAILY_LIMIT)   || 15,
-    monthly: parseInt(process.env.AI_FREE_MONTHLY_LIMIT) || 200,
-  },
-  pro: {
-    daily:   parseInt(process.env.AI_PRO_DAILY_LIMIT)    || 50,
-    monthly: parseInt(process.env.AI_PRO_MONTHLY_LIMIT)  || 500,
-  },
-};
-
-export function getLimitsForTier(tier) {
-  return TIER_LIMITS[tier] || TIER_LIMITS.free;
+export async function saveModelRoutes(routes) {
+  const db = getDb();
+  for (const { feature, tier, model } of routes) {
+    await db.run(
+      `INSERT INTO ai_model_routing (feature, tier, model)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (feature, tier) DO UPDATE SET model = EXCLUDED.model`,
+      [feature, tier, model]
+    );
+  }
+  await loadModelRouting();
 }
 
-// ─── Tier Info (for API responses) ──────────────────────────────
+// ─── Rate Limits ────────────────────────────────────────────────
 
-/**
- * Build a tier info object for the frontend.
- * Includes per-feature model assignments for admin visibility.
- */
+export function getLimitsForTier(tier) {
+  if (_rateLimits) return _rateLimits[tier] || _rateLimits.free || DEFAULT_LIMITS.free;
+  // Env var fallback for backward compat
+  if (tier === "pro") {
+    return {
+      daily:   parseInt(process.env.AI_PRO_DAILY_LIMIT)    || DEFAULT_LIMITS.pro.daily,
+      monthly: parseInt(process.env.AI_PRO_MONTHLY_LIMIT)  || DEFAULT_LIMITS.pro.monthly,
+    };
+  }
+  return {
+    daily:   parseInt(process.env.AI_FREE_DAILY_LIMIT)   || DEFAULT_LIMITS.free.daily,
+    monthly: parseInt(process.env.AI_FREE_MONTHLY_LIMIT) || DEFAULT_LIMITS.free.monthly,
+  };
+}
+
+export function getAllLimits() {
+  return {
+    free: getLimitsForTier("free"),
+    pro:  getLimitsForTier("pro"),
+  };
+}
+
+export async function saveRateLimits(limits) {
+  const db = getDb();
+  for (const tier of ["free", "pro"]) {
+    if (!limits[tier]) continue;
+    for (const period of ["daily", "monthly"]) {
+      if (limits[tier][period] === undefined) continue;
+      await db.run(
+        "INSERT INTO ai_config (key, value) VALUES ($1, $2) ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value",
+        [`limit_${tier}_${period}`, String(limits[tier][period])]
+      );
+    }
+  }
+  await loadModelRouting();
+}
+
+// ─── API Response Builders ──────────────────────────────────────
+
 export function getTierInfo(tier) {
   const limits = getLimitsForTier(tier);
   const features = {};
-  for (const [key, config] of Object.entries(AI_FEATURES)) {
+  for (const [key] of Object.entries(DEFAULT_FEATURES)) {
+    const cfg = getFeatureConfig(key);
     features[key] = {
-      label: config.label,
-      available: tier === "pro" || config.freeTier,
+      label: cfg.label,
+      available: tier === "pro" || cfg.freeTier,
       model: getModelForFeature(key, tier),
     };
   }
-
   return { tier, limits, features };
 }
 
-/**
- * Get the full model routing table for admin display.
- * Returns all features with their free and pro model assignments.
- */
 export function getFullRoutingTable() {
   const table = {};
-  for (const [feature, config] of Object.entries(AI_FEATURES)) {
+  for (const [feature] of Object.entries(DEFAULT_FEATURES)) {
+    const cfg = getFeatureConfig(feature);
     table[feature] = {
-      label: config.label,
-      freeTier: config.freeTier,
+      label: cfg.label,
+      freeTier: cfg.freeTier,
       freeModel: getModelForFeature(feature, "free"),
       proModel: getModelForFeature(feature, "pro"),
     };

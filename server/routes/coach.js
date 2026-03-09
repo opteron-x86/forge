@@ -15,8 +15,9 @@ import {
 } from "../middleware.js";
 import { getAIProvider, isAIEnabled, OPENROUTER_MODELS } from "../ai.js";
 import {
-  resolveModel, getTierInfo, AI_FEATURES,
+  resolveModel, getTierInfo, getAIFeatures,
   getFullRoutingTable, saveModelRoutes, loadModelRouting,
+  saveFeatureAccess, getAllLimits, saveRateLimits,
 } from "../ai-tier.js";
 import {
   getExerciseContext, buildExerciseLibraryPrompt,
@@ -32,16 +33,15 @@ router.get("/ai/status", requireAuth, handler(async (req, res) => {
   res.json({ enabled: isAIEnabled() });
 }));
 
-// AI config overview (admin only)
+// Full AI config (admin only) — used by AdminDashboard AI Config tab
 router.get("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => {
-  const routing = getFullRoutingTable();
   res.json({
     enabled: isAIEnabled(),
     gateway: "openrouter",
     hasKey: !!process.env.OPENROUTER_API_KEY,
-    routing,
+    routing: getFullRoutingTable(),
     models: OPENROUTER_MODELS,
-    features: AI_FEATURES,
+    limits: getAllLimits(),
   });
 }));
 
@@ -60,12 +60,12 @@ router.put("/ai/routing", requireAuth, requireAdmin, handler(async (req, res) =>
     return res.status(400).json({ error: "routes array required" });
   }
 
-  // Validate routes
+  const features = getAIFeatures();
   for (const r of routes) {
     if (!r.feature || !r.tier || !r.model) {
       return res.status(400).json({ error: "Each route needs feature, tier, model" });
     }
-    if (!AI_FEATURES[r.feature]) {
+    if (!features[r.feature]) {
       return res.status(400).json({ error: `Unknown feature: ${r.feature}` });
     }
     if (!["free", "pro"].includes(r.tier)) {
@@ -77,10 +77,28 @@ router.put("/ai/routing", requireAuth, requireAdmin, handler(async (req, res) =>
   res.json({ ok: true, routing: getFullRoutingTable() });
 }));
 
-// Legacy AI config endpoint (now simplified)
+// Save feature access toggles (admin only)
+router.put("/ai/features", requireAuth, requireAdmin, handler(async (req, res) => {
+  const { toggles } = req.body;
+  if (!Array.isArray(toggles)) {
+    return res.status(400).json({ error: "toggles array required" });
+  }
+  await saveFeatureAccess(toggles);
+  res.json({ ok: true, routing: getFullRoutingTable() });
+}));
+
+// Save rate limits (admin only)
+router.put("/ai/limits", requireAuth, requireAdmin, handler(async (req, res) => {
+  const { limits } = req.body;
+  if (!limits || typeof limits !== "object") {
+    return res.status(400).json({ error: "limits object required" });
+  }
+  await saveRateLimits(limits);
+  res.json({ ok: true, limits: getAllLimits() });
+}));
+
+// Legacy AI config endpoint (backward compat)
 router.put("/ai/config", requireAuth, requireAdmin, handler(async (req, res) => {
-  // The old provider/model config is no longer relevant — routing is per-feature now.
-  // This endpoint exists for backward compatibility but just returns current state.
   res.json({ ok: true, enabled: isAIEnabled(), gateway: "openrouter" });
 }));
 

@@ -535,7 +535,7 @@ export default function App() {
               ⚡
             </button>
             <a
-              href="https://discord.gg/64UaxG2A"
+              href={import.meta.env.VITE_DISCORD_URL}
               target="_blank"
               rel="noopener noreferrer"
               title="Join our Discord"

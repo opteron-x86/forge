@@ -288,7 +288,7 @@ function AnalyticsTab() {
           {data.dau.slice(0, 14).map(d => (
             <MiniBar
               key={d.day}
-              label={new Date(d.day + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              label={new Date(String(d.day).slice(0, 10) + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               value={d.users}
               max={data.totals.users}
               color="#3b82f6"
@@ -316,7 +316,7 @@ function AnalyticsTab() {
           {data.registrations.slice(0, 14).map(r => (
             <MiniBar
               key={r.day}
-              label={new Date(r.day + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              label={new Date(String(r.day).slice(0, 10) + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               value={r.signups}
               max={Math.max(...data.registrations.map(x => x.signups))}
               color="#a855f7"

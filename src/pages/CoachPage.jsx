@@ -64,13 +64,37 @@ export default function CoachPage() {
   })));
 
   // ── Build context string for chat (last 10 workouts) ──
+  // Helper: build program context with active program clearly labeled
+  const programLookup = Object.fromEntries(programs.map(p => [p.id, p.name]));
+  function buildProgramContext() {
+    const userProgs = programs.filter(p => p.user_id === user.id);
+    const activeId = profile.activeProgramId;
+    const active = userProgs.find(p => p.id === activeId);
+    const inactive = userProgs.filter(p => p.id !== activeId);
+
+    let ctx = "";
+    if (active) {
+      ctx += `[ACTIVE PROGRAM] ${active.name}${active.description ? ` (${active.description})` : ""}:\n${active.days?.map((d, i) =>
+        `  Day ${i + 1} — ${d.label || "Untitled"}${d.subtitle ? ` (${d.subtitle})` : ""}: ${d.exercises?.map(e => `${e.name} ${e.defaultSets}x${e.targetReps || "?"}`).join(", ") || "no exercises"}`
+      ).join("\n") || "no days"}`;
+    } else {
+      ctx += "(No active program set)";
+    }
+    if (inactive.length > 0) {
+      ctx += `\n\nOther programs (NOT currently active): ${inactive.map(p => p.name).join(", ")}`;
+    }
+    return ctx;
+  }
+  function fmtWorkoutProgram(w) {
+    if (!w.program_id) return "Freestyle";
+    const name = programLookup[w.program_id];
+    const isActive = w.program_id === profile.activeProgramId;
+    return name ? `${name}${isActive ? "" : " [old]"}` : "Unknown program";
+  }
+
   function buildContext() {
     const recent = workouts.slice(-10);
-    const programCtx = programs.filter(p => p.user_id === user.id).map(p =>
-      `${p.name}${p.description ? ` (${p.description})` : ""}:\n${p.days?.map((d, i) =>
-        `  Day ${i + 1} — ${d.label || "Untitled"}${d.subtitle ? ` (${d.subtitle})` : ""}: ${d.exercises?.map(e => `${e.name} ${e.defaultSets}x${e.targetReps || "?"}`).join(", ") || "no exercises"}`
-      ).join("\n") || "no days"}`
-    ).join("\n\n");
+    const programCtx = buildProgramContext();
     const age = profile.dateOfBirth ? Math.floor((Date.now() - new Date(profile.dateOfBirth + "T12:00:00").getTime()) / 31557600000) : null;
     const profileLines = [
       `Name: ${user.name}`,
@@ -107,10 +131,10 @@ export default function CoachPage() {
     ${scaleExplain}
     ${injuryLines}
     ${targetPrLines}
-    PROGRAMS:\n${programCtx || "None"}
+    PROGRAMS:\n${programCtx}
     PRs:\n${Object.entries(prs).slice(0, 15).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${v.e1rm || "?"})`).join("\n")}
     EXERCISE INFO:\n${exerciseMeta}
-    RECENT (${recent.length}):\n${recent.map(w => `${w.date} ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${fmtIntensity(s)}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
+    RECENT (${recent.length}):\n${recent.map(w => `${w.date} [${fmtWorkoutProgram(w)}] ${w.day_label || ""} (Feel:${w.feel}/5)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${fmtIntensity(s)}`).join(", ")}`).join("\n") || ""}`).join("\n\n")}`;
   }
 
   // ── Build deep analysis context (full history, volume trends, PR timeline) ──
@@ -142,11 +166,7 @@ export default function CoachPage() {
     const fmtIntensity = (s) => s.rpe != null && s.rpe !== "" ? ` @${scaleLabel}:${s.rpe}` : "";
 
     // Programs
-    const programCtx = programs.filter(p => p.user_id === user.id).map(p =>
-      `${p.name}${p.description ? ` (${p.description})` : ""}:\n${p.days?.map((d, i) =>
-        `  Day ${i + 1} — ${d.label || "Untitled"}${d.subtitle ? ` (${d.subtitle})` : ""}: ${d.exercises?.map(e => `${e.name} ${e.defaultSets}x${e.targetReps || "?"}`).join(", ") || "no exercises"}`
-      ).join("\n") || "no days"}`
-    ).join("\n\n");
+    const programCtx = buildProgramContext();
 
     // Use up to 90 days of workouts for deep analysis (vs 10 for chat)
     const ninetyDaysAgo = new Date(); ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -218,11 +238,11 @@ export default function CoachPage() {
     const olderCondensed = deepWorkouts.filter(w => new Date(w.date + "T12:00:00") < thirtyDaysAgo);
 
     const recentLogs = recentDetailed.map(w =>
-      `${w.date} ${w.day_label || ""} (Feel:${w.feel || "?"}/5, Sleep:${w.sleep_hours || "?"}h, Duration:${w.duration || "?"}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${fmtIntensity(s)}`).join(", ")}`).join("\n") || ""}`
+      `${w.date} [${fmtWorkoutProgram(w)}] ${w.day_label || ""} (Feel:${w.feel || "?"}/5, Sleep:${w.sleep_hours || "?"}h, Duration:${w.duration || "?"}min)\n${w.exercises?.map(e => `  ${e.name}: ${e.sets?.map(s => `${s.weight}x${s.reps}${fmtIntensity(s)}`).join(", ")}`).join("\n") || ""}`
     ).join("\n\n");
 
     const olderLogs = olderCondensed.map(w =>
-      `${w.date} ${w.day_label || ""} (Feel:${w.feel || "?"}/5) — ${w.exercises?.map(e => `${e.name}: ${e.sets?.length || 0}s`).join(", ") || "no data"}`
+      `${w.date} [${fmtWorkoutProgram(w)}] ${w.day_label || ""} (Feel:${w.feel || "?"}/5) — ${w.exercises?.map(e => `${e.name}: ${e.sets?.length || 0}s`).join(", ") || "no data"}`
     ).join("\n");
 
     return `USER PROFILE: ${profileLines}
@@ -230,7 +250,7 @@ ${scaleExplain}
 ${injuryLines}
 ${targetPrLines}
 
-PROGRAMS:\n${programCtx || "None"}
+PROGRAMS:\n${programCtx}
 
 ALL-TIME PRs:\n${Object.entries(prs).slice(0, 20).map(([k, v]) => `${k}: ${v.weight}x${v.reps} (e1RM: ${Math.round(v.e1rm || 0)}) — set ${v.date}`).join("\n")}
 
@@ -494,11 +514,11 @@ ${olderCondensed.length > 0 ? `OLDER LOGS (30-90 days, ${olderCondensed.length} 
               {msg.prompt && msg.type !== "weekly" && msg.type !== "analysis" && (
                 <div style={{ padding: "4px 16px", display: "flex", justifyContent: "flex-end" }}>
                   <div style={{
-                    background: "#1e1b13", border: "1px solid #3d3520", borderRadius: "12px 12px 4px 12px",
+                    background: "var(--accent)", borderRadius: "12px 12px 4px 12px",
                     padding: "10px 14px", maxWidth: "85%",
                   }}>
-                    <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{msg.prompt}</div>
-                    <div style={{ fontSize: 9, color: "var(--text-dim)", marginTop: 4, textAlign: "right" }}>
+                    <div style={{ fontSize: 13, color: "var(--accent-text)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{msg.prompt}</div>
+                    <div style={{ fontSize: 9, color: "var(--accent-text)", opacity: 0.6, marginTop: 4, textAlign: "right" }}>
                       {timeAgo(msg.created_at)}
                     </div>
                   </div>

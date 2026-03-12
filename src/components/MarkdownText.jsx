@@ -11,6 +11,7 @@ export default function MarkdownText({ text }) {
   .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   .replace(/\*(.+?)\*/g, '<em>$1</em>')
   .replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
+  .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="md-link">$1</a>')
   .replace(/^---+$/gm, '<hr class="md-hr" />')
   .replace(/^[\-\*] (.+)$/gm, '<li class="md-li">$1</li>')
   .replace(/^\d+\.\s+(.+)$/gm, '<li class="md-li md-oli">$1</li>')
@@ -18,6 +19,6 @@ export default function MarkdownText({ text }) {
   .replace(/<ul class="md-ul">((?:<li class="md-li md-oli">.*<\/li>\n?)+)<\/ul>/g, '<ol class="md-ol">$1</ol>')
   .replace(/\n\n/g, '<div class="md-break"></div>')
   .replace(/\n/g, '<br />');
-
+ 
   return <div className="md-response" dangerouslySetInnerHTML={{ __html: html }} />;
 }

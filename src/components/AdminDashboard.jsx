@@ -213,7 +213,7 @@ function AnalyticsTab() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    api.get(`/admin/analytics?days=${period}`)
+    api.get(`/admin/metrics?days=${period}`)
       .then(d => { setData(d); setLoading(false); })
       .catch(e => { setError(e.message || "Failed to load analytics"); setLoading(false); });
   }, [period]);
@@ -356,7 +356,7 @@ function AIConfigTab() {
   useEffect(() => {
     Promise.all([
       api.get("/ai/config").catch(() => null),
-      api.get("/admin/analytics?days=30").catch(() => null),
+      api.get("/admin/metrics?days=30").catch(() => null),
     ]).then(([cfg, analytics]) => {
       if (cfg) {
         setConfig(cfg);
@@ -575,7 +575,7 @@ function EventLogTab() {
 
   const loadEvents = useCallback(() => {
     setLoading(true);
-    const query = filter ? `/admin/analytics/events?limit=${limit}&event=${filter}` : `/admin/analytics/events?limit=${limit}`;
+    const query = filter ? `/admin/activity?limit=${limit}&event=${filter}` : `/admin/activity?limit=${limit}`;
     api.get(query)
       .then(data => { setEvents(data); setLoading(false); })
       .catch(() => setLoading(false));

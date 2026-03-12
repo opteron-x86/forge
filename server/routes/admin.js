@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
 //  TALOS — Admin Routes
 //  GET /api/admin/users, PUT /api/admin/users/:id/status,
-//  DELETE /api/admin/users/:id, GET /api/admin/analytics,
-//  GET /api/admin/analytics/events
+//  DELETE /api/admin/users/:id, GET /api/admin/metrics,
+//  GET /api/admin/activity
 // ═══════════════════════════════════════════════════════════════
 
 import { Router } from "express";
@@ -71,12 +71,12 @@ function sqlDialect(db) {
     dateOf:       (col) => pg ? `DATE(${col})`                        : `date(${col})`,
     weekOf:       (col) => pg ? `to_char(${col}::date, 'IYYY-"W"IW')` : `strftime('%Y-W%W', ${col})`,
     daysAgo:      (n)   => pg ? `NOW() - INTERVAL '${n} days'`        : `date('now', '-${n} days')`,
-    castFloat:    (col) => pg ? `${col}::FLOAT`                       : `CAST(${col} AS FLOAT)`,
+    castFloat:    (col) => pg ? `${col}::NUMERIC`                      : `CAST(${col} AS FLOAT)`,
     greatest1:    (col) => pg ? `GREATEST(1::BIGINT, ${col})`         : `MAX(1, ${col})`,
   };
 }
 
-router.get("/analytics", requireAuth, requireAdmin, handler(async (req, res) => {
+router.get("/metrics", requireAuth, requireAdmin, handler(async (req, res) => {
   const db = getDb();
   const sql = sqlDialect(db);
   const { days = 30 } = req.query;
@@ -184,7 +184,7 @@ router.get("/analytics", requireAuth, requireAdmin, handler(async (req, res) => 
 }));
 
 // Recent events stream (admin — for debugging)
-router.get("/analytics/events", requireAuth, requireAdmin, handler(async (req, res) => {
+router.get("/activity", requireAuth, requireAdmin, handler(async (req, res) => {
   const db = getDb();
   const { limit = 100, event } = req.query;
   const limitInt = Math.min(parseInt(limit) || 100, 500);

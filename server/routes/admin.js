@@ -138,14 +138,16 @@ router.get("/analytics", requireAuth, requireAdmin, handler(async (req, res) => 
   // Totals
   const totalUsers = await db.get("SELECT COUNT(*) as count FROM users WHERE email IS NOT NULL");
   const totalWorkouts = await db.get("SELECT COUNT(*) as count FROM workouts");
-  const activeLastWeek = await db.get(`
-    SELECT COUNT(DISTINCT user_id) as count FROM workouts
-    WHERE date >= ${sql.daysAgo(7)}
-  `);
-  const activeLastMonth = await db.get(`
-    SELECT COUNT(DISTINCT user_id) as count FROM workouts
-    WHERE date >= ${sql.daysAgo(30)}
-  `);
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
+  const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+  const activeLastWeek = await db.get(
+    "SELECT COUNT(DISTINCT user_id) as count FROM workouts WHERE date >= $1",
+    [weekAgo]
+  );
+  const activeLastMonth = await db.get(
+    "SELECT COUNT(DISTINCT user_id) as count FROM workouts WHERE date >= $1",
+    [monthAgo]
+  );
 
   // AI coach usage
   const coachUsage = await db.all(`

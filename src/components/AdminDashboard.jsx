@@ -207,17 +207,19 @@ function UsersTab() {
 function AnalyticsTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [period, setPeriod] = useState(30);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     api.get(`/admin/analytics?days=${period}`)
       .then(d => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(e => { setError(e.message || "Failed to load analytics"); setLoading(false); });
   }, [period]);
 
   if (loading) return <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 30 }}>Loading analytics...</div>;
-  if (!data) return <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", padding: 30 }}>Failed to load analytics</div>;
+  if (error || !data) return <div style={{ color: "#ef4444", fontSize: 13, textAlign: "center", padding: 30 }}>{error || "Failed to load analytics"}</div>;
 
   return (
     <div>

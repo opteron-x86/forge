@@ -1,4 +1,4 @@
-# Δ TALOS
+# TALOS Fitness App
 
 Gym tracking app with AI coaching, built for self-hosting over Tailscale.
 

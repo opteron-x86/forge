@@ -1,10 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
-//  Δ TALOS — Server Entry Point
-//  Phase 2 decomposition (audit commit 7e055db)
-//  + PostgreSQL migration: async database layer
+//  TALOS — Server Entry Point
 //
-//  This file is the slim orchestrator. All business logic lives
-//  in server/ modules and server/routes/ route handlers.
+//  This file is the slim orchestrator. 
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
@@ -33,6 +30,7 @@ import coachRoutes from "./server/routes/coach.js";
 import exportRoutes from "./server/routes/export.js";
 import { requireAuth, requireAdmin } from "./server/middleware.js";
 import waitlistRoutes from "./server/routes/waitlist.js";
+import motdRoutes from "./server/routes/motd.js";
 
 // ===================== APP SETUP =====================
 
@@ -80,6 +78,7 @@ app.use("/api/exercises",        exerciseRoutes);
 app.use("/api",                  coachRoutes);   // Handles /api/coach/* and /api/ai/*
 app.use("/api/export",           exportRoutes);
 app.use("/api/waitlist",         waitlistRoutes);
+app.use("/api/motd",             motdRoutes);
 
 // ===================== HEALTH & SPA FALLBACK =====================
 

@@ -90,7 +90,8 @@ export async function initSchema(db) {
       active_program_id TEXT,
       onboarding_complete ${BOOL} DEFAULT ${BOOL_FALSE},
       intensity_scale TEXT DEFAULT 'rpe',
-      pinned_lifts ${JSON_TYPE} DEFAULT '[]'
+      pinned_lifts ${JSON_TYPE} DEFAULT '[]',
+      motd_dismissed_id TEXT
     )
   `);
 
@@ -240,6 +241,7 @@ export async function initSchema(db) {
     `ALTER TABLE profiles ADD COLUMN onboarding_complete ${BOOL} DEFAULT ${BOOL_FALSE}`,
     `ALTER TABLE profiles ADD COLUMN pinned_lifts TEXT DEFAULT '[]'`,
     `ALTER TABLE users ADD COLUMN tier TEXT DEFAULT 'free'`,
+    "ALTER TABLE profiles ADD COLUMN motd_dismissed_id TEXT",
   ];
 
   for (const sql of migrations) {

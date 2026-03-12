@@ -1,11 +1,12 @@
 // ═══════════════════════ ADMIN DASHBOARD ═══════════════════════
-// Full-page admin dashboard with tabs: Users, Analytics, AI Config, Event Log.
+// Full-page admin dashboard with tabs: Users, Analytics, AI Config, MOTD, Event Log.
 // Replaces the main app view when open. Admin-only access.
 
 import { useState, useEffect, useCallback } from "react";
 import { useTalos } from "../context/TalosContext";
 import api from "../lib/api";
 import S from "../lib/styles";
+import MarkdownText from "./MarkdownText";
 
 // ─── Shared UI Components ────────────────────────────────────
 
@@ -682,12 +683,149 @@ function EventLogTab() {
   );
 }
 
+// ─── MOTD Tab ────────────────────────────────────────────────
+
+function MOTDTab() {
+  const [text, setText] = useState("");
+  const [current, setCurrent] = useState(null); // current live MOTD
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+  const [preview, setPreview] = useState(false);
+
+  useEffect(() => {
+    api.get("/motd")
+      .then(data => {
+        if (data.active) {
+          setText(data.text);
+          setCurrent(data);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  async function save() {
+    if (!text.trim()) return;
+    setMsg("Saving...");
+    try {
+      const res = await api.put("/motd", { text });
+      setCurrent({ active: true, text, id: res.id, updatedAt: res.updatedAt, dismissed: false });
+      setMsg("Published ✓  — all users will see the new message");
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e) {
+      setMsg("Error: " + e.message);
+    }
+  }
+
+  async function clear() {
+    if (!confirm("Clear the MOTD? Users will no longer see a notification.")) return;
+    setMsg("Clearing...");
+    try {
+      await api.del("/motd");
+      setCurrent(null);
+      setText("");
+      setMsg("Cleared ✓");
+      setTimeout(() => setMsg(""), 2000);
+    } catch (e) {
+      setMsg("Error: " + e.message);
+    }
+  }
+
+  if (loading) return <div style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", padding: 30 }}>Loading...</div>;
+
+  return (
+    <div>
+      {/* Status */}
+      <Section title="📢 Message of the Day">
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "8px 12px", background: "var(--surface2)", borderRadius: 8, marginBottom: 12,
+        }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-bright)" }}>
+              {current?.active ? "Live" : "No active message"}
+            </div>
+            {current?.updatedAt && (
+              <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>
+                Last updated: {new Date(current.updatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              </div>
+            )}
+          </div>
+          <div style={{
+            width: 10, height: 10, borderRadius: "50%",
+            background: current?.active ? "#22c55e" : "var(--border2)",
+            boxShadow: current?.active ? "0 0 8px #22c55e60" : "none",
+          }} />
+        </div>
+
+        <div style={{ fontSize: 9, color: "var(--text-dim)", marginBottom: 8 }}>
+          Supports markdown: **bold**, *italic*, `code`, lists, headings. All users see this when they tap the bell icon.
+        </div>
+
+        {/* Editor / Preview toggle */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+          <Pill active={!preview} onClick={() => setPreview(false)}>Edit</Pill>
+          <Pill active={preview} onClick={() => setPreview(true)}>Preview</Pill>
+        </div>
+
+        {preview ? (
+          <div style={{
+            background: "var(--surface2)", border: "1px solid var(--border2)", borderRadius: 8,
+            padding: "12px 14px", minHeight: 120, fontSize: 13, lineHeight: 1.5, color: "var(--text-light)",
+          }}>
+            {text.trim() ? <MarkdownText text={text} /> : (
+              <span style={{ color: "var(--text-dim)", fontStyle: "italic" }}>Nothing to preview</span>
+            )}
+          </div>
+        ) : (
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder={"Welcome to TALOS beta! 🎉\n\n**What's new:**\n- Pre-workout AI assessment\n- Exercise substitution engine\n\nReport bugs in Discord."}
+            rows={8}
+            style={{
+              ...S.input,
+              fontSize: 12,
+              lineHeight: 1.6,
+              resize: "vertical",
+              minHeight: 140,
+              fontFamily: "inherit",
+            }}
+          />
+        )}
+      </Section>
+
+      {/* Actions */}
+      {msg && <div style={{ fontSize: 11, color: msg.startsWith("Error") ? "#ef4444" : "#22c55e", marginBottom: 8, textAlign: "center" }}>{msg}</div>}
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={save}
+          disabled={!text.trim()}
+          style={{
+            ...S.btn("primary"), flex: 1,
+            opacity: text.trim() ? 1 : 0.4,
+          }}
+        >
+          {current?.active ? "Update Message" : "Publish Message"}
+        </button>
+        {current?.active && (
+          <button onClick={clear} style={{ ...S.btn("ghost"), flexShrink: 0 }}>
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ──────────────────────────────────────────
 
 const TABS = [
   { id: "users", label: "Users", icon: "👤" },
   { id: "analytics", label: "Analytics", icon: "📊" },
   { id: "ai", label: "AI Config", icon: "⚡" },
+  { id: "motd", label: "MOTD", icon: "📢" },
   { id: "events", label: "Event Log", icon: "📋" },
 ];
 
@@ -762,6 +900,7 @@ export default function AdminDashboard({ onClose }) {
         {activeTab === "users" && <UsersTab />}
         {activeTab === "analytics" && <AnalyticsTab />}
         {activeTab === "ai" && <AIConfigTab />}
+        {activeTab === "motd" && <MOTDTab />}
         {activeTab === "events" && <EventLogTab />}
       </div>
     </div>
